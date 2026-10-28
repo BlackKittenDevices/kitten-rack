@@ -4,7 +4,17 @@
  * most 16 HP); its colour says its family; the dots on its foot are the cables that reach it from other devices (left:
  * in, right: out; pumpkin audio, slime everything else). The device in focus is framed and its cables are drawn; below the
  * rack its page's four rows show, which K1..K4 turn as on the device page. SELECT: the device, ALGO: its page, SEL: its
- * device page, GLO: Main's page, HOME: back. Read only: nothing here changes the patch's modules or cables. */
+ * device page, GLO: Main's page, HOME: back.
+ *
+ * Patching (REC on the rack opens its menu): CABLE NUEVO (SELECT a module, ALGO an output, SEL grabs it; SELECT another
+ * module, ALGO an input, SEL plugs it in), CABLES (every cable; SEL twice pulls the one marked), AGREGAR (the catalog
+ * by family; SEL puts the module at the end of the rack), QUITAR ULTIMO (the last module added here, with its cables).
+ * HOME steps back, REC leaves. Each change is an edit of the running binary (patch_edit.h), loaded again as a whole: the
+ * notes sounding stop. SAVE keeps it as any edit. */
+
+#include "patch_edit.h"
+static uint8_t *rack_scratch(uint32_t *cap);           /* main.c (the upload buffer when no upload runs), host_ui.h */
+static int rack_apply(const uint8_t *bin, uint32_t len);   /* the edited binary as the running patch: 0, or eng_load's code */
 
 #define RK_HP 42u
 #define RK_X0 6u
@@ -18,6 +28,7 @@
 
 static uint8_t rk_row[PG_DEVS], rk_hp0[PG_DEVS], rk_hpw[PG_DEVS];
 static uint8_t rk_dev_of[ENG_MAX_MODULES];              /* a module's device, RK_NONE: none (inside nothing shown) */
+static uint8_t rk_mods[ENG_MAX_MODULES], rk_nmods;      /* the modules a cable can reach, in rack order */
 static uint32_t rk_nrows, rk_first, rk_gen = 0xFFFFFFFFu;
 static uint32_t rk_drawn_dev = 0xFFFFFFFFu, rk_drawn_first = 0xFFFFFFFFu;
 
@@ -123,6 +134,11 @@ static void rk_layout(void)
         }
     }
     rk_nrows = pg_ndev ? row + 1u : 0u;
+    rk_nmods = 0;
+    for (d = 0; d < pg_ndev; d++)
+        for (m = 0; m < (uint32_t)eng_nmodules() && m < ENG_MAX_MODULES; m++)
+            if (rk_dev_of[m] == d && eng_type(m) != T_PART)
+                rk_mods[rk_nmods++] = (uint8_t)m;
 }
 
 /* where device d sits on screen; 0 when its row is scrolled away */
@@ -308,6 +324,16 @@ static void rk_info(void)
     }
 }
 
+static uint8_t rk_mode;                                 /* RK_VIEW, or patching: */
+#define RK_VIEW 0u
+#define RK_MENU 1u
+#define RK_OUT 2u                                       /* a cable: its output */
+#define RK_IN 3u                                        /* .. its input */
+#define RK_LIST 4u                                      /* the cables */
+#define RK_ADD 5u                                       /* the catalog */
+static void rk_edit_draw(void);
+static void rk_edit_cable(void);
+
 static void rack_draw(int full)
 {
     uint32_t d, r;
@@ -332,6 +358,7 @@ static void rack_draw(int full)
             rk_panel(d, d == pg_cur_dev);
         if (pg_cur_dev < pg_ndev)
             rk_cables(pg_cur_dev);
+        rk_edit_cable();
         if (rk_nrows > RK_ROWS) {                        /* where the screen is in the rack */
             uint32_t h = (RK_INFO_Y - RK_Y0 - 4u) * RK_ROWS / rk_nrows, y = RK_Y0 + (RK_INFO_Y - RK_Y0 - 4u) * rk_first / rk_nrows;
             lcd_fill(237, RK_Y0, 2, RK_INFO_Y - RK_Y0 - 4u, P_PANEL);
@@ -343,12 +370,342 @@ static void rack_draw(int full)
         rk_drawn_first = rk_first;
     }
     pg_strip_dirty = 0;
-    rk_info();
+    if (rk_mode)
+        rk_edit_draw();
+    else
+        rk_info();
 }
 
 /* the RACK page opens: the focus stays where it was */
 static void rack_open(void)
 {
     pages_ensure();
+    rk_mode = RK_VIEW;
     rk_drawn_dev = 0xFFFFFFFFu;
+}
+
+/* ------------------------------------------------------------------ patching (KITTEN RACK) */
+
+static const char *const RK_MENU_ITEMS[] = {"CABLE NUEVO", "CABLES", "AGREGAR MODULO", "QUITAR ULTIMO AGREGADO"};
+#define RK_NMENU 4u
+static uint32_t rk_sel;                                 /* the menu's row, the cable list's, the catalog's */
+static uint32_t rk_mi, rk_jack;                         /* RK_OUT / RK_IN: the module (rk_mods index), its jack */
+static uint32_t rk_src, rk_src_jack;                    /* RK_IN: the output the cable comes from */
+static uint32_t rk_armed;                               /* RK_LIST: 1 + the cable SEL pulls on the next press */
+static uint32_t rk_added, rk_added_gen;                 /* modules added here since the patch came (only those can go) */
+
+static int rack_editing(void) { return rk_mode != RK_VIEW; }
+
+static void rk_redraw(void)
+{
+    rk_drawn_dev = 0xFFFFFFFFu;                         /* the panels again (the frame, the cable being made) */
+    ui_dirty = 2;
+}
+
+/* a module's name on the LCD: its Eurorack name, or its type's */
+static const char *rk_mod_name(uint32_t m)
+{
+    int t = eng_type(m);
+    const char *sh = t >= 0 ? rk_short(t) : 0;
+    return sh ? sh : t >= 0 ? DEFS[t].name : "?";
+}
+
+static uint32_t rk_jacks(uint32_t m, int out)
+{
+    int t = eng_type(m);
+    return t < 0 ? 0u : out ? DEFS[t].nout : DEFS[t].nin;
+}
+static const char *rk_jack_name(uint32_t m, uint32_t j, int out)
+{
+    int t = eng_type(m);
+    if (t < 0 || j >= rk_jacks(m, out))
+        return "";
+    return out ? RK_OUTNAMES[t][j] : RK_INNAMES[t][j];
+}
+
+/* the module in focus follows the rack's device focus (and the other way round) */
+static void rk_focus_mod(void)
+{
+    uint32_t i;
+    rk_layout();
+    for (i = 0; i < rk_nmods; i++)
+        if (rk_dev_of[rk_mods[i]] == pg_cur_dev) {
+            rk_mi = i;
+            break;
+        }
+    rk_jack = 0;
+}
+static uint32_t rk_cur_mod(void) { return rk_mi < rk_nmods ? rk_mods[rk_mi] : 0xFFu; }
+
+/* SELECT on the rack while patching */
+static void rk_turn(int32_t sel, int32_t algo)
+{
+    uint32_t n;
+    rk_layout();
+    if (rk_mode == RK_MENU || rk_mode == RK_LIST || rk_mode == RK_ADD) {
+        n = rk_mode == RK_MENU ? RK_NMENU : rk_mode == RK_LIST ? (uint32_t)eng_ncables() : RK_NCAT;
+        if (n && (sel || algo)) {
+            rk_sel = (uint32_t)(((int32_t)rk_sel + (sel + algo) % (int32_t)n + (int32_t)n) % (int32_t)n);
+            rk_armed = 0;
+            ui_dirty = ui_dirty ? ui_dirty : 1;
+        }
+        return;
+    }
+    if ((rk_mode == RK_OUT || rk_mode == RK_IN) && rk_nmods) {
+        if (sel) {
+            rk_mi = (uint32_t)(((int32_t)rk_mi + sel % (int32_t)rk_nmods + (int32_t)rk_nmods) % (int32_t)rk_nmods);
+            rk_jack = 0;
+            (void)pages_focus(rk_dev_of[rk_mods[rk_mi]], 0);
+            rk_redraw();
+        }
+        n = rk_jacks(rk_cur_mod(), rk_mode == RK_OUT);
+        if (algo && n) {
+            rk_jack = (uint32_t)(((int32_t)rk_jack + algo % (int32_t)n + (int32_t)n) % (int32_t)n);
+            ui_dirty = ui_dirty ? ui_dirty : 1;
+        }
+    }
+}
+
+/* the running patch copied into the scratch buffer to edit; 0 when there is none or no room */
+static uint8_t *rk_begin(uint32_t *len, uint32_t *cap)
+{
+    const uint8_t *src = pages_src(len);
+    uint8_t *b = rack_scratch(cap);
+    uint32_t i;
+    if (!src || !b || *len > *cap) {
+        ui_msg("NO SE PUEDE AHORA", 1500);
+        return 0;
+    }
+    for (i = 0; i < *len; i++)
+        b[i] = src[i];
+    if (eng_upgrade(b, len, *cap)) {                    /* (the running patch is today's format on the FM-1: proto.c) */
+        ui_msg("PATCH LLENO", 1500);
+        return 0;
+    }
+    return b;
+}
+/* the edit's outcome: loaded and said, or why not */
+static int rk_finish(uint8_t *b, uint32_t len, int rc, const char *done)
+{
+    if (rc == 0 && (rc = rack_apply(b, len)) != 0) {
+        ui_msg(rc == -4 ? "EL FM-1 TIENE UNO SOLO" : "EL MOTOR NO LO TOMA", 2000);
+        return rc;
+    }
+    if (rc)
+        ui_msg(rc == -2 ? "PATCH LLENO" : rc == -3 ? "LIMITE DEL FM-1" : rc == -4 ? "YA ESTA" : "NO SE PUEDE AQUI", 1500);
+    else {
+        ui_msg(done, 1200);
+        rk_added_gen = pages_gen();                     /* (our own edit: what was added here still counts) */
+    }
+    rk_gen = 0xFFFFFFFFu;                               /* the rack again (the pages follow the new binary) */
+    rk_redraw();
+    return rc;
+}
+
+/* SEL on the rack while patching */
+static void rk_sel_press(void)
+{
+    uint8_t *b;
+    uint32_t len, cap;
+    if (rk_added_gen != pages_gen())
+        rk_added = 0;                                   /* (another patch came meanwhile) */
+    if (rk_mode == RK_MENU) {
+        if (rk_sel == 0u) {
+            rk_mode = RK_OUT;
+            rk_focus_mod();
+        } else if (rk_sel == 1u) {
+            rk_mode = RK_LIST;
+            rk_sel = 0;
+            rk_armed = 0;
+        } else if (rk_sel == 2u) {
+            rk_mode = RK_ADD;
+            rk_sel = 0;
+        } else if (!rk_added) {
+            ui_msg("NADA AGREGADO AQUI", 1500);
+        } else if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, len, pe_module_pop(b, &len), "QUITADO") == 0) {
+            rk_added--;
+            rk_added_gen = pages_gen();
+            if (pg_cur_dev >= pg_ndev && pg_ndev)
+                (void)pages_focus(pg_ndev - 1u, 0);
+        }
+        rk_redraw();
+        return;
+    }
+    if (rk_mode == RK_OUT) {
+        if (!rk_jacks(rk_cur_mod(), 1)) {
+            ui_msg("SIN SALIDAS", 1200);
+            return;
+        }
+        rk_src = rk_cur_mod();
+        rk_src_jack = rk_jack;
+        rk_mode = RK_IN;
+        rk_jack = 0;
+        rk_redraw();
+        return;
+    }
+    if (rk_mode == RK_IN) {
+        if (!rk_jacks(rk_cur_mod(), 0)) {
+            ui_msg("SIN ENTRADAS", 1200);
+            return;
+        }
+        if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, len, pe_cable_add(b, &len, cap, rk_src, rk_src_jack, rk_cur_mod(), rk_jack), "CABLE LISTO") == 0) {
+            rk_mode = RK_OUT;                           /* another cable from the same module, or SELECT on */
+            rk_focus_mod();
+        }
+        rk_redraw();
+        return;
+    }
+    if (rk_mode == RK_LIST) {
+        if (!eng_ncables())
+            return;
+        if (rk_armed != rk_sel + 1u) {
+            rk_armed = rk_sel + 1u;                     /* the first press marks it; the second pulls it */
+            ui_dirty = ui_dirty ? ui_dirty : 1;
+            return;
+        }
+        rk_armed = 0;
+        if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, len, pe_cable_del(b, &len, rk_sel), "CABLE AFUERA") == 0 && rk_sel && rk_sel >= (uint32_t)eng_ncables())
+            rk_sel--;
+        return;
+    }
+    if (rk_mode == RK_ADD) {
+        uint32_t before = (uint32_t)eng_nmodules();
+        if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, len, pe_module_add(b, &len, cap, RK_CAT_TYPE[rk_sel]), "AGREGADO") == 0) {
+            rk_added++;
+            rk_added_gen = pages_gen();
+            rk_layout();
+            if (before < ENG_MAX_MODULES && rk_dev_of[before] != RK_NONE)
+                (void)pages_focus(rk_dev_of[before], 0);   /* the new panel in focus */
+            rk_mode = RK_VIEW;
+        }
+        rk_redraw();
+    }
+}
+
+/* REC on the rack: the patching menu, again: out of it */
+static void rk_rec_press(void)
+{
+    rk_mode = rk_mode == RK_VIEW ? RK_MENU : RK_VIEW;
+    rk_sel = 0;
+    rk_armed = 0;
+    rk_redraw();
+}
+/* HOME while patching: a step back (0: not patching, HOME does its own) */
+static int rk_back(void)
+{
+    if (rk_mode == RK_VIEW)
+        return 0;
+    rk_mode = rk_mode == RK_IN ? RK_OUT : rk_mode == RK_MENU ? RK_VIEW : RK_MENU;
+    rk_sel = 0;
+    rk_armed = 0;
+    rk_redraw();
+    return 1;
+}
+
+/* RK_IN: the cable being made, from its output's panel to the panel in focus */
+static void rk_edit_cable(void)
+{
+    uint32_t ax, ay, aw, bx, by, bw, da, db;
+    if (rk_mode != RK_IN || rk_src >= ENG_MAX_MODULES || rk_cur_mod() >= ENG_MAX_MODULES)
+        return;
+    da = rk_dev_of[rk_src];
+    db = rk_dev_of[rk_cur_mod()];
+    if (da == RK_NONE || db == RK_NONE || !rk_box(da, &ax, &ay, &aw) || !rk_box(db, &bx, &by, &bw))
+        return;
+    if (da == db) {
+        lcd_fill(ax + aw / 2u - 3u, ay + RK_ROW_H - 9u, 6, 6, P_LILAC);
+        return;
+    }
+    rk_curve((int32_t)(ax + aw / 2u), (int32_t)(ay + RK_ROW_H - 12u), (int32_t)(bx + bw / 2u), (int32_t)(by + RK_ROW_H - 12u), P_LILAC);
+}
+
+/* a list of n rows in the info area, the row `cur` among them (title above), row text by `row` */
+static void rk_list(const char *title, uint32_t n, uint32_t cur, void (*row)(uint32_t i, char *out), uint32_t mark)
+{
+    uint32_t k, first = cur >= 3u ? cur - 2u : 0u;
+    char t[96];
+    lcd_fill(0, RK_INFO_Y, 240, 240u - RK_INFO_Y, P_NIGHT);
+    text5x7(RK_X0, RK_INFO_Y, title, 1, P_CORAL, P_NIGHT);
+    if (first + 4u > n)
+        first = n > 4u ? n - 4u : 0u;
+    for (k = 0; k < 4u && first + k < n; k++) {
+        uint32_t i = first + k, y = RK_INFO_Y + 11u + k * 11u;
+        int on = i == cur;
+        t[0] = on ? '>' : ' ';
+        t[1] = ' ';
+        row(i, t + 2);
+        t[37] = 0;
+        if (on)
+            lcd_fill(RK_X0 - 2u, y - 2u, 232, 11, mark == i + 1u ? 0xF800u : P_PANEL);
+        text5x7(RK_X0, y, t, 1, on ? P_INK : P_DIM, on ? (mark == i + 1u ? 0xF800u : P_PANEL) : P_NIGHT);
+    }
+    if (!n)
+        text5x7(RK_X0, RK_INFO_Y + 11u, "  (NADA)", 1, P_FAINT, P_NIGHT);
+}
+
+static void rk_row_menu(uint32_t i, char *out) { put(out, RK_MENU_ITEMS[i])[0] = 0; }
+static void rk_row_cable(uint32_t i, char *out)
+{
+    uint32_t from = 0, fp = 0, to = 0, tp = 0;
+    char *q;
+    eng_cable(i, &from, &fp, &to, &tp);
+    q = put(out, rk_mod_name(from));
+    q = put(q, " ");
+    q = put(q, rk_jack_name(from, fp, 1));
+    q = put(q, ">");
+    q = put(q, rk_mod_name(to));
+    q = put(q, " ");
+    q = put(q, rk_jack_name(to, tp, 0));
+    *q = 0;
+}
+static void rk_row_cat(uint32_t i, char *out)
+{
+    char *q = put(out, RK_CAT_LABEL[i]);
+    q = put(q, "  ");
+    q = put(q, RK_FAMNAME[RK_CAT_FAM[i]]);
+    *q = 0;
+}
+static int rk_jack_out;
+static void rk_row_jack(uint32_t i, char *out)
+{
+    uint32_t m = rk_cur_mod(), k, n = 0, from = 0, fp = 0, to = 0, tp = 0;
+    char *q = put(out, rk_jack_name(m, i, rk_jack_out)), num[8];
+    for (k = 0; k < (uint32_t)eng_ncables(); k++) {   /* the cables on it already */
+        eng_cable(k, &from, &fp, &to, &tp);
+        n += rk_jack_out ? (from == m && fp == i) : (to == m && tp == i);
+    }
+    if (n) {
+        fmt_int(num, (int32_t)n);
+        q = put(put(put(q, "  ("), num), ")");
+    }
+    *q = 0;
+}
+
+static void rk_edit_draw(void)
+{
+    char t[48], *q;
+    switch (rk_mode) {
+    case RK_MENU:
+        rk_list("PATCHEO  (REC SALE)", RK_NMENU, rk_sel, rk_row_menu, 0);
+        break;
+    case RK_LIST:
+        rk_list(rk_armed ? "CABLES  SEL DE NUEVO: AFUERA" : "CABLES  SEL MARCA", (uint32_t)eng_ncables(), rk_sel, rk_row_cable, rk_armed);
+        break;
+    case RK_ADD:
+        rk_list("AGREGAR  SEL PONE", RK_NCAT, rk_sel, rk_row_cat, 0);
+        break;
+    case RK_OUT:
+    case RK_IN:
+        rk_jack_out = rk_mode == RK_OUT;
+        if (rk_mode == RK_OUT)
+            q = put(put(t, "SALIDA DE "), rk_mod_name(rk_cur_mod()));
+        else
+            q = put(put(put(put(put(t, rk_mod_name(rk_src)), " "), rk_jack_name(rk_src, rk_src_jack, 1)), " > "), rk_mod_name(rk_cur_mod()));
+        *q = 0;
+        t[38] = 0;
+        rk_list(t, rk_jacks(rk_cur_mod(), rk_jack_out), rk_jack, rk_row_jack, 0);
+        break;
+    default:
+        break;
+    }
 }

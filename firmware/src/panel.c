@@ -411,6 +411,11 @@ static void panel_encoders(int32_t *st)
             ui_dirty = ui_dirty ? ui_dirty : 1;
         st[0] = st[1] = 0;
     }
+    if (page == PAGE_RACK && rack_editing()) {      /* the rack while patching (rack_ui.c): SELECT / ALGO its lists; K1..K4 rest */
+        rk_turn(st[0], st[1]);
+        for (k = 0; k < 6u; k++)
+            st[k] = 0;
+    }
     if (page == PAGE_RACK) {                        /* the rack: SELECT the device, ALGO its page; K1..K4 turn it as below */
         int dev = pages_select(st[0]), pg = pages_page(st[1]);
         if (dev | pg) {
@@ -574,6 +579,10 @@ static uint8_t env_held_used;
 static void sel_open(void)
 {
     pages_ensure();
+    if (page == PAGE_RACK && rack_editing()) {      /* (patching: SEL picks, rack_ui.c) */
+        rk_sel_press();
+        return;
+    }
     if (page == PAGE_ENV || page == PAGE_RACK) {   /* (the rack: SEL opens the device in focus) */
         page_set(0);
         m1_focus_now(pg_cur_dev, pg_cur_page);
@@ -678,6 +687,10 @@ static void panel_edges(uint32_t p, uint32_t rel)
     }
     if (rel & (1u << BTN_SEQ))
         seq_held_used = 0;
+    if ((rel & (1u << BTN_REC)) && !rec_held_used && page == PAGE_RACK) {   /* REC on the rack: patching (rack_ui.c) */
+        rk_rec_press();
+        rel &= ~(1u << BTN_REC);
+    }
     if ((rel & (1u << BTN_REC)) && !rec_held_used && page == PAGE_ENV) {   /* REC on the environment: the row's arm (#191, #198) */
         env_arm_toggle();
         rel &= ~(1u << BTN_REC);
@@ -739,8 +752,8 @@ static void panel_edges(uint32_t p, uint32_t rel)
             page_set(PAGE_MENU);
     }
     if (rel & (1u << BTN_HOME)) {
-        if (home_t0 && !(home_t0 & 2u))
-            screen_back();                          /* a tap: one step back (out of the menu, the SEQ page ...) */
+        if (home_t0 && !(home_t0 & 2u) && !(page == PAGE_RACK && rk_back()))
+            screen_back();                          /* a tap: one step back (out of the menu, the SEQ page ...; patching's own) */
         home_t0 = 0;
     }
     if (p & (1u << BTN_PLAY))                       /* PLAY acts on release, unless PRESET turned the tempo meanwhile */

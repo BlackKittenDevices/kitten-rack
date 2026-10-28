@@ -2,7 +2,7 @@
 
 Un Eurorack virtual para el **M-VAVE FM-1**: módulos con panel, jacks y cables, donde cualquier salida va a cualquier entrada. Se arma, se toca y se guarda como un instrumento, no como un groovebox. Estética de Halloween y gatos negros, de [Black Kitten Devices](https://github.com/BlackKittenDevices).
 
-> **Estado: en desarrollo, todavía no se probó en el FM-1.** Por ahora hay un editor web nuevo. El firmware es el de Matryoshka 1.5.1 sin cambios, hasta que el rack llegue a la pantalla del FM-1.
+> **Estado: en desarrollo, todavía no se probó en un FM-1 real.** Todo lo de abajo se probó en la computadora (los dos motores comparados muestra por muestra y la pantalla del FM-1 simulada), no en el aparato.
 
 ## Sobre los hombros de gigantes
 
@@ -50,8 +50,25 @@ Además de los módulos de Matryoshka, KITTEN RACK suma estos (formato de patch 
 | Marbles | Notas al azar en una escala, con dispersión, deja vu, largo y densidad |
 | Bernoulli | Cada disparo va a A o a B según una probabilidad, en modo disparo o latch |
 | Caos | Atractor de Lorenz: tres CV lentas que nunca se repiten |
+| VCF Muug | La escalera Minimoog de FMini-1: corte -5..+5 y énfasis 0..10 como los diales del original; pasado 8 autooscila y canta una senoidal afinada (1 V/oct con TRACK) |
 
-El editor trae tres patches de ejemplo en **Fábrica… › KITTEN RACK**.
+Y dos modos nuevos en efectos que ya estaban:
+
+- **Delay, CINTA (0..1):** eco de cinta. La cabeza tiembla (wow lento y flutter rápido), cada vuelta pierde agudos y satura suave.
+- **Reverb, RESORTE (on/off):** tanque de resortes. Ecos separados, el "boing" de la dispersión y la banda recortada, fina y goteante.
+
+El editor trae cuatro patches de ejemplo en **Fábrica… › KITTEN RACK** (el nuevo, *muug tape*, junta el Muug, la cinta y el resorte).
+
+## Patchear en el FM-1
+
+GLO abre el RACK. Ahí, **REC** abre el menú PATCHEO:
+
+- **CABLE NUEVO:** SELECT elige el módulo, ALGO la salida, SEL la agarra. Después SELECT va al otro módulo, ALGO elige la entrada y SEL enchufa.
+- **CABLES:** la lista de todos los cables. SEL marca uno en rojo y SEL otra vez lo saca.
+- **AGREGAR MODULO:** el catálogo por familias. SEL pone el módulo al final del rack.
+- **QUITAR ULTIMO AGREGADO:** saca el último módulo que agregaste desde el aparato, con sus cables.
+
+HOME vuelve un paso y REC sale. Cada cambio vuelve a cargar el patch entero, así que las notas que suenan se cortan. SAVE lo guarda como cualquier edición. Si el motor no tiene lugar (el FM-1 tiene un solo delay, una sola reverb y un solo chorus), avisa y el patch queda como estaba.
 
 ## Firmware
 
@@ -61,7 +78,7 @@ El workflow `.github/workflows/firmware.yml` compila el firmware en GitHub Actio
 
 El documento de diseño cubre el concepto, el catálogo de módulos, la interfaz del FM-1 y las etapas. Lo próximo:
 
-1. Identidad propia del firmware (nombre e identidad `FM-1_xxx` en el instalador).
-2. El rack en la pantalla del FM-1: grilla, modo cable, agregar y mover módulos.
-3. VCOs generativos (Turing, Marbles, Euclídeo, Drift) y el VCF ladder de Muug.
-4. Secuenciador de 64 pasos fuera del patch.
+1. Probarlo en el FM-1, juntos y con backup.
+2. Mover módulos de lugar en el rack desde el aparato, y que el editor web lea los cambios hechos en el FM-1.
+3. Secuenciador de 64 pasos fuera del patch.
+4. Manual en español.

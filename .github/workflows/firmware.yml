@@ -26,6 +26,8 @@ on:
       - web/src/labels.ts
       - web/src/rate-envelope.ts
       - web/src/modules.ts
+      - web/src/muugTables.ts
+      - web/src/rack/catalog.ts
       - web/src/parameter-routing.ts
       - web/src/patch.ts
       - web/src/patchbin.ts
@@ -129,6 +131,7 @@ jobs:
           tools/usb_test.sh
           tools/panel_test.sh
           tools/preset_test.sh
+          tools/patch_edit_test.sh
           tools/ui_preview.sh build/ui-preview.png 0 1
       - uses: actions/upload-artifact@v4
         with:

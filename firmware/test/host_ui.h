@@ -254,6 +254,26 @@ static void m1_pattern_now(void) { host_pattern_told++; }
 static void m1_song_now(uint32_t s) { (void)s; host_song_told++; }
 #endif
 #include "../src/seq_ui.c"
+/* rack_ui.c's patching on the previewed binary: edited in a copy, loaded, then the preview's */
+static uint8_t host_rack_buf[4096];
+static uint8_t *rack_scratch(uint32_t *cap) { *cap = 3840u; return host_rack_buf; }   /* (proto.c M1_PATCH_MAX) */
+static int rack_apply(const uint8_t *bin, uint32_t len)
+{
+    uint32_t i;
+    int rc;
+    if (len > sizeof pv_bin)
+        return -2;
+    if ((rc = eng_load(bin, len)) != 0) {
+        (void)eng_load(pv_bin, pv_len);             /* (eng_load cleared the engine even when it failed) */
+        return rc;
+    }
+    for (i = 0; i < len; i++)
+        pv_bin[i] = bin[i];
+    pv_len = len;
+    pv_gen++;
+    m1_edited = 1;
+    return 0;
+}
 #include "../src/rack_ui.c"
 #include "../src/splash.c"
 

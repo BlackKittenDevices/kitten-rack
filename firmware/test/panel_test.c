@@ -1134,6 +1134,73 @@ int main(void)
         eng_set_param((uint32_t)main, FM1_P_TEMPO, bpm);
     }
 
+    {                                                       /* KITTEN RACK: patching on the rack (REC) */
+        static uint8_t orig[4096];
+        uint32_t olen = pv_len, nm = (uint32_t)eng_nmodules(), nc = (uint32_t)eng_ncables(), i, muug = 0, last, from, fp, to, tp;
+        for (i = 0; i < pv_len; i++)
+            orig[i] = pv_bin[i];
+        for (i = 0; i < RK_NCAT; i++)
+            if (RK_CAT_TYPE[i] == T_MUUG)
+                muug = i;
+        tap(7);
+        tap(BTN_REC);
+        check("REC on the rack: the patching menu, no recording", page == PAGE_RACK && rack_editing() && rk_mode == RK_MENU && seq_rec == 0);
+        if (getenv("PANEL_SNAP_PATCH_MENU")) { setenv("PANEL_SNAP", getenv("PANEL_SNAP_PATCH_MENU"), 1); snap(); }
+        enc(0, 2);
+        tap(BTN_SEL);
+        check("  AGREGAR: the catalog", rk_mode == RK_ADD);
+        enc(0, (int32_t)muug);
+        if (getenv("PANEL_SNAP_PATCH_ADD")) { setenv("PANEL_SNAP", getenv("PANEL_SNAP_PATCH_ADD"), 1); snap(); }
+        tap(BTN_SEL);
+        last = (uint32_t)eng_nmodules() - 1u;
+        check("  SEL: a VCF Muug at the end of the rack, in focus, the rack again", eng_nmodules() == (int)nm + 1 && eng_type(last) == T_MUUG
+              && rk_mode == RK_VIEW && rk_dev_of[last] == pg_cur_dev && m1_edited);
+        tap(BTN_REC);
+        tap(BTN_SEL);
+        check("  CABLE NUEVO: an output of the module in focus", rk_mode == RK_OUT && rk_cur_mod() == last);
+        for (i = 0; i < 64u && rk_cur_mod() != 0u; i++)
+            enc(0, 1);
+        check("  SELECT: on to MIDI-CV", rk_cur_mod() == 0u);
+        tap(BTN_SEL);
+        check("  SEL: its first output in hand, now an input", rk_mode == RK_IN && rk_src == 0u && rk_src_jack == 0u);
+        for (i = 0; i < 64u && rk_cur_mod() != last; i++)
+            enc(0, -1);
+        enc(1, 1);
+        if (getenv("PANEL_SNAP_PATCH_IN")) { setenv("PANEL_SNAP", getenv("PANEL_SNAP_PATCH_IN"), 1); snap(); }
+        tap(BTN_SEL);
+        eng_cable((uint32_t)eng_ncables() - 1u, &from, &fp, &to, &tp);
+        check("  SEL on the Muug's CV: the cable is in the engine, the next one starts", eng_ncables() == (int)nc + 1 && from == 0u && fp == 0u && to == last && tp == 1u && rk_mode == RK_OUT);
+        tap(BTN_HOME);
+        check("  HOME: the menu", rk_mode == RK_MENU);
+        enc(0, 1);
+        tap(BTN_SEL);
+        enc(0, -1);
+        tap(BTN_SEL);
+        check("  CABLES, the last one, SEL: marked, still there", rk_mode == RK_LIST && rk_armed == (uint32_t)eng_ncables() && eng_ncables() == (int)nc + 1);
+        if (getenv("PANEL_SNAP_PATCH_LIST")) { setenv("PANEL_SNAP", getenv("PANEL_SNAP_PATCH_LIST"), 1); snap(); }
+        tap(BTN_SEL);
+        check("  SEL again: pulled", eng_ncables() == (int)nc && rk_armed == 0u);
+        tap(BTN_HOME);
+        enc(0, 3);
+        check("  (the Muug still in)", eng_nmodules() == (int)nm + 1);
+        tap(BTN_SEL);
+        {
+            uint32_t ul = olen;
+            (void)eng_upgrade(orig, &ul, sizeof orig);
+            for (i = 0; i < ul && i < pv_len && orig[i] == pv_bin[i]; i++)
+                ;
+            check("  QUITAR ULTIMO AGREGADO: the Muug out, the patch's bytes as they were (today's format)", eng_nmodules() == (int)nm && ul == pv_len && i == ul);
+        }
+        tap(BTN_SEL);
+        check("  again: nothing more of ours to take out", eng_nmodules() == (int)nm);
+        tap(BTN_REC);
+        check("REC: the rack again", !rack_editing() && page == PAGE_RACK);
+        tap(BTN_HOME);
+        check("  HOME: the device page", page == 0);
+        (void)olen;
+        (void)orig;
+    }
+
     panel_keys(1u << 7);                                    /* a key: a note, sent out */
     check("a key plays a note (MIDI out asked)", (key_sounding & (1u << 7)) && midi_out > 0);
     panel_keys(0);

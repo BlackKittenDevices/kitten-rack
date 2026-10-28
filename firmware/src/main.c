@@ -580,6 +580,41 @@ static int poly_row_set(uint32_t mod, uint32_t field, int32_t v)
     return 0;
 }
 
+/* KITTEN RACK: patching on the rack page (rack_ui.c, patch_edit.h). The edit is made in the upload buffer (free unless the
+ * editor is sending a patch), loaded, and only then is it the running patch; one the engine refuses leaves the old one
+ * playing. SAVE stores it as any edit */
+static uint8_t *rack_scratch(uint32_t *cap)
+{
+    *cap = M1_PATCH_MAX;
+    return m1_up_total ? 0 : m1_up;
+}
+static int rack_apply(const uint8_t *bin, uint32_t len)
+{
+    uint32_t i;
+    int rc;
+    if (len > M1_PATCH_MAX || !m1_valid(bin, len))
+        return -1;
+    eng_run = 0;                                /* the ISR renders silence while the patch is replaced */
+    __asm__ volatile("" ::: "memory");
+    rc = eng_load(bin, len);
+    if (rc)
+        (void)eng_load(m1_cur, m1_cur_len);     /* (eng_load cleared the engine even when it failed) */
+    else
+        eng_overload_clear();
+    __asm__ volatile("" ::: "memory");
+    eng_run = 1;
+    if (rc)
+        return rc;
+    for (i = 0; i < len; i++)
+        m1_cur[i] = bin[i];
+    m1_cur_len = len;
+    m1_edited = 1;
+    m1_gen++;                                   /* the device pages and the rack again */
+    leds_avail();
+    ui_full = 1;
+    return 0;
+}
+
 #include "midi_input.h"
 
 /* MASTER pot (ADC 0..1023, square law): read before the audio starts, then smoothed per main-loop pass */
