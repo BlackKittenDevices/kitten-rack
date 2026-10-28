@@ -151,7 +151,7 @@ static char *put_hundredths(char *d, int32_t x, int decimals)
 /* a Q16 number, three significant figures: 1200, 12.5, 0.25 */
 static char *put_num(char *d, int32_t q16)
 {
-    int64_t x = ((int64_t)q16 * 100) / 65536;            /* hundredths */
+    int64_t x = ((int64_t)q16 * 100 + (q16 < 0 ? -32768 : 32768)) / 65536;   /* hundredths, rounded (KITTEN RACK: 0.70, not 0.69) */
     int64_t a = x < 0 ? -x : x;
     return put_hundredths(d, (int32_t)x, a >= 10000 ? 0 : a >= 1000 ? 1 : 2);
 }

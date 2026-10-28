@@ -726,7 +726,10 @@ static void value_parts(const def_t *d, uint32_t j, int32_t q16, char *num, char
         put(unit, "ms")[0] = 0;
         return;
     }
-    *put_num(num, q16) = 0;
+    if (d->pinc && d->pinc[j] >= 65536 && !(d->pinc[j] & 0xFFFF) && !(q16 & 0xFFFF))
+        fmt_int(num, q16 >> 16);                        /* KITTEN RACK: a whole-step parameter as a whole number (8, not 8.00) */
+    else
+        *put_num(num, q16) = 0;
     put(unit, str_eq(u, "HZ") ? "Hz" : str_eq(u, "S") ? "s" : str_eq(u, "MS") ? "ms" : str_eq(u, "DB") ? "dB" : str_eq(u, "BPM") ? "bpm" : str_eq(u, "CT") ? "ct" : str_eq(u, "ST") ? "st" : str_eq(u, "OCT") ? "oct" : u)[0] = 0;
 }
 

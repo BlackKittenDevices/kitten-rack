@@ -49,6 +49,15 @@ int main(int argc, char **argv)
                 bin[8 + ENG_GROUP_REC + i] = 1;  /* eng_load keeps delay, reverb, chorus, granular and output out */
             len += extra;
         }
+        if (getenv("PATCHFILE")) {                         /* KITTEN RACK: any binary patch (.m1p) instead of the preset */
+            FILE *pf = fopen(getenv("PATCHFILE"), "rb");
+            if (!pf) {
+                fprintf(stderr, "no such patch file\n");
+                return 1;
+            }
+            len = (uint32_t)fread(bin, 1, sizeof pv_bin, pf);
+            fclose(pf);
+        }
         pv_len = len;
         if (eng_load(bin, len)) {
             fprintf(stderr, "eng_load failed\n");
@@ -97,7 +106,7 @@ int main(int argc, char **argv)
         int t = atoi(argv[8]), max = (int)MAN_N - (int)MAN_VIS;
         man_top = (uint32_t)(t < 0 ? 0 : t > max ? max : t);
     }
-    patch_label = PRESET_LIST[p].name;
+    patch_label = getenv("PATCHNAME") ? getenv("PATCHNAME") : PRESET_LIST[p].name;
     if (getenv("MIDIOUT"))
         cfg.midi_out = (uint8_t)atoi(getenv("MIDIOUT"));
     if (getenv("SANDBOX")) {                                /* sandbox mode: the card, or (2) a page of the editor's */
