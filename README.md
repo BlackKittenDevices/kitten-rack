@@ -36,6 +36,23 @@ cd web
 npx vitest run src/rack
 ```
 
+## Módulos propios de KITTEN RACK
+
+Además de los módulos de Matryoshka, KITTEN RACK suma estos (formato de patch 49, en los dos motores, comparados muestra por muestra con `tools/golden.sh`):
+
+| Módulo | Qué hace |
+| --- | --- |
+| LPG | Low pass gate estilo Buchla: un vactrol abre un filtro y un VCA; la entrada GOLPE lo abre de golpe (el "bonk") |
+| Función | Generador de funciones estilo Maths: subida, bajada, curva, ciclo; con cable en IN es un slew; salidas EOR y EOC |
+| Ring mod | Modulador en anillo, modo ring o AM |
+| Turing | Turing Machine: melodía al azar que se repite y muta; da pitch, gate, CV y además suena |
+| Euclídeo | Ritmos euclídeos: golpes repartidos en pasos, con rotación y reset |
+| Marbles | Notas al azar en una escala, con dispersión, deja vu, largo y densidad |
+| Bernoulli | Cada disparo va a A o a B según una probabilidad, en modo disparo o latch |
+| Caos | Atractor de Lorenz: tres CV lentas que nunca se repiten |
+
+El editor trae tres patches de ejemplo en **Fábrica… › KITTEN RACK**.
+
 ## Firmware
 
 El workflow `.github/workflows/firmware.yml` compila el firmware en GitHub Actions en cada cambio de `firmware/` (el compilador de JieLi solo corre en Linux x86-64). Antes de instalar algo en un FM-1, leé las advertencias del [README original](README-matryoshka.md): **nunca instales un firmware sin la actualización por USB de Felucca**, porque es la vía de vuelta.

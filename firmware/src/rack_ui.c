@@ -29,12 +29,14 @@ static uint16_t rk_family(int t)
     switch (t) {
     case T_OSC: case T_NOISE: case T_STRING: case T_WAVETABLE: case T_MODAL: case T_PD: case T_RATIO:
         return P_CORAL;                                 /* sources: pumpkin */
-    case T_FILTER: case T_LADDER: case T_VOWEL: case T_COMB: case T_SHAPE:
+    case T_TURING:
+        return P_CORAL;                                 /* (the Turing machine sounds too) */
+    case T_FILTER: case T_LADDER: case T_VOWEL: case T_COMB: case T_SHAPE: case T_LPG:
         return P_GOLD;                                  /* filters: candle */
-    case T_VCA: case T_MIXER: case T_PAN: case T_XFADE: case T_SELECT: case T_DYN:
+    case T_VCA: case T_MIXER: case T_PAN: case T_XFADE: case T_SELECT: case T_DYN: case T_RING:
         return P_SAND;                                  /* VCAs and mixing: bone */
     case T_ADSR: case T_ENV: case T_ENV8: case T_RATEENV: case T_LFO: case T_GLIDE: case T_PULSE: case T_MACRO:
-    case T_RANDOM: case T_SH:
+    case T_RANDOM: case T_SH: case T_FUNC: case T_CHAOS:
         return P_SEA;                                   /* modulation: slime */
     case T_DELAY: case T_REVERB: case T_CHORUS: case T_PHASER: case T_CRUSH: case T_SHIFT: case T_GRAIN:
         return P_LILAC;                                 /* effects: witch purple */
@@ -65,6 +67,9 @@ static const char *rk_short(int t)
     case T_LOGIC: return "LOGIC";   case T_CONST: return "OFFSET";   case T_SCALE: return "ATTEN";
     case T_RATIO: return "RATIO";   case T_ARP: return "ARP";        case T_DRUMMAP: return "DRUMS";
     case T_OUTPUT: return "OUT";
+    case T_LPG: return "LPG";        case T_FUNC: return "FUNCTION"; case T_RING: return "RING";
+    case T_TURING: return "TURING";  case T_EUCLID: return "EUCLID";  case T_MARBLES: return "MARBLES";
+    case T_BERN: return "BERNOULLI"; case T_CHAOS: return "CHAOS";
     default: return 0;
     }
 }

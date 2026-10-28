@@ -3,7 +3,7 @@
 #pragma once
 #include <stdint.h>
 
-#define N_TYPES 50
+#define N_TYPES 58
 enum {
     T_FM1,
     T_OSC,
@@ -55,6 +55,14 @@ enum {
     T_RATEENV,
     T_RATIO,
     T_ESP,
+    T_LPG,
+    T_FUNC,
+    T_RING,
+    T_TURING,
+    T_EUCLID,
+    T_MARBLES,
+    T_BERN,
+    T_CHAOS,
 };
 
 /* fm1: Main */
@@ -972,6 +980,141 @@ enum {
 #define ESP_CVBASE 1
 #define ESP_NDATA 0
 
+/* lpg: Low pass gate */
+#define LPG_I_IN 0
+#define LPG_I_CV 1
+#define LPG_I_STRIKE 2
+#define LPG_I_P1 3
+#define LPG_I_P2 4
+#define LPG_O_OUT 0
+#define LPG_P_MODE 0
+#define LPG_P_DECAY 1
+#define LPG_P_OFFSET 2
+#define LPG_P_LEVEL 3
+#define LPG_NIN 5
+#define LPG_NOUT 1
+#define LPG_NPAR 4
+#define LPG_CVBASE 3
+#define LPG_NDATA 0
+
+/* func: Function */
+#define FUNC_I_TRIG 0
+#define FUNC_I_IN 1
+#define FUNC_I_P1 2
+#define FUNC_I_P2 3
+#define FUNC_O_OUT 0
+#define FUNC_O_INV 1
+#define FUNC_O_EOR 2
+#define FUNC_O_EOC 3
+#define FUNC_P_RISE 0
+#define FUNC_P_FALL 1
+#define FUNC_P_SHAPE 2
+#define FUNC_P_CYCLE 3
+#define FUNC_NIN 4
+#define FUNC_NOUT 4
+#define FUNC_NPAR 4
+#define FUNC_CVBASE 2
+#define FUNC_NDATA 0
+
+/* ring: Ring mod */
+#define RING_I_A 0
+#define RING_I_B 1
+#define RING_I_P1 2
+#define RING_I_P2 3
+#define RING_O_OUT 0
+#define RING_P_MODE 0
+#define RING_P_LEVEL 1
+#define RING_NIN 4
+#define RING_NOUT 1
+#define RING_NPAR 2
+#define RING_CVBASE 2
+#define RING_NDATA 0
+
+/* turing: Turing machine */
+#define TURING_I_CLOCK 0
+#define TURING_I_P1 1
+#define TURING_I_P2 2
+#define TURING_O_PITCH 0
+#define TURING_O_GATE 1
+#define TURING_O_CV 2
+#define TURING_O_OUT 3
+#define TURING_P_LENGTH 0
+#define TURING_P_CHANGE 1
+#define TURING_P_RANGE 2
+#define TURING_P_SCALE 3
+#define TURING_P_ROOT 4
+#define TURING_P_DECAY 5
+#define TURING_P_LEVEL 6
+#define TURING_NIN 3
+#define TURING_NOUT 4
+#define TURING_NPAR 7
+#define TURING_CVBASE 1
+#define TURING_NDATA 0
+
+/* euclid: Euclid */
+#define EUCLID_I_CLOCK 0
+#define EUCLID_I_RESET 1
+#define EUCLID_I_P1 2
+#define EUCLID_I_P2 3
+#define EUCLID_O_TRIG 0
+#define EUCLID_O_OFF 1
+#define EUCLID_P_STEPS 0
+#define EUCLID_P_PULSES 1
+#define EUCLID_P_ROTATE 2
+#define EUCLID_NIN 4
+#define EUCLID_NOUT 2
+#define EUCLID_NPAR 3
+#define EUCLID_CVBASE 2
+#define EUCLID_NDATA 0
+
+/* marbles: Marbles */
+#define MARBLES_I_CLOCK 0
+#define MARBLES_I_P1 1
+#define MARBLES_I_P2 2
+#define MARBLES_O_PITCH 0
+#define MARBLES_O_GATE 1
+#define MARBLES_O_CV 2
+#define MARBLES_P_SPREAD 0
+#define MARBLES_P_DEJAVU 1
+#define MARBLES_P_LENGTH 2
+#define MARBLES_P_DENSITY 3
+#define MARBLES_P_RANGE 4
+#define MARBLES_P_SCALE 5
+#define MARBLES_P_ROOT 6
+#define MARBLES_NIN 3
+#define MARBLES_NOUT 3
+#define MARBLES_NPAR 7
+#define MARBLES_CVBASE 1
+#define MARBLES_NDATA 0
+
+/* bern: Bernoulli */
+#define BERN_I_TRIG 0
+#define BERN_I_P1 1
+#define BERN_I_P2 2
+#define BERN_O_A 0
+#define BERN_O_B 1
+#define BERN_P_PROB 0
+#define BERN_P_MODE 1
+#define BERN_NIN 3
+#define BERN_NOUT 2
+#define BERN_NPAR 2
+#define BERN_CVBASE 1
+#define BERN_NDATA 0
+
+/* chaos: Chaos */
+#define CHAOS_I_P1 0
+#define CHAOS_I_P2 1
+#define CHAOS_O_X 0
+#define CHAOS_O_Y 1
+#define CHAOS_O_Z 2
+#define CHAOS_P_SPEED 0
+#define CHAOS_P_RHO 1
+#define CHAOS_NIN 2
+#define CHAOS_NOUT 3
+#define CHAOS_NPAR 2
+#define CHAOS_CVBASE 0
+#define CHAOS_NDATA 0
+
 #define DELAY_NDIV 11
 #define DELAY_CLK_PPQN 24
 static const uint8_t DELAY_DIV_NUM[DELAY_NDIV] = {1, 1, 1, 3, 1, 3, 1, 3, 2, 5, 4};
@@ -996,6 +1139,14 @@ static const int32_t RATIO_DETUNE_OCT[7] = {-142, -95, -47, 0, 47, 95, 142};
 #define ESP_CLIP_Q16 1048576   /* amp is held to +-this (room for the Q24 band-pass states) */
 #define ESP_PEAK_SHIFT 9   /* the peak hold falls by 1 / 2^this per sample */
 #define ESP_GLIDE_SHIFT 6   /* the pitch output glides 1 / 2^this of the way per sample */
+#define LPG_ATTACK_Q16 131   /* KITTEN RACK: the low pass gate's vactrol attack, s */
+#define MARBLES_MEMORY 16   /* the values Marbles remembers for deja vu */
+#define CHAOS_BETA_Q16 174763   /* the Lorenz system's beta (8 / 3); sigma is 10 */
+#define CHAOS_DT_K 164   /* dt = speed (Q16) x this >> 16 */
+#define CHAOS_STEPS 4   /* Euler steps a block */
+#define CHAOS_KX 3277   /* the outputs: x / 20, y / 27, (z - 25) / 25 (Q16 factors) */
+#define CHAOS_KY 2427
+#define CHAOS_KZ 2621
 #define FILTER_OSC_FROM_Q16 55706   /* the Multimode filter's self-oscillation (osc on): from this res up */
 #define FILTER_OSC_K_Q24 19964887   /* the damping's fall per unit of res past it */
 #define FILTER_OSC_GAIN_Q24 93952410   /* the damping's growth per unit of res past it, times the band pass squared */
@@ -1535,6 +1686,82 @@ static const char *const ESP_PN[] = {"LEVEL", "LOWCUT", "HIGHCUT", "CVADJ", "THR
 static const uint8_t ESP_LOG[] = {0, 1, 1, 0, 0};
 static const char *const ESP_UNIT[] = {"", "HZ", "HZ", "ST", ""};
 static const char *const *const ESP_CH[] = {0, 0, 0, 0, 0};
+static const char *const LPG_INNAMES[] = {"IN", "CV", "STRIKE", "P1", "P2"};
+static const int32_t LPG_MIN[] = {0, 1311, 0, 0};
+static const int32_t LPG_MAX[] = {131072, 196608, 65536, 131072};
+static const int32_t LPG_DEF[] = {0, 26214, 0, 65536};
+static const int32_t LPG_INC[] = {65536, 1953, 655, 1311};
+static const char *const LPG_PN[] = {"MODE", "DECAY", "OFFSET", "LEVEL"};
+static const uint8_t LPG_LOG[] = {0, 1, 0, 0};
+static const char *const LPG_UNIT[] = {"", "S", "", ""};
+static const char *const LPG_CH0[] = {"COMBO", "LP", "VCA", 0};
+static const char *const *const LPG_CH[] = {LPG_CH0, 0, 0, 0};
+static const char *const FUNC_INNAMES[] = {"TRIG", "IN", "P1", "P2"};
+static const int32_t FUNC_MIN[] = {66, 66, -65536, 0};
+static const int32_t FUNC_MAX[] = {655360, 655360, 65536, 65536};
+static const int32_t FUNC_DEF[] = {3277, 19661, 0, 0};
+static const int32_t FUNC_INC[] = {6553, 6553, 1311, 65536};
+static const char *const FUNC_PN[] = {"RISE", "FALL", "SHAPE", "CYCLE"};
+static const uint8_t FUNC_LOG[] = {1, 1, 0, 0};
+static const char *const FUNC_UNIT[] = {"S", "S", "", ""};
+static const char *const *const FUNC_CH[] = {0, 0, 0, ADSR_CH4};
+static const char *const RING_INNAMES[] = {"A", "B", "P1", "P2"};
+static const int32_t RING_MIN[] = {0, 0};
+static const int32_t RING_MAX[] = {65536, 131072};
+static const int32_t RING_DEF[] = {0, 65536};
+static const int32_t RING_INC[] = {65536, 1311};
+static const char *const RING_PN[] = {"MODE", "LEVEL"};
+static const uint8_t RING_LOG[] = {0, 0};
+static const char *const RING_UNIT[] = {"", ""};
+static const char *const RING_CH0[] = {"RING", "AM", 0};
+static const char *const *const RING_CH[] = {RING_CH0, 0};
+static const char *const TURING_INNAMES[] = {"CLOCK", "P1", "P2"};
+static const int32_t TURING_MIN[] = {131072, 0, 0, 0, 0, 655, 0};
+static const int32_t TURING_MAX[] = {1048576, 65536, 196608, 655360, 720896, 131072, 65536};
+static const int32_t TURING_DEF[] = {524288, 6554, 65536, 262144, 0, 16384, 52429};
+static const int32_t TURING_INC[] = {65536, 655, 65536, 65536, 65536, 1304, 655};
+static const char *const TURING_PN[] = {"LENGTH", "CHANGE", "RANGE", "SCALE", "ROOT", "DECAY", "LEVEL"};
+static const uint8_t TURING_LOG[] = {0, 0, 0, 0, 0, 1, 0};
+static const char *const TURING_UNIT[] = {"", "", "", "", "", "S", ""};
+static const char *const TURING_CH2[] = {"1 OCT", "2 OCT", "3 OCT", "4 OCT", 0};
+static const char *const *const TURING_CH[] = {0, 0, TURING_CH2, QUANT_CH0, QUANT_CH1, 0, 0};
+static const char *const EUCLID_INNAMES[] = {"CLOCK", "RESET", "P1", "P2"};
+static const int32_t EUCLID_MIN[] = {65536, 0, 0};
+static const int32_t EUCLID_MAX[] = {2097152, 2097152, 2031616};
+static const int32_t EUCLID_DEF[] = {524288, 196608, 0};
+static const int32_t EUCLID_INC[] = {65536, 65536, 65536};
+static const char *const EUCLID_PN[] = {"STEPS", "PULSES", "ROTATE"};
+static const uint8_t EUCLID_LOG[] = {0, 0, 0};
+static const char *const EUCLID_UNIT[] = {"", "", ""};
+static const char *const *const EUCLID_CH[] = {0, 0, 0};
+static const char *const MARBLES_INNAMES[] = {"CLOCK", "P1", "P2"};
+static const int32_t MARBLES_MIN[] = {0, 0, 65536, 0, 0, 0, 0};
+static const int32_t MARBLES_MAX[] = {65536, 65536, 1048576, 65536, 196608, 655360, 720896};
+static const int32_t MARBLES_DEF[] = {32768, 0, 524288, 65536, 65536, 65536, 0};
+static const int32_t MARBLES_INC[] = {655, 655, 65536, 655, 65536, 65536, 65536};
+static const char *const MARBLES_PN[] = {"SPREAD", "DEJAVU", "LENGTH", "DENSITY", "RANGE", "SCALE", "ROOT"};
+static const uint8_t MARBLES_LOG[] = {0, 0, 0, 0, 0, 0, 0};
+static const char *const MARBLES_UNIT[] = {"", "", "", "", "", "", ""};
+static const char *const *const MARBLES_CH[] = {0, 0, 0, 0, TURING_CH2, QUANT_CH0, QUANT_CH1};
+static const char *const BERN_INNAMES[] = {"TRIG", "P1", "P2"};
+static const int32_t BERN_MIN[] = {0, 0};
+static const int32_t BERN_MAX[] = {65536, 65536};
+static const int32_t BERN_DEF[] = {32768, 0};
+static const int32_t BERN_INC[] = {655, 65536};
+static const char *const BERN_PN[] = {"PROB", "MODE"};
+static const uint8_t BERN_LOG[] = {0, 0};
+static const char *const BERN_UNIT[] = {"", ""};
+static const char *const BERN_CH1[] = {"TRIG", "LATCH", 0};
+static const char *const *const BERN_CH[] = {0, BERN_CH1};
+static const char *const CHAOS_INNAMES[] = {"P1", "P2"};
+static const int32_t CHAOS_MIN[] = {3277, 1310720};
+static const int32_t CHAOS_MAX[] = {262144, 2621440};
+static const int32_t CHAOS_DEF[] = {32768, 1835008};
+static const int32_t CHAOS_INC[] = {2589, 13107};
+static const char *const CHAOS_PN[] = {"SPEED", "RHO"};
+static const uint8_t CHAOS_LOG[] = {0, 0};
+static const char *const CHAOS_UNIT[] = {"", ""};
+static const char *const *const CHAOS_CH[] = {0, 0};
 
 static const def_t DEFS[N_TYPES] = {
     {FM1_NIN, FM1_NOUT, FM1_NPAR, 1, FM1_CVBASE, -1, FM1_NDATA, 0, FM1_MIN, FM1_MAX, FM1_DEF, FM1_INC, "MAIN", FM1_PN, FM1_INNAMES, FM1_LOG, FM1_UNIT, FM1_CH, 0, 0},   /* fm1 */
@@ -1587,4 +1814,12 @@ static const def_t DEFS[N_TYPES] = {
     {RATEENV_NIN, RATEENV_NOUT, RATEENV_NPAR, 0, RATEENV_CVBASE, -1, RATEENV_NDATA, 0, RATEENV_MIN, RATEENV_MAX, RATEENV_DEF, RATEENV_INC, "RATE ENV", RATEENV_PN, RATEENV_INNAMES, RATEENV_LOG, RATEENV_UNIT, RATEENV_CH, 0, 0},   /* rateenv */
     {RATIO_NIN, RATIO_NOUT, RATIO_NPAR, 0, RATIO_CVBASE, -1, RATIO_NDATA, 0, RATIO_MIN, RATIO_MAX, RATIO_DEF, RATIO_INC, "RATIO", RATIO_PN, RATIO_INNAMES, RATIO_LOG, RATIO_UNIT, RATIO_CH, 0, 0},   /* ratio */
     {ESP_NIN, ESP_NOUT, ESP_NPAR, 0, ESP_CVBASE, 0, ESP_NDATA, 3, ESP_MIN, ESP_MAX, ESP_DEF, ESP_INC, "FOLLOWER", ESP_PN, ESP_INNAMES, ESP_LOG, ESP_UNIT, ESP_CH, 0, 0},   /* esp */
+    {LPG_NIN, LPG_NOUT, LPG_NPAR, 0, LPG_CVBASE, 0, LPG_NDATA, 1, LPG_MIN, LPG_MAX, LPG_DEF, LPG_INC, "LOW PASS GATE", LPG_PN, LPG_INNAMES, LPG_LOG, LPG_UNIT, LPG_CH, 0, 0},   /* lpg */
+    {FUNC_NIN, FUNC_NOUT, FUNC_NPAR, 0, FUNC_CVBASE, 1, FUNC_NDATA, 0, FUNC_MIN, FUNC_MAX, FUNC_DEF, FUNC_INC, "FUNCTION", FUNC_PN, FUNC_INNAMES, FUNC_LOG, FUNC_UNIT, FUNC_CH, 0, 0},   /* func */
+    {RING_NIN, RING_NOUT, RING_NPAR, 0, RING_CVBASE, -1, RING_NDATA, 1, RING_MIN, RING_MAX, RING_DEF, RING_INC, "RING MOD", RING_PN, RING_INNAMES, RING_LOG, RING_UNIT, RING_CH, 0, 0},   /* ring */
+    {TURING_NIN, TURING_NOUT, TURING_NPAR, 0, TURING_CVBASE, -1, TURING_NDATA, 8, TURING_MIN, TURING_MAX, TURING_DEF, TURING_INC, "TURING MACHINE", TURING_PN, TURING_INNAMES, TURING_LOG, TURING_UNIT, TURING_CH, 0, 0},   /* turing */
+    {EUCLID_NIN, EUCLID_NOUT, EUCLID_NPAR, 0, EUCLID_CVBASE, -1, EUCLID_NDATA, 0, EUCLID_MIN, EUCLID_MAX, EUCLID_DEF, EUCLID_INC, "EUCLID", EUCLID_PN, EUCLID_INNAMES, EUCLID_LOG, EUCLID_UNIT, EUCLID_CH, 0, 0},   /* euclid */
+    {MARBLES_NIN, MARBLES_NOUT, MARBLES_NPAR, 0, MARBLES_CVBASE, -1, MARBLES_NDATA, 0, MARBLES_MIN, MARBLES_MAX, MARBLES_DEF, MARBLES_INC, "MARBLES", MARBLES_PN, MARBLES_INNAMES, MARBLES_LOG, MARBLES_UNIT, MARBLES_CH, 0, 0},   /* marbles */
+    {BERN_NIN, BERN_NOUT, BERN_NPAR, 0, BERN_CVBASE, -1, BERN_NDATA, 0, BERN_MIN, BERN_MAX, BERN_DEF, BERN_INC, "BERNOULLI", BERN_PN, BERN_INNAMES, BERN_LOG, BERN_UNIT, BERN_CH, 0, 0},   /* bern */
+    {CHAOS_NIN, CHAOS_NOUT, CHAOS_NPAR, 0, CHAOS_CVBASE, -1, CHAOS_NDATA, 0, CHAOS_MIN, CHAOS_MAX, CHAOS_DEF, CHAOS_INC, "CHAOS", CHAOS_PN, CHAOS_INNAMES, CHAOS_LOG, CHAOS_UNIT, CHAOS_CH, 0, 0},   /* chaos */
 };

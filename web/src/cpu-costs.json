@@ -48838,6 +48838,149 @@
     16033,
     16032
    ]
+  },
+  "lpg": {
+   "run": 13512,
+   "cv": 225,
+   "dims": [
+    {
+     "param": "offset",
+     "above": 0
+    },
+    {
+     "input": "strike"
+    },
+    {
+     "input": "cv"
+    }
+   ],
+   "grid": [
+    13512,
+    13512,
+    13513,
+    13513,
+    11976,
+    13512,
+    13513,
+    13513
+   ]
+  },
+  "func": {
+   "run": 7797,
+   "cv": 212,
+   "dims": [
+    {
+     "input": "in"
+    },
+    {
+     "input": "trig"
+    },
+    {
+     "param": "cycle",
+     "values": [
+      0,
+      1
+     ]
+    },
+    {
+     "param": "rise",
+     "points": [
+      0.001,
+      0.1,
+      10
+     ]
+    }
+   ],
+   "grid": [
+    7797,
+    7809,
+    7797,
+    8437,
+    8833,
+    8821,
+    8442,
+    8834,
+    8822,
+    8442,
+    8834,
+    8822,
+    6773,
+    6785,
+    6773,
+    6773,
+    6785,
+    6773,
+    6773,
+    6785,
+    6773,
+    6773,
+    6785,
+    6773
+   ]
+  },
+  "ring": {
+   "run": 3253,
+   "cv": 190,
+   "dims": [
+    {
+     "param": "mode",
+     "values": [
+      0,
+      1
+     ]
+    }
+   ],
+   "grid": [
+    3253,
+    3637
+   ]
+  },
+  "turing": {
+   "run": 8204,
+   "cv": 232
+  },
+  "euclid": {
+   "run": 4197,
+   "cv": 201,
+   "dims": [
+    {
+     "input": "clock"
+    }
+   ],
+   "grid": [
+    4197,
+    4347
+   ]
+  },
+  "marbles": {
+   "run": 3868,
+   "cv": 232,
+   "dims": [
+    {
+     "input": "clock"
+    }
+   ],
+   "grid": [
+    3868,
+    4380
+   ]
+  },
+  "bern": {
+   "run": 3277,
+   "cv": 177,
+   "dims": [
+    {
+     "input": "trig"
+    }
+   ],
+   "grid": [
+    3277,
+    3405
+   ]
+  },
+  "chaos": {
+   "run": 16268,
+   "cv": 164
   }
  },
  "checks": [
@@ -49233,5 +49376,6 @@
   "benchSvfCyclesPerUs": 243,
   "benchNote": "firmware/src/bench.c kernels (4x Q15 MAC 9 us, Q15 SVF 8 us per block, rounded down) give the same scale within a few %",
   "note": "module kits hold note 72; a square or saw oscillator costs more the higher it plays"
- }
+ },
+ "note_kitten": "KITTEN RACK: the types lpg..chaos measured with clang 18 (tools/cpu), the rest as Matryoshka 1.5.1 committed them"
 }

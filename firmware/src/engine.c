@@ -368,6 +368,14 @@ typedef struct {
                                                     * block; held: with repeat on (#184), the keys down (bit k & 31 of held[k >> 5]) */
         struct { int32_t count, c1, r1; } cdv;
         struct { int32_t v, c1; } sh;
+        /* KITTEN RACK (format 49) */
+        struct { int32_t vac, y1, y2, t1; } lpg;                 /* vac Q30, y1 y2 Q24 */
+        struct { int32_t x, y, t1, eoc; uint8_t stage; } fn;     /* x Q30 (the envelope), y Q24 (the slew) */
+        struct { uint32_t seed, reg, phase; int32_t c1, env, pitch, cv; } tur;   /* env Q30 */
+        struct { int32_t pos, c1, r1; uint8_t hit; } euc;
+        struct { uint32_t seed; int32_t c1, pitch, cv; int16_t ring[MARBLES_MEMORY]; uint8_t idx, filled, open; } mar;
+        struct { uint32_t seed; int32_t t1; int8_t side; } brn;
+        struct { int32_t x, y, z, ox, oy, oz; } chs;               /* Q16 */
         struct { int32_t rem, t1; } pls;
         struct { int32_t w[SELECT_NOUT - 1]; int8_t k; uint8_t fading; } sel;   /* Selector: each input's weight (Q16), the position (-1: none yet) */
     } s;
@@ -670,6 +678,25 @@ static void init_state(const node_t *nd, inst_t *it, uint32_t mod, uint32_t v)
         it->s.rnd.seed = (mod * 8u + v + 1u) * 0x9e3779b9u;
         walk_init(&it->s.rnd.w, it->s.rnd.seed ^ 0x2545f491u);
         it->s.rnd.held_seed = hash32(it->s.rnd.seed ^ 0xa511e9b3u);
+        break;
+    case T_TURING:                       /* modules.ts turing.seed with engine.ts instSeed(module index, part) */
+        it->s.tur.seed = (mod * 8u + v + 1u) * 0x9e3779b9u;
+        it->s.tur.reg = hash32(it->s.tur.seed ^ 0x5bd1e995u) & 0xFFFFu;
+        break;
+    case T_MARBLES:
+        it->s.mar.seed = hash32(((mod * 8u + v + 1u) * 0x9e3779b9u) ^ 0x27d4eb2du);
+        break;
+    case T_BERN:
+        it->s.brn.seed = hash32(((mod * 8u + v + 1u) * 0x9e3779b9u) ^ 0x165667b1u);
+        it->s.brn.side = -1;
+        break;
+    case T_CHAOS:
+        it->s.chs.x = 65536 + (int32_t)(hash32(((mod * 8u + v + 1u) * 0x9e3779b9u) ^ 0x61c88647u) & 0xFFFFu) - 32768;
+        it->s.chs.y = 65536;
+        it->s.chs.z = 25 * 65536;
+        break;
+    case T_EUCLID:
+        it->s.euc.pos = -1;
         break;
     case T_LFO:
         it->s.lfo.seed = 0x2545f491u;
@@ -6264,6 +6291,309 @@ static void m_bypass(const node_t *nd, inst_t *it, uint32_t n)
     }
 }
 
+/* ------------------------------------------------------------------ KITTEN RACK modules (format 49) */
+/* modules.ts lpg, func, ring, turing, euclid, marbles, bern, chaos. The generators run on integers as there, so both
+ * engines take the same random and chaotic paths bit for bit. */
+
+#define FUNC_EOC_LEN (ENG_SR / 200u)    /* the end-of-cycle pulse: 5 ms */
+
+/* modules.ts lpg: the vactrol (Q30) opens two one-poles (Q24) and, in combo, the gain */
+static void m_lpg(const node_t *nd, inst_t *it, uint32_t n)
+{
+    const esig_t *in = it->in[LPG_I_IN], *cv = it->in[LPG_I_CV], *st = it->in[LPG_I_STRIKE];
+    esig_t *out = it->out[LPG_O_OUT];
+    int32_t ka = env_rate(LPG_ATTACK_Q16), kd = env_rate(EF(it, LPG_P_DECAY)), off = EF(it, LPG_P_OFFSET), lvl = EF(it, LPG_P_LEVEL);
+    int mode = round_q16(EF(it, LPG_P_MODE));
+    int32_t vac = it->s.lpg.vac, y1 = it->s.lpg.y1, y2 = it->s.lpg.y2, t1 = it->s.lpg.t1;
+    uint32_t i;
+    for (i = 0; i < n; i++) {
+        int32_t tgt, d, g, x, y;
+        if (st[i] >= 32768 && t1 < 32768)
+            vac = 1 << 30;                                  /* strike: open at once */
+        t1 = st[i];
+        tgt = clampi(cv[i] + off, 0, ENG_ONE) << 14;
+        d = tgt - vac;
+        if (d > 0)
+            vac += mulq(d, ka, 30);
+        else                                                /* the release slows down as it closes: kd (0.25 + 0.75 vac) */
+            vac += mulq(d, mulq(kd, (1 << 28) + mulq(vac, 805306368, 30), 30), 30);
+        g = 2147484 + mulq(966367642, mulq(vac, vac, 30), 30);   /* 0.002 + 0.9 vac^2, Q30 */
+        x = clampi(in[i], -(1 << 21), (1 << 21) - 1);
+        y1 += mulq((x << 8) - y1, g, 30);
+        y2 += mulq(y1 - y2, g, 30);
+        y = mode == 2 ? mulq(x, vac, 30) : mode == 1 ? y2 >> 8 : mulq(y2 >> 8, vac, 30);
+        out[i] = mul16(y, lvl);
+    }
+    it->s.lpg.vac = vac;
+    it->s.lpg.y1 = y1;
+    it->s.lpg.y2 = y2;
+    it->s.lpg.t1 = t1;
+    (void)nd;
+}
+
+/* one unit in t seconds (Q16), Q30 per sample: 1 / (t sr), as the ADSR's attack */
+static int32_t func_inc(int32_t t_q16)
+{
+    uint64_t asr = ((uint64_t)(uint32_t)t_q16 * ENG_SR) >> 8;
+    if (asr < 256u)
+        asr = 256u;
+    return (int32_t)((1ull << 38) / asr);
+}
+
+/* modules.ts func: the envelope's phase x (Q30, 0..1) and the slew's y (Q24) */
+static void m_func(const node_t *nd, inst_t *it, uint32_t n)
+{
+    const esig_t *tr = it->in[FUNC_I_TRIG], *in = it->in[FUNC_I_IN];
+    esig_t **o = it->out;
+    int32_t ri = func_inc(EF(it, FUNC_P_RISE)), fi = func_inc(EF(it, FUNC_P_FALL)), sh = EF(it, FUNC_P_SHAPE) << 14;
+    int cyc = EF(it, FUNC_P_CYCLE) >= 32768, slew = (nd->conn >> FUNC_I_IN) & 1u;
+    int32_t x = it->s.fn.x, y = it->s.fn.y, t1 = it->s.fn.t1, eoc = it->s.fn.eoc, ri24 = ri >> 6, fi24 = fi >> 6;
+    uint8_t stage = it->s.fn.stage;
+    uint32_t i;
+    for (i = 0; i < n; i++) {
+        int32_t v;
+        if (slew) {
+            int32_t t = clampi(in[i], -(1 << 22), (1 << 22) - 1) << 8;
+            if (t > y)
+                y = t - y > ri24 ? y + ri24 : t;
+            else
+                y = y - t > fi24 ? y - fi24 : t;
+            v = y >> 8;
+        } else {
+            if ((tr[i] >= 32768 && t1 < 32768) || (cyc && stage == 0))
+                stage = 1;
+            t1 = tr[i];
+            if (stage == 1) {
+                if (ri >= (1 << 30) - x) {
+                    x = 1 << 30;
+                    stage = 2;
+                } else
+                    x += ri;
+            } else if (stage == 2) {
+                if (fi >= x) {
+                    x = 0;
+                    stage = 0;
+                    eoc = (int32_t)FUNC_EOC_LEN;
+                } else
+                    x -= fi;
+            }
+            v = (x + mulq(sh, mulq(x, x, 30) - x, 30)) >> 14;
+        }
+        o[FUNC_O_OUT][i] = v;
+        o[FUNC_O_INV][i] = -v;
+        o[FUNC_O_EOR][i] = stage == 2 ? ENG_ONE : 0;
+        o[FUNC_O_EOC][i] = eoc > 0 ? ENG_ONE : 0;
+        if (eoc > 0)
+            eoc--;
+    }
+    it->s.fn.x = x;
+    it->s.fn.y = y;
+    it->s.fn.t1 = t1;
+    it->s.fn.eoc = eoc;
+    it->s.fn.stage = stage;
+}
+
+static void m_ring(const node_t *nd, inst_t *it, uint32_t n)
+{
+    const esig_t *a = it->in[RING_I_A], *b = it->in[RING_I_B];
+    esig_t *out = it->out[RING_O_OUT];
+    int am = round_q16(EF(it, RING_P_MODE)) == 1;
+    int32_t lvl = EF(it, RING_P_LEVEL);
+    uint32_t i;
+    for (i = 0; i < n; i++)
+        out[i] = mul16(am ? mul16(a[i], ENG_ONE + b[i]) >> 1 : mul16(a[i], b[i]), lvl);
+    (void)nd;
+}
+
+/* a degree of a scale over `octs` octaves as a pitch (Q16 octaves), centred on C4: modules.ts degreePitch */
+static int32_t degree_pitch(int32_t si, int32_t deg, int32_t root, int32_t octs)
+{
+    const uint8_t *sc = SCALES[si].st;
+    int32_t ns = SCALES[si].n, note = sc[deg % ns] + 12 * (deg / ns) + root;
+    return note * ENG_ONE / 12 - (octs / 2) * ENG_ONE;
+}
+
+/* modules.ts turing */
+static void m_turing(const node_t *nd, inst_t *it, uint32_t n)
+{
+    const esig_t *clock = it->in[TURING_I_CLOCK];
+    esig_t **o = it->out;
+    int32_t len = clampi(round_q16(EF(it, TURING_P_LENGTH)), 2, 16), chg = EF(it, TURING_P_CHANGE);
+    int32_t si = clampi(round_q16(EF(it, TURING_P_SCALE)), 0, N_SCALES - 1), octs = round_q16(EF(it, TURING_P_RANGE)) + 1;
+    int32_t root = round_q16(EF(it, TURING_P_ROOT)), total = SCALES[si].n * octs, kd = env_rate(EF(it, TURING_P_DECAY));
+    int32_t lvl = EF(it, TURING_P_LEVEL), c1 = it->s.tur.c1, env = it->s.tur.env;
+    uint32_t reg = it->s.tur.reg, seed = it->s.tur.seed, phase = it->s.tur.phase, inc = exp2_scale(INC_C4, it->s.tur.pitch), i;
+    for (i = 0; i < n; i++) {
+        int32_t ck = clock[i], t;
+        if (ck >= 32768 && c1 < 32768) {
+            uint32_t bit = (reg >> (len - 1)) & 1u, v8;
+            seed = lcg(seed);
+            if ((int32_t)(seed >> 16) < chg)
+                bit ^= 1u;
+            reg = ((reg << 1) | bit) & 0xFFFFu;
+            v8 = reg & 0xFFu;
+            it->s.tur.pitch = degree_pitch(si, (int32_t)((v8 * (uint32_t)total) >> 8), root, octs);
+            it->s.tur.cv = (int32_t)((v8 << 16) / 255u);
+            inc = exp2_scale(INC_C4, it->s.tur.pitch);
+            if (reg & 1u)
+                env = 1 << 30;
+        }
+        c1 = ck;
+        phase += inc;
+        t = (int32_t)(phase >> 14);                         /* 0..4 (Q16) over the cycle */
+        o[TURING_O_PITCH][i] = it->s.tur.pitch;
+        o[TURING_O_GATE][i] = ck >= 32768 && (reg & 1u) ? ENG_ONE : 0;
+        o[TURING_O_CV][i] = it->s.tur.cv;
+        o[TURING_O_OUT][i] = mul16(mulq(ENG_ONE - (t - 131072 < 0 ? 131072 - t : t - 131072), env, 30), lvl);
+        env -= mulq(env, kd, 30);
+    }
+    it->s.tur.reg = reg;
+    it->s.tur.seed = seed;
+    it->s.tur.phase = phase;
+    it->s.tur.c1 = c1;
+    it->s.tur.env = env;
+    (void)nd;
+}
+
+/* modules.ts euclid */
+static void m_euclid(const node_t *nd, inst_t *it, uint32_t n)
+{
+    const esig_t *clock = it->in[EUCLID_I_CLOCK], *reset = it->in[EUCLID_I_RESET];
+    esig_t **o = it->out;
+    int32_t steps = clampi(round_q16(EF(it, EUCLID_P_STEPS)), 1, 32);
+    int32_t pulses = clampi(round_q16(EF(it, EUCLID_P_PULSES)), 0, steps), rot = round_q16(EF(it, EUCLID_P_ROTATE));
+    int32_t pos = it->s.euc.pos, c1 = it->s.euc.c1, r1 = it->s.euc.r1;
+    uint8_t hit = it->s.euc.hit;
+    uint32_t i;
+    if (rot < 0)
+        rot = 0;
+    for (i = 0; i < n; i++) {
+        int32_t ck = clock[i], rs = reset[i];
+        if (rs >= 32768 && r1 < 32768)
+            pos = -1;
+        r1 = rs;
+        if (ck >= 32768 && c1 < 32768) {
+            pos = (pos + 1) % steps;
+            hit = (((pos + rot) % steps) * pulses) % steps < pulses;
+        }
+        c1 = ck;
+        o[EUCLID_O_TRIG][i] = ck >= 32768 && hit ? ENG_ONE : 0;
+        o[EUCLID_O_OFF][i] = ck >= 32768 && !hit ? ENG_ONE : 0;
+    }
+    it->s.euc.pos = pos;
+    it->s.euc.c1 = c1;
+    it->s.euc.r1 = r1;
+    it->s.euc.hit = hit;
+    (void)nd;
+}
+
+/* modules.ts marbles */
+static void m_marbles(const node_t *nd, inst_t *it, uint32_t n)
+{
+    const esig_t *clock = it->in[MARBLES_I_CLOCK];
+    esig_t **o = it->out;
+    int32_t spread = EF(it, MARBLES_P_SPREAD), dejavu = EF(it, MARBLES_P_DEJAVU), density = EF(it, MARBLES_P_DENSITY);
+    int32_t len = clampi(round_q16(EF(it, MARBLES_P_LENGTH)), 1, MARBLES_MEMORY);
+    int32_t si = clampi(round_q16(EF(it, MARBLES_P_SCALE)), 0, N_SCALES - 1), octs = round_q16(EF(it, MARBLES_P_RANGE)) + 1;
+    int32_t root = round_q16(EF(it, MARBLES_P_ROOT)), total = SCALES[si].n * octs, c1 = it->s.mar.c1;
+    uint32_t seed = it->s.mar.seed, i;
+    for (i = 0; i < n; i++) {
+        int32_t ck = clock[i];
+        if (ck >= 32768 && c1 < 32768) {
+            int32_t v, x, deg;
+            it->s.mar.idx = (uint8_t)((it->s.mar.idx + 1u) % (uint32_t)len);
+            seed = lcg(seed);
+            if (it->s.mar.filled >= len && (int32_t)(seed >> 16) < dejavu)
+                v = it->s.mar.ring[it->s.mar.idx];
+            else {
+                int32_t a;
+                seed = lcg(seed);
+                a = q15(seed);
+                seed = lcg(seed);
+                v = (a + q15(seed)) >> 1;
+                it->s.mar.ring[it->s.mar.idx] = (int16_t)v;
+                if (it->s.mar.filled < MARBLES_MEMORY)
+                    it->s.mar.filled++;
+            }
+            x = (int32_t)(((int64_t)v * spread) >> 16);
+            deg = (int32_t)(((int64_t)(x + 32768) * total) >> 16);
+            if (deg > total - 1)
+                deg = total - 1;
+            it->s.mar.pitch = degree_pitch(si, deg, root, octs);
+            it->s.mar.cv = 2 * x;
+            seed = lcg(seed);
+            it->s.mar.open = (int32_t)(seed >> 16) < density;
+        }
+        c1 = ck;
+        o[MARBLES_O_PITCH][i] = it->s.mar.pitch;
+        o[MARBLES_O_GATE][i] = ck >= 32768 && it->s.mar.open ? ENG_ONE : 0;
+        o[MARBLES_O_CV][i] = it->s.mar.cv;
+    }
+    it->s.mar.seed = seed;
+    it->s.mar.c1 = c1;
+    (void)nd;
+}
+
+/* modules.ts bern */
+static void m_bern(const node_t *nd, inst_t *it, uint32_t n)
+{
+    const esig_t *trig = it->in[BERN_I_TRIG];
+    esig_t **o = it->out;
+    int32_t prob = EF(it, BERN_P_PROB), t1 = it->s.brn.t1;
+    int latch = round_q16(EF(it, BERN_P_MODE)) == 1;
+    int8_t side = it->s.brn.side;
+    uint32_t seed = it->s.brn.seed, i;
+    for (i = 0; i < n; i++) {
+        int32_t t = trig[i];
+        int on;
+        if (t >= 32768 && t1 < 32768) {
+            seed = lcg(seed);
+            side = (int32_t)(seed >> 16) < prob ? 1 : 0;
+        }
+        t1 = t;
+        on = latch || t >= 32768;
+        o[BERN_O_A][i] = on && side == 0 ? ENG_ONE : 0;
+        o[BERN_O_B][i] = on && side == 1 ? ENG_ONE : 0;
+    }
+    it->s.brn.seed = seed;
+    it->s.brn.t1 = t1;
+    it->s.brn.side = side;
+    (void)nd;
+}
+
+/* modules.ts chaos: the Lorenz system in Q16, four Euler steps a block, the outputs ramped across it */
+static inline int32_t fl16(int32_t a, int32_t b) { return (int32_t)(((int64_t)a * b) >> 16); }
+static void m_chaos(const node_t *nd, inst_t *it, uint32_t n)
+{
+    esig_t **o = it->out;
+    int32_t dt = (int32_t)(((int64_t)EF(it, CHAOS_P_SPEED) * CHAOS_DT_K) >> 16), rho = EF(it, CHAOS_P_RHO);
+    int32_t x = it->s.chs.x, y = it->s.chs.y, z = it->s.chs.z, nx, ny, nz, k;
+    uint32_t i;
+    if (dt < 1)
+        dt = 1;
+    for (k = 0; k < CHAOS_STEPS; k++) {
+        int32_t dx = 10 * (y - x), dy = fl16(x, rho - z) - y, dz = fl16(x, y) - fl16(CHAOS_BETA_Q16, z);
+        x += fl16(dx, dt);
+        y += fl16(dy, dt);
+        z += fl16(dz, dt);
+    }
+    nx = fl16(x, CHAOS_KX);
+    ny = fl16(y, CHAOS_KY);
+    nz = fl16(z - 25 * ENG_ONE, CHAOS_KZ);
+    for (i = 0; i < n; i++) {
+        o[CHAOS_O_X][i] = it->s.chs.ox + (nx - it->s.chs.ox) * (int32_t)(i + 1u) / (int32_t)n;
+        o[CHAOS_O_Y][i] = it->s.chs.oy + (ny - it->s.chs.oy) * (int32_t)(i + 1u) / (int32_t)n;
+        o[CHAOS_O_Z][i] = it->s.chs.oz + (nz - it->s.chs.oz) * (int32_t)(i + 1u) / (int32_t)n;
+    }
+    it->s.chs.x = x;
+    it->s.chs.y = y;
+    it->s.chs.z = z;
+    it->s.chs.ox = nx;
+    it->s.chs.oy = ny;
+    it->s.chs.oz = nz;
+    (void)nd;
+}
+
 static void process(const node_t *nd, inst_t *it, uint32_t n)
 {
     switch (nd->type) {
@@ -6271,6 +6601,14 @@ static void process(const node_t *nd, inst_t *it, uint32_t n)
     case T_PART: m_part(nd, it, n); break;
     case T_ARP: m_arp(nd, it, n); break;
     case T_RANDOM: m_random(nd, it, n); break;
+    case T_LPG: m_lpg(nd, it, n); break;
+    case T_FUNC: m_func(nd, it, n); break;
+    case T_RING: m_ring(nd, it, n); break;
+    case T_TURING: m_turing(nd, it, n); break;
+    case T_EUCLID: m_euclid(nd, it, n); break;
+    case T_MARBLES: m_marbles(nd, it, n); break;
+    case T_BERN: m_bern(nd, it, n); break;
+    case T_CHAOS: m_chaos(nd, it, n); break;
     case T_OSC: m_osc(nd, it, n); break;
     case T_LFO: m_lfo(nd, it, n); break;
     case T_NOISE: m_noise(nd, it, n); break;

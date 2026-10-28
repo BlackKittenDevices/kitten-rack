@@ -2,7 +2,7 @@
 // Writes firmware/src/defs.h (module definitions for the C engine) and firmware/src/presets.h (the factory
 // patches as binary). Run from web/:  npx vite-node scripts/export-defs.ts
 import { readFileSync, writeFileSync } from 'node:fs';
-import { ADSR_LONG, ASSIGN_MODES, DEFS, ESP_ATTACK, FILTER_OSC_CLIP, FILTER_OSC_FROM, FILTER_OSC_GAIN, FILTER_OSC_K, FILTER_OSC_SEED, ESP_CLIP, ESP_FLOOR, ESP_GLIDE_SHIFT, ESP_MAX_PERIOD, ESP_MIN_PERIOD, ESP_PEAK_SHIFT, ESP_RELEASE, DELAY_DIVS, DELAY_CLK_PPQN, DELAY_NOTES, DELAY_SWELL_DEN, DELAY_SWELL_NUM, LEGATO_MODES, LFO_MULTS, LFO_RANGE_K, RATIO_OCT, RATIO_DETUNE_OCT, PRIORITIES, TRACK_POLY } from '../src/modules';
+import { ADSR_LONG, ASSIGN_MODES, CHAOS_BETA_Q16, CHAOS_DT_K, CHAOS_KX, CHAOS_KY, CHAOS_KZ, CHAOS_STEPS, DEFS, LPG_ATTACK, MARBLES_MEMORY, ESP_ATTACK, FILTER_OSC_CLIP, FILTER_OSC_FROM, FILTER_OSC_GAIN, FILTER_OSC_K, FILTER_OSC_SEED, ESP_CLIP, ESP_FLOOR, ESP_GLIDE_SHIFT, ESP_MAX_PERIOD, ESP_MIN_PERIOD, ESP_PEAK_SHIFT, ESP_RELEASE, DELAY_DIVS, DELAY_CLK_PPQN, DELAY_NOTES, DELAY_SWELL_DEN, DELAY_SWELL_NUM, LEGATO_MODES, LFO_MULTS, LFO_RANGE_K, RATIO_OCT, RATIO_DETUNE_OCT, PRIORITIES, TRACK_POLY } from '../src/modules';
 import { encodePatch, TYPE_ORDER, toQ16, VERSION } from '../src/patchbin';
 import { FLAW_RANGE, MAX_PARTS, STEP_NOTE, STEP_VEL, STEPS_MAX, thruInput, TRACK_NAME_MAX } from '../src/patch';
 import { ACCENT_VEL, TRACK_NOTES_MAX } from '../src/track';
@@ -63,6 +63,14 @@ w(`#define ESP_MIN_PERIOD ${ESP_MIN_PERIOD}`);
 w(`#define ESP_CLIP_Q16 ${ESP_CLIP * 65536}   /* amp is held to +-this (room for the Q24 band-pass states) */`);
 w(`#define ESP_PEAK_SHIFT ${ESP_PEAK_SHIFT}   /* the peak hold falls by 1 / 2^this per sample */`);
 w(`#define ESP_GLIDE_SHIFT ${ESP_GLIDE_SHIFT}   /* the pitch output glides 1 / 2^this of the way per sample */`);
+w(`#define LPG_ATTACK_Q16 ${Math.round(LPG_ATTACK * 65536)}   /* KITTEN RACK: the low pass gate's vactrol attack, s */`);
+w(`#define MARBLES_MEMORY ${MARBLES_MEMORY}   /* the values Marbles remembers for deja vu */`);
+w(`#define CHAOS_BETA_Q16 ${CHAOS_BETA_Q16}   /* the Lorenz system's beta (8 / 3); sigma is 10 */`);
+w(`#define CHAOS_DT_K ${CHAOS_DT_K}   /* dt = speed (Q16) x this >> 16 */`);
+w(`#define CHAOS_STEPS ${CHAOS_STEPS}   /* Euler steps a block */`);
+w(`#define CHAOS_KX ${CHAOS_KX}   /* the outputs: x / 20, y / 27, (z - 25) / 25 (Q16 factors) */`);
+w(`#define CHAOS_KY ${CHAOS_KY}`);
+w(`#define CHAOS_KZ ${CHAOS_KZ}`);
 w(`#define FILTER_OSC_FROM_Q16 ${Math.round(FILTER_OSC_FROM * 65536)}   /* the Multimode filter's self-oscillation (osc on): from this res up */`);
 w(`#define FILTER_OSC_K_Q24 ${Math.round(FILTER_OSC_K * (1 << 24))}   /* the damping's fall per unit of res past it */`);
 w(`#define FILTER_OSC_GAIN_Q24 ${Math.round(FILTER_OSC_GAIN * (1 << 24))}   /* the damping's growth per unit of res past it, times the band pass squared */`);

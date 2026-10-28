@@ -22,20 +22,22 @@ export const FAMILIES: Family[] = [
   {
     name: 'Generativos',
     types: [
+      { type: 'turing', label: 'Turing' },
+      { type: 'marbles', label: 'Marbles' },
+      { type: 'euclid', label: 'Euclídeo' },
+      { type: 'bern', label: 'Bernoulli' },
+      { type: 'chaos', label: 'Caos' },
       { type: 'random', label: 'Random' },
       { type: 'sh', label: 'S&H' },
       { type: 'seq', label: 'Seq 8' },
       { type: 'steps', label: 'Steps' },
       { type: 'arp', label: 'Arpegiador' },
-      { type: 'turing', label: 'VCO Turing', soon: true },
-      { type: 'marbles', label: 'VCO Marbles', soon: true },
-      { type: 'euclid', label: 'VCO Euclídeo', soon: true },
-      { type: 'drift', label: 'VCO Drift', soon: true },
     ],
   },
   {
     name: 'Filtros',
     types: [
+      { type: 'lpg', label: 'LPG' },
       { type: 'ladder', label: 'VCF Ladder' },
       { type: 'filter', label: 'VCF Multi' },
       { type: 'vowel', label: 'Formante' },
@@ -47,6 +49,7 @@ export const FAMILIES: Family[] = [
     name: 'VCA y mezcla',
     types: [
       { type: 'vca', label: 'VCA' },
+      { type: 'ring', label: 'Ring mod' },
       { type: 'mixer', label: 'Mix 4' },
       { type: 'xfade', label: 'Xfade' },
       { type: 'pan', label: 'Pan' },
@@ -57,6 +60,7 @@ export const FAMILIES: Family[] = [
   {
     name: 'Moduladores',
     types: [
+      { type: 'func', label: 'Función' },
       { type: 'adsr', label: 'ADSR' },
       { type: 'env', label: 'Env L/R' },
       { type: 'env8', label: 'Env 8' },
@@ -110,7 +114,8 @@ const PORT_NAMES: Record<string, string> = {
   trig: 'TRIG', lp24: 'LP24', lp12: 'LP12', bp: 'BP', hp: 'HP', mix: 'MIX', notch: 'NOTCH', peak: 'PEAK', ap: 'AP',
   hp6: 'HP6', morph: 'MORPH', l: 'L', r: 'R', held: 'HELD', pulse: 'PULSO', shape: 'FORMA', hold: 'HOLD', exc: 'EXC',
   transpose: 'TRANSP', pos: 'POS', side: 'SIDE', vowel: 'VOCAL', dcw: 'DCW', fm: 'FM', amp: 'AMP', up: 'ARRIBA',
-  down: 'ABAJO', rate: 'RATE', a: 'A', b: 'B',
+  down: 'ABAJO', rate: 'RATE', a: 'A', b: 'B', strike: 'GOLPE', inv: 'INV', eor: 'EOR', eoc: 'EOC', off: 'OFF',
+  cv1: 'CV1', x: 'X', y: 'Y', z: 'Z',
 };
 export const portLabel = (name: string): string => PORT_NAMES[name] ?? name.toUpperCase();
 
@@ -118,6 +123,9 @@ const PARAM_NAMES: Record<string, string> = {
   cutoff: 'CORTE', res: 'RESO', level: 'NIVEL', coarse: 'AFIN', fine: 'FINO', wave: 'FORMA', rate: 'VEL', depth: 'PROF',
   decay: 'CAÍDA', damp: 'AMORT', gain: 'GAN', drive: 'DRIVE', mix: 'MEZCLA', time: 'TIEMPO', fb: 'REALIM', size: 'TAMAÑO',
   tempo: 'TEMPO', morph: 'MORPH', track: 'TRACK', cvamt: 'CV AMT', a: 'ATK', d: 'DEC', s: 'SUS', r: 'REL', value: 'VALOR',
+  rise: 'SUBIDA', fall: 'BAJADA', shape: 'CURVA', cycle: 'CICLO', offset: 'OFFSET', mode: 'MODO', length: 'LARGO',
+  change: 'CAMBIO', range: 'RANGO', scale: 'ESCALA', root: 'TÓNICA', steps: 'PASOS', pulses: 'GOLPES', rotate: 'ROTAR',
+  spread: 'DISPERS', dejavu: 'DEJA VU', density: 'DENSID', prob: 'PROB', speed: 'VELOC', rho: 'RHO',
 };
 export const paramLabel = (name: string): string => PARAM_NAMES[name] ?? name.toUpperCase();
 

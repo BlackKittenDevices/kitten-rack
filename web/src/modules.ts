@@ -3361,7 +3361,381 @@ const esp: ModuleImpl<EspState> = {
   },
 };
 
-const ALL = [fm1, osc, lfo, noise, constant, scale, adsr, vca, filter, mixer, delay, reverb, output, glide, shape, env, string, wavetable, chorus, seq, clkdiv, sh, quant, pulse, pan, xfade, vowel, phaser, crush, ladder, dyn, math, logic, grain, comb, modal, shift, part, random, alloc, scope, arp, steps, macro, drummap, pd, env8, select, rateenv, ratio, esp];
+// ---------------------------------------------------------------------------------------------------------------------
+// KITTEN RACK modules (patch format 49): lpg, func, ring, turing, euclid, marbles, bern, chaos. engine.c has the same
+// formulas in fixed point; the generators (turing, euclid, marbles, bern, chaos) run on integers so both engines take
+// the same random and chaotic paths bit for bit (their parameters as the binary holds them: Q16, toQ16).
+
+/** a parameter as the binary and the FM-1 hold it (patchbin.ts toQ16) */
+const pQ16 = (v: number | undefined, def: number): number => Math.round((v ?? def) * 65536);
+/** 1 - exp(-4.6 / (t sr)): 99 % of a step in t seconds (the ADSR's curve, engine.c env_rate) */
+const envRate = (t: number, sr: number): number => 1 - Math.exp(-4.6 / Math.max(t * sr, 1));
+
+export const LPG_MODES = ['combo', 'lp', 'vca'];
+/** the vactrol's attack, s (131 / 65536: what the firmware's Q16 constant holds) */
+export const LPG_ATTACK = 131 / 65536;
+interface LpgState { vac: number; y1: number; y2: number; t1: number }
+/**
+ * Low pass gate after the Buchla 292: a vactrol (fast attack, a release that slows down as it closes) opens a two-pole
+ * low pass and, in combo, a VCA together. cv + offset sets how far it opens; a rising strike opens it all at once (a
+ * ping, the wooden "bonk"). lp: the filter only, vca: the gain only.
+ */
+const lpg: ModuleImpl<LpgState> = {
+  def: {
+    type: 'lpg',
+    label: 'Low pass gate',
+    inputs: [audio('in'), control('cv'), gate('strike')],
+    outputs: [audio('out')],
+    params: [
+      param('mode', 0, 2, 0, { step: 1, choices: LPG_MODES }),
+      param('decay', 0.02, 3, 0.4, { unit: 's', step: 0.01, log: true }),
+      param('offset', 0, 1, 0, { step: 0.01 }),
+      param('level', 0, 2, 1, { step: 0.01 }),
+    ],
+  },
+  init: () => ({ vac: 0, y1: 0, y2: 0, t1: 0 }),
+  process(c, s) {
+    const ka = envRate(LPG_ATTACK, c.sr), kd = envRate(c.p.decay ?? 0.4, c.sr);
+    const mode = Math.round(c.p.mode ?? 0), off = c.p.offset ?? 0, lvl = c.p.level ?? 1;
+    for (let i = 0; i < c.n; i++) {
+      const st = c.inp.strike[i];
+      if (st >= 0.5 && s.t1 < 0.5) s.vac = 1;
+      s.t1 = st;
+      const tgt = Math.min(1, Math.max(0, c.inp.cv[i] + off));
+      if (tgt > s.vac) s.vac += (tgt - s.vac) * ka;
+      else s.vac += (tgt - s.vac) * kd * (0.25 + 0.75 * s.vac);
+      const g = 0.002 + 0.9 * s.vac * s.vac;
+      const x = c.inp.in[i];
+      s.y1 += g * (x - s.y1);
+      s.y2 += g * (s.y1 - s.y2);
+      const y = mode === 2 ? x * s.vac : mode === 1 ? s.y2 : s.y2 * s.vac;
+      c.out.out[i] = y * lvl;
+    }
+  },
+};
+
+const ONE30 = 1 << 30;
+/** one unit in t seconds as a Q30 step per sample, as engine.c func_inc computes it from the binary's Q16 time */
+const funcInc = (t: number, sr: number): number => Math.floor(2 ** 38 / Math.max(256, Math.floor((Math.round(t * 65536) * sr) / 256)));
+/** the end-of-cycle pulse, samples (5 ms: sr / 200, as engine.c) */
+const FUNC_EOC = (sr: number): number => Math.floor(sr / 200);
+interface FuncState { x: number; y: number; stage: number; t1: number; eoc: number } // x: Q30 integer
+/**
+ * Function generator after Make Noise Maths: a trigger runs a rise (0 to 1) and a fall (1 to 0) of their own times,
+ * bent by shape (+1 slow start, -1 fast start); cycle repeats it (an LFO). With a cable in `in` it is a slew limiter
+ * instead: out follows in no faster than one unit per rise (up) or fall (down) time. inv = -out; eor is high while it
+ * falls, eoc a 5 ms pulse when a fall ends.
+ */
+const func: ModuleImpl<FuncState> = {
+  def: {
+    type: 'func',
+    label: 'Function',
+    inputs: [gate('trig'), control('in')],
+    outputs: [control('out'), control('inv'), gate('eor'), gate('eoc')],
+    params: [
+      param('rise', 0.001, 10, 0.05, { unit: 's', step: 0.001, log: true }),
+      param('fall', 0.001, 10, 0.3, { unit: 's', step: 0.001, log: true }),
+      param('shape', -1, 1, 0, { step: 0.01 }),
+      param('cycle', 0, 1, 0, { step: 1, choices: ['off', 'on'], toggle: true }),
+    ],
+  },
+  init: () => ({ x: 0, y: 0, stage: 0, t1: 0, eoc: 0 }),
+  process(c, s) {
+    // the envelope's phase runs on integers (Q30) as engine.c's, so a cycle ends on the same sample in both engines
+    const ri = funcInc(c.p.rise ?? 0.05, c.sr), fi = funcInc(c.p.fall ?? 0.3, c.sr), ru = ri / ONE30, fu = fi / ONE30;
+    const sh = c.p.shape ?? 0, cyc = (c.p.cycle ?? 0) >= 0.5, slew = !!c.connected.in;
+    const o = c.out;
+    for (let i = 0; i < c.n; i++) {
+      let y: number;
+      if (slew) {
+        const t = c.inp.in[i];
+        s.y = t > s.y ? Math.min(t, s.y + ru) : Math.max(t, s.y - fu);
+        y = s.y;
+      } else {
+        const tg = c.inp.trig[i];
+        if ((tg >= 0.5 && s.t1 < 0.5) || (cyc && s.stage === 0)) s.stage = 1;
+        s.t1 = tg;
+        if (s.stage === 1) {
+          if (ri >= ONE30 - s.x) {
+            s.x = ONE30;
+            s.stage = 2;
+          } else s.x += ri;
+        } else if (s.stage === 2) {
+          if (fi >= s.x) {
+            s.x = 0;
+            s.stage = 0;
+            s.eoc = FUNC_EOC(c.sr);
+          } else s.x -= fi;
+        }
+        const u = s.x / ONE30;
+        y = u + sh * (u * u - u);
+      }
+      o.out[i] = y;
+      o.inv[i] = -y;
+      o.eor[i] = s.stage === 2 ? 1 : 0;
+      o.eoc[i] = s.eoc > 0 ? 1 : 0;
+      if (s.eoc > 0) s.eoc--;
+    }
+  },
+};
+
+/** Ring modulator: a x b (ring) or a x (1 + b) / 2 (am, the carrier stays) */
+const ring: ModuleImpl<null> = {
+  def: {
+    type: 'ring',
+    label: 'Ring mod',
+    inputs: [audio('a'), audio('b')],
+    outputs: [audio('out')],
+    params: [param('mode', 0, 1, 0, { step: 1, choices: ['ring', 'am'] }), param('level', 0, 2, 1, { step: 0.01 })],
+  },
+  init: () => null,
+  process(c) {
+    const am = Math.round(c.p.mode ?? 0) === 1, l = c.p.level ?? 1;
+    for (let i = 0; i < c.n; i++) {
+      const a = c.inp.a[i], b = c.inp.b[i];
+      c.out.out[i] = (am ? a * (1 + b) * 0.5 : a * b) * l;
+    }
+  },
+};
+
+/** the generators' range choices: octaves 1..4 */
+export const GEN_RANGES = ['1 oct', '2 oct', '3 oct', '4 oct'];
+/** a degree of a scale over `octs` octaves as a pitch in octaves, centred on C4 (the root added) */
+const degreePitch = (sc: number[], deg: number, root: number, octs: number): number =>
+  (sc[deg % sc.length] + 12 * Math.floor(deg / sc.length) + root) / 12 - Math.floor(octs / 2);
+const scaleOf = (v: number | undefined): number[] => SCALES[Math.min(SCALES.length - 1, Math.max(0, Math.round(v ?? 0)))].st;
+
+interface TuringState { seed: number; reg: number; c1: number; pitch: number; cv: number; phase: number; env: number }
+/**
+ * Turing machine after Music Thing Modular: a 16-bit shift register clocked by `clock`; the bit leaving the loop of
+ * `length` steps comes back, flipped with chance `change` (0: a locked loop, 1: always new). Its low 8 bits pick a
+ * degree of the scale over the range (pitch) and are cv 0..1; gate follows the clock when the newest bit is 1. It also
+ * plays: out is a triangle at the pitch, struck on each gate, decaying in `decay`.
+ */
+const turing: ModuleImpl<TuringState> = {
+  def: {
+    type: 'turing',
+    label: 'Turing machine',
+    inputs: [gate('clock')],
+    outputs: [control('pitch'), gate('gate'), control('cv'), audio('out')],
+    params: [
+      param('length', 2, 16, 8, { step: 1 }),
+      param('change', 0, 1, 0.1, { step: 0.01 }),
+      param('range', 0, 3, 1, { step: 1, choices: GEN_RANGES }),
+      param('scale', 0, SCALES.length - 1, 4, { step: 1, choices: SCALES.map((x) => x.name) }),
+      param('root', 0, 11, 0, { step: 1, choices: NOTES }),
+      param('decay', 0.01, 2, 0.25, { unit: 's', step: 0.01, log: true }),
+      param('level', 0, 1, 0.8, { step: 0.01 }),
+    ],
+  },
+  init: () => ({ seed: 0, reg: 0, c1: 0, pitch: 0, cv: 0, phase: 0, env: 0 }),
+  seed(s, seed) {
+    s.seed = seed >>> 0;
+    s.reg = hash32(seed ^ 0x5bd1e995) & 0xffff;
+  },
+  process(c, s) {
+    const len = Math.min(16, Math.max(2, Math.round(c.p.length ?? 8))), chg = pQ16(c.p.change, 0.1);
+    const sc = scaleOf(c.p.scale ?? 4), octs = Math.round(c.p.range ?? 1) + 1, root = Math.round(c.p.root ?? 0);
+    const total = sc.length * octs, kd = envRate(c.p.decay ?? 0.25, c.sr), lvl = c.p.level ?? 0.8;
+    const o = c.out;
+    for (let i = 0; i < c.n; i++) {
+      const ck = c.inp.clock[i];
+      if (ck >= 0.5 && s.c1 < 0.5) {
+        s.seed = lcg(s.seed);
+        let bit = (s.reg >>> (len - 1)) & 1;
+        if (s.seed >>> 16 < chg) bit ^= 1;
+        s.reg = ((s.reg << 1) | bit) & 0xffff;
+        const v8 = s.reg & 0xff;
+        s.pitch = degreePitch(sc, (v8 * total) >> 8, root, octs);
+        s.cv = v8 / 255;
+        if (s.reg & 1) s.env = 1;
+      }
+      s.c1 = ck;
+      s.phase += (C4 * Math.pow(2, s.pitch)) / c.sr;
+      s.phase -= Math.floor(s.phase);
+      o.pitch[i] = s.pitch;
+      o.gate[i] = ck >= 0.5 && s.reg & 1 ? 1 : 0;
+      o.cv[i] = s.cv;
+      o.out[i] = (4 * Math.abs(s.phase - Math.floor(s.phase + 0.5)) - 1) * s.env * lvl;
+      s.env -= s.env * kd;
+    }
+  },
+};
+
+interface EuclidState { pos: number; hit: boolean; c1: number; r1: number }
+/** Euclidean rhythm: `pulses` hits spread as evenly as they go over `steps` clocks, turned by `rotate`; trig follows the
+ * clock on a hit, off on the other steps; reset starts the pattern again */
+const euclid: ModuleImpl<EuclidState> = {
+  def: {
+    type: 'euclid',
+    label: 'Euclid',
+    inputs: [gate('clock'), gate('reset')],
+    outputs: [gate('trig'), gate('off')],
+    params: [param('steps', 1, 32, 8, { step: 1 }), param('pulses', 0, 32, 3, { step: 1 }), param('rotate', 0, 31, 0, { step: 1 })],
+  },
+  init: () => ({ pos: -1, hit: false, c1: 0, r1: 0 }),
+  process(c, s) {
+    const steps = Math.min(32, Math.max(1, Math.round(c.p.steps ?? 8)));
+    const pulses = Math.min(steps, Math.max(0, Math.round(c.p.pulses ?? 3))), rot = Math.max(0, Math.round(c.p.rotate ?? 0));
+    for (let i = 0; i < c.n; i++) {
+      const ck = c.inp.clock[i], rs = c.inp.reset[i];
+      if (rs >= 0.5 && s.r1 < 0.5) s.pos = -1;
+      s.r1 = rs;
+      if (ck >= 0.5 && s.c1 < 0.5) {
+        s.pos = (s.pos + 1) % steps;
+        s.hit = (((s.pos + rot) % steps) * pulses) % steps < pulses;
+      }
+      s.c1 = ck;
+      const hi = ck >= 0.5;
+      c.out.trig[i] = hi && s.hit ? 1 : 0;
+      c.out.off[i] = hi && !s.hit ? 1 : 0;
+    }
+  },
+};
+
+export const MARBLES_MEMORY = 16;
+interface MarblesState { seed: number; ring: number[]; idx: number; filled: number; c1: number; pitch: number; cv: number; open: boolean }
+/**
+ * Random notes in a scale after Mutable Instruments Marbles: each clock draws a value (two dice averaged: the middle
+ * comes more often), spread over the range, quantized to the scale (pitch) and as cv -1..1. dejavu: the chance that it
+ * plays the value drawn `length` clocks ago instead (1: a loop of that length). density: the chance that gate opens.
+ */
+const marbles: ModuleImpl<MarblesState> = {
+  def: {
+    type: 'marbles',
+    label: 'Marbles',
+    inputs: [gate('clock')],
+    outputs: [control('pitch'), gate('gate'), control('cv')],
+    params: [
+      param('spread', 0, 1, 0.5, { step: 0.01 }),
+      param('dejavu', 0, 1, 0, { step: 0.01 }),
+      param('length', 1, MARBLES_MEMORY, 8, { step: 1 }),
+      param('density', 0, 1, 1, { step: 0.01 }),
+      param('range', 0, 3, 1, { step: 1, choices: GEN_RANGES }),
+      param('scale', 0, SCALES.length - 1, 1, { step: 1, choices: SCALES.map((x) => x.name) }),
+      param('root', 0, 11, 0, { step: 1, choices: NOTES }),
+    ],
+  },
+  init: () => ({ seed: 0, ring: new Array(MARBLES_MEMORY).fill(0), idx: 0, filled: 0, c1: 0, pitch: 0, cv: 0, open: false }),
+  seed(s, seed) {
+    s.seed = hash32(seed ^ 0x27d4eb2d);
+  },
+  process(c, s) {
+    const spread = pQ16(c.p.spread, 0.5), dejavu = pQ16(c.p.dejavu, 0), density = pQ16(c.p.density, 1);
+    const len = Math.min(MARBLES_MEMORY, Math.max(1, Math.round(c.p.length ?? 8)));
+    const sc = scaleOf(c.p.scale ?? 1), octs = Math.round(c.p.range ?? 1) + 1, root = Math.round(c.p.root ?? 0);
+    const total = sc.length * octs;
+    for (let i = 0; i < c.n; i++) {
+      const ck = c.inp.clock[i];
+      if (ck >= 0.5 && s.c1 < 0.5) {
+        s.idx = (s.idx + 1) % len;
+        s.seed = lcg(s.seed);
+        let v: number;
+        if (s.filled >= len && s.seed >>> 16 < dejavu) v = s.ring[s.idx];
+        else {
+          s.seed = lcg(s.seed);
+          const a = q15(s.seed);
+          s.seed = lcg(s.seed);
+          v = (a + q15(s.seed)) >> 1;
+          s.ring[s.idx] = v;
+          if (s.filled < MARBLES_MEMORY) s.filled++;
+        }
+        const x = Math.floor((v * spread) / 65536);
+        const deg = Math.min(total - 1, Math.floor(((x + 32768) * total) / 65536));
+        s.pitch = degreePitch(sc, deg, root, octs);
+        s.cv = x / 32768;
+        s.seed = lcg(s.seed);
+        s.open = s.seed >>> 16 < density;
+      }
+      s.c1 = ck;
+      c.out.pitch[i] = s.pitch;
+      c.out.gate[i] = ck >= 0.5 && s.open ? 1 : 0;
+      c.out.cv[i] = s.cv;
+    }
+  },
+};
+
+interface BernState { seed: number; side: number; t1: number }
+/** Bernoulli gate (Mutable Instruments Branches): each trigger goes to b with chance `prob`, else to a. trig: the
+ * output follows the input while it is high; latch: it stays high until the next trigger */
+const bern: ModuleImpl<BernState> = {
+  def: {
+    type: 'bern',
+    label: 'Bernoulli',
+    inputs: [gate('trig')],
+    outputs: [gate('a'), gate('b')],
+    params: [param('prob', 0, 1, 0.5, { step: 0.01 }), param('mode', 0, 1, 0, { step: 1, choices: ['trig', 'latch'] })],
+  },
+  init: () => ({ seed: 0, side: -1, t1: 0 }),
+  seed(s, seed) {
+    s.seed = hash32(seed ^ 0x165667b1);
+  },
+  process(c, s) {
+    const prob = pQ16(c.p.prob, 0.5), latch = Math.round(c.p.mode ?? 0) === 1;
+    for (let i = 0; i < c.n; i++) {
+      const t = c.inp.trig[i];
+      if (t >= 0.5 && s.t1 < 0.5) {
+        s.seed = lcg(s.seed);
+        s.side = s.seed >>> 16 < prob ? 1 : 0;
+      }
+      s.t1 = t;
+      const on = latch || t >= 0.5;
+      c.out.a[i] = on && s.side === 0 ? 1 : 0;
+      c.out.b[i] = on && s.side === 1 ? 1 : 0;
+    }
+  },
+};
+
+/** the chaos module's Lorenz system: sigma 10, beta 8/3 (Q16), four Euler steps a block of dt = speed / 400 */
+export const CHAOS_BETA_Q16 = 174763;
+export const CHAOS_DT_K = 164;
+export const CHAOS_STEPS = 4;
+/** x / 20, y / 27, (z - 25) / 25: the outputs about -1..1 (Q16 factors) */
+export const CHAOS_KX = 3277, CHAOS_KY = 2427, CHAOS_KZ = 2621;
+interface ChaosState { x: number; y: number; z: number; ox: number; oy: number; oz: number }
+const fl16 = (a: number, b: number): number => Math.floor((a * b) / 65536);
+/**
+ * Chaos: a Lorenz attractor as three slow, never repeating CVs (x, y, z about -1..1), for drones that breathe. speed sets
+ * how fast it runs, rho how wild (28: the classic butterfly). Integer arithmetic (Q16), stepped once a block and ramped
+ * across it, the same in both engines.
+ */
+const chaos: ModuleImpl<ChaosState> = {
+  def: {
+    type: 'chaos',
+    label: 'Chaos',
+    inputs: [],
+    outputs: [control('x'), control('y'), control('z')],
+    params: [param('speed', 0.05, 4, 0.5, { step: 0.01 }), param('rho', 20, 40, 28, { step: 0.1 })],
+  },
+  init: () => ({ x: 65536, y: 65536, z: 25 * 65536, ox: 0, oy: 0, oz: 0 }),
+  seed(s, seed) {
+    s.x = 65536 + (hash32(seed ^ 0x61c88647) & 0xffff) - 32768;
+  },
+  process(c, s) {
+    const dt = Math.max(1, Math.floor((pQ16(c.p.speed, 0.5) * CHAOS_DT_K) / 65536)), rho = pQ16(c.p.rho, 28);
+    for (let k = 0; k < CHAOS_STEPS; k++) {
+      const dx = 10 * (s.y - s.x);
+      const dy = fl16(s.x, rho - s.z) - s.y;
+      const dz = fl16(s.x, s.y) - fl16(CHAOS_BETA_Q16, s.z);
+      s.x += fl16(dx, dt);
+      s.y += fl16(dy, dt);
+      s.z += fl16(dz, dt);
+    }
+    const nx = fl16(s.x, CHAOS_KX), ny = fl16(s.y, CHAOS_KY), nz = fl16(s.z - 25 * 65536, CHAOS_KZ);
+    for (let i = 0; i < c.n; i++) {
+      c.out.x[i] = (s.ox + Math.trunc(((nx - s.ox) * (i + 1)) / c.n)) / 65536;
+      c.out.y[i] = (s.oy + Math.trunc(((ny - s.oy) * (i + 1)) / c.n)) / 65536;
+      c.out.z[i] = (s.oz + Math.trunc(((nz - s.oz) * (i + 1)) / c.n)) / 65536;
+    }
+    s.ox = nx;
+    s.oy = ny;
+    s.oz = nz;
+  },
+};
+
+const ALL = [fm1, osc, lfo, noise, constant, scale, adsr, vca, filter, mixer, delay, reverb, output, glide, shape, env, string, wavetable, chorus, seq, clkdiv, sh, quant, pulse, pan, xfade, vowel, phaser, crush, ladder, dyn, math, logic, grain, comb, modal, shift, part, random, alloc, scope, arp, steps, macro, drummap, pd, env8, select, rateenv, ratio, esp,
+  // KITTEN RACK (format 49)
+  lpg, func, ring, turing, euclid, marbles, bern, chaos];
 
 /**
  * Every module except the FM-1 panel (the input) and the output has two parameter inputs, p1 and p2, each with an

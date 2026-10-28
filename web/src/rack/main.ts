@@ -593,16 +593,24 @@ function meters(): void {
   $('#hp-txt').textContent = `${hp}/${rows * ROW_HP} HP · ${patch.modules.length}/64 módulos · ${patch.cables.length} cables`;
 }
 
-const presetFiles = import.meta.glob<unknown>('../../presets/*.json', { eager: true, import: 'default' });
+const demoFiles = import.meta.glob<unknown>('./demos/*.json', { eager: true, import: 'default' });
+const presetFiles = { ...demoFiles, ...import.meta.glob<unknown>('../../presets/*.json', { eager: true, import: 'default' }) };
 
 function fillPresets(): void {
   const sel = $<HTMLSelectElement>('#presets');
-  for (const [file, raw] of Object.entries(presetFiles).sort()) {
-    const o = document.createElement('option');
-    o.value = file;
-    o.textContent = (raw as { name?: string }).name ?? file;
-    sel.append(o);
-  }
+  const group = (label: string, files: Record<string, unknown>): void => {
+    const g = document.createElement('optgroup');
+    g.label = label;
+    for (const [file, raw] of Object.entries(files).sort()) {
+      const o = document.createElement('option');
+      o.value = file;
+      o.textContent = (raw as { name?: string }).name ?? file;
+      g.append(o);
+    }
+    sel.append(g);
+  };
+  group('KITTEN RACK', demoFiles);
+  group('Matryoshka', import.meta.glob<unknown>('../../presets/*.json', { eager: true, import: 'default' }));
   sel.onchange = () => {
     if (sel.value) load(presetFiles[sel.value]);
     sel.value = '';

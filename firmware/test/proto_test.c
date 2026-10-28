@@ -321,7 +321,7 @@ static int patterns_test(const char *kit_path, const char *song_path)
     uint32_t t0, t1, sec, len0;
     const uint32_t *w;
     int n;
-    CHECK(kit[1] == ENG_PATCH_VERSION && (kit[7] & ENG_FLAG_PATTERNS) && m1_valid(kit, (uint32_t)nk) && !m1_valid(kit, (uint32_t)nk - 1u));
+    CHECK(kit[1] >= 48u && kit[1] <= ENG_PATCH_VERSION && (kit[7] & ENG_FLAG_PATTERNS) && m1_valid(kit, (uint32_t)nk) && !m1_valid(kit, (uint32_t)nk - 1u));
     m1_set_current(kit, (uint32_t)nk);
     CHECK(eng_load(m1_cur, m1_cur_len) == 0);
     sec = pat_section();

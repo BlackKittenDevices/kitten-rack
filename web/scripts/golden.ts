@@ -237,6 +237,83 @@ kit('random-held', (add, wire) => {
     wire(r, 'held', out, port);
   }
 });
+// KITTEN RACK modules (format 49): each output straight into the Output where it is a CV or a gate, so the generators'
+// integer paths are compared sample by sample
+const krClock = (add: (t: string, x: number, y: number, p?: Record<string, number>) => number, rate: number): number =>
+  add('lfo', 0, 0, { wave: 3, rate, depth: 1 });
+kit('kr-lpg', (add, wire) => {
+  const clock = krClock(add, 6), slow = add('lfo', 0, 0, { wave: 1, rate: 1.3, depth: 1 });
+  const osc = add('osc', 0, 0, { wave: 2, coarse: -12, level: 0.8 });
+  const a = add('lpg', 0, 0, { mode: 0, decay: 0.3 }), b = add('lpg', 0, 0, { mode: 1, decay: 0.8, offset: 0.1 });
+  const out = add('output', 0, 0);
+  wire(clock, 'out', a, 'strike'); wire(osc, 'out', a, 'in'); wire(osc, 'out', b, 'in'); wire(slow, 'out', b, 'cv');
+  wire(a, 'out', out, 'l'); wire(b, 'out', out, 'r');
+});
+kit('kr-lpg-vca', (add, wire) => {
+  const clock = krClock(add, 9), osc = add('osc', 0, 0, { wave: 0, level: 0.8 });
+  const a = add('lpg', 0, 0, { mode: 2, decay: 0.15, level: 1.5 }), out = add('output', 0, 0);
+  wire(clock, 'out', a, 'strike'); wire(osc, 'out', a, 'in'); wire(a, 'out', out, 'l');
+});
+kit('kr-func', (add, wire) => {
+  const clock = krClock(add, 5), out = add('output', 0, 0);
+  const a = add('func', 0, 0, { rise: 0.02, fall: 0.12, shape: 0.6 }), b = add('func', 0, 0, { rise: 0.03, fall: 0.05, shape: -0.5, cycle: 1 });
+  wire(clock, 'out', a, 'trig'); wire(a, 'out', out, 'l'); wire(b, 'out', out, 'r');
+});
+kit('kr-func-gates', (add, wire) => {
+  const sq = krClock(add, 7), out = add('output', 0, 0);
+  const a = add('func', 0, 0, { rise: 0.01, fall: 0.02, cycle: 1 }), b = add('func', 0, 0, { rise: 0.01, fall: 0.05 });
+  wire(sq, 'out', b, 'in'); wire(a, 'eor', out, 'l'); wire(b, 'out', out, 'r');
+});
+kit('kr-func-eoc', (add, wire) => {
+  const out = add('output', 0, 0), a = add('func', 0, 0, { rise: 0.01, fall: 0.015, cycle: 1 });
+  wire(a, 'eoc', out, 'l'); wire(a, 'inv', out, 'r');
+});
+kit('kr-ring', (add, wire) => {
+  const o1 = add('osc', 0, 0, { wave: 0, level: 0.9 }), o2 = add('osc', 0, 0, { wave: 1, coarse: 7, level: 0.7 });
+  const a = add('ring', 0, 0), b = add('ring', 0, 0, { mode: 1, level: 1.2 }), out = add('output', 0, 0);
+  wire(o1, 'out', a, 'a'); wire(o2, 'out', a, 'b'); wire(o1, 'out', b, 'a'); wire(o2, 'out', b, 'b');
+  wire(a, 'out', out, 'l'); wire(b, 'out', out, 'r');
+});
+kit('kr-turing', (add, wire) => {
+  const clock = krClock(add, 20), out = add('output', 0, 0);
+  const t = add('turing', 0, 0, { length: 8, change: 0.3, range: 2, scale: 4, root: 2, decay: 0.08 });
+  wire(clock, 'out', t, 'clock'); wire(t, 'pitch', out, 'l'); wire(t, 'out', out, 'r');
+});
+kit('kr-turing-gates', (add, wire) => {
+  const clock = krClock(add, 23), out = add('output', 0, 0), t = add('turing', 0, 0, { length: 5, change: 0.5 });
+  wire(clock, 'out', t, 'clock'); wire(t, 'gate', out, 'l'); wire(t, 'cv', out, 'r');
+});
+kit('kr-euclid', (add, wire) => {
+  const clock = krClock(add, 30), out = add('output', 0, 0), e = add('euclid', 0, 0, { steps: 7, pulses: 3, rotate: 1 });
+  wire(clock, 'out', e, 'clock'); wire(e, 'trig', out, 'l'); wire(e, 'off', out, 'r');
+});
+kit('kr-marbles', (add, wire) => {
+  const clock = krClock(add, 25), out = add('output', 0, 0);
+  const m = add('marbles', 0, 0, { spread: 0.8, dejavu: 0.5, length: 4, density: 0.7, range: 2, scale: 2 });
+  wire(clock, 'out', m, 'clock'); wire(m, 'pitch', out, 'l'); wire(m, 'gate', out, 'r');
+});
+kit('kr-marbles-cv', (add, wire) => {
+  const clock = krClock(add, 31), out = add('output', 0, 0), m = add('marbles', 0, 0, { spread: 1, dejavu: 0.9, length: 3 });
+  wire(clock, 'out', m, 'clock'); wire(m, 'cv', out, 'l');
+});
+kit('kr-bern', (add, wire) => {
+  const clock = krClock(add, 25), out = add('output', 0, 0), b = add('bern', 0, 0, { prob: 0.3 });
+  wire(clock, 'out', b, 'trig'); wire(b, 'a', out, 'l'); wire(b, 'b', out, 'r');
+});
+kit('kr-bern-latch', (add, wire) => {
+  const clock = krClock(add, 17), out = add('output', 0, 0), b = add('bern', 0, 0, { prob: 0.6, mode: 1 });
+  wire(clock, 'out', b, 'trig'); wire(b, 'a', out, 'l'); wire(b, 'b', out, 'r');
+});
+kit('kr-chaos', (add, wire) => {
+  const out = add('output', 0, 0), c = add('chaos', 0, 0, { speed: 3, rho: 28 });
+  wire(c, 'x', out, 'l'); wire(c, 'z', out, 'r');
+});
+kit('kr-chaos-slow', (add, wire) => {
+  const out = add('output', 0, 0), c = add('chaos', 0, 0, { speed: 0.4, rho: 35 });
+  wire(c, 'y', out, 'l');
+});
+for (const k of ['kr-turing', 'kr-turing-gates', 'kr-euclid', 'kr-marbles', 'kr-marbles-cv', 'kr-bern', 'kr-bern-latch', 'kr-chaos', 'kr-chaos-slow', 'kr-func', 'kr-lpg'])
+  ends[k] = 128 * 600;
 kit('waves', (add, wire) => {
   const kb = add('fm1', 0, 0);
   const mix = add('mixer', 0, 0, { l1: 0.25, l2: 0.25, l3: 0.25, l4: 0.25 });
