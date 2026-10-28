@@ -312,7 +312,35 @@ kit('kr-chaos-slow', (add, wire) => {
   const out = add('output', 0, 0), c = add('chaos', 0, 0, { speed: 0.4, rho: 35 });
   wire(c, 'y', out, 'l');
 });
-for (const k of ['kr-turing', 'kr-turing-gates', 'kr-euclid', 'kr-marbles', 'kr-marbles-cv', 'kr-bern', 'kr-bern-latch', 'kr-chaos', 'kr-chaos-slow', 'kr-func', 'kr-lpg'])
+kit('kr-muug', (add, wire) => {
+  const osc = add('osc', 0, 0, { wave: 2, coarse: -24, level: 0.8 }), slow = add('lfo', 0, 0, { wave: 1, rate: 0.7, depth: 1 });
+  const a = add('muug', 0, 0, { cutoff: -1, emph: 6.5, drive: 1.5 }), b = add('muug', 0, 0, { cutoff: 1.5, emph: 3, drive: 3, cvamt: 2 });
+  const out = add('output', 0, 0);
+  wire(osc, 'out', a, 'in'); wire(osc, 'out', b, 'in'); wire(slow, 'out', b, 'cv');
+  wire(a, 'out', out, 'l'); wire(b, 'out', out, 'r');
+});
+kit('kr-muug-sing', (add, wire) => {
+  const kb = add('fm1', 0, 0), out = add('output', 0, 0);
+  const a = add('muug', 0, 0, { cutoff: -0.5, emph: 9.5 }), b = add('muug', 0, 0, { cutoff: -2, emph: 8.6, track: 1 });
+  wire(kb, 'pitch', b, 'cv');
+  wire(a, 'out', out, 'l'); wire(b, 'out', out, 'r');
+});
+for (const [name, tp] of [['kr-tape', { time: 180, fb: 0.6, mix: 0.5, tape: 1 }], ['kr-tape-pp', { time: 120, fb: 0.7, mix: 0.6, tape: 0.4, pingpong: 1 }]] as const)
+  kit(name, (add, wire) => {
+    const clock = add('lfo', 0, 0, { wave: 3, rate: 3, depth: 1 }), osc = add('osc', 0, 0, { wave: 1, coarse: 7, level: 0.7 });
+    const env = add('func', 0, 0, { rise: 0.002, fall: 0.08 }), vca = add('vca', 0, 0);
+    const d = add('delay', 0, 0, { ...tp }), out = add('output', 0, 0);
+    wire(clock, 'out', env, 'trig'); wire(osc, 'out', vca, 'in'); wire(env, 'out', vca, 'cv');
+    wire(vca, 'out', d, 'in'); wire(d, 'out', out, 'l'); wire(d, 'r', out, 'r');
+  });
+kit('kr-spring', (add, wire) => {
+  const osc = add('osc', 0, 0, { wave: 0, coarse: -5, level: 0.8 });
+  const env = add('func', 0, 0, { rise: 0.001, fall: 0.5, shape: 0.8, cycle: 1 }), vca = add('vca', 0, 0);
+  const rv = add('reverb', 0, 0, { size: 0.55, damp: 0.2, mix: 0.6, spring: 1 }), out = add('output', 0, 0);
+  wire(osc, 'out', vca, 'in'); wire(env, 'out', vca, 'cv');
+  wire(vca, 'out', rv, 'in'); wire(rv, 'out', out, 'l');
+});
+for (const k of ['kr-tape', 'kr-tape-pp', 'kr-spring', 'kr-muug', 'kr-muug-sing', 'kr-turing', 'kr-turing-gates', 'kr-euclid', 'kr-marbles', 'kr-marbles-cv', 'kr-bern', 'kr-bern-latch', 'kr-chaos', 'kr-chaos-slow', 'kr-func', 'kr-lpg'])
   ends[k] = 128 * 600;
 kit('waves', (add, wire) => {
   const kb = add('fm1', 0, 0);

@@ -7,6 +7,7 @@ import { STEPS_RATE_HT, STEPS_RATE_PIN_MAX, STEPS_RATES, SWING_MAX, SWING_PIN_MA
 import WT from './wavetables.json';
 import { rateEnvelopeInit, rateEnvelopeProcess } from './rate-envelope';
 import { formatValue } from './labels';
+import { MUUG_CUT, MUUG_FOSC_MAX16, MUUG_G, MUUG_GM0, MUUG_GX, MUUG_K, MUUG_TANH, MUUG_TRIM } from './muugTables';
 
 export interface Voice {
   /** octaves relative to middle C (MIDI 60) */
@@ -1289,7 +1290,17 @@ interface DelayState {
   seen: number;
   prev: boolean;
   beat: number;
+  /** tape: the head's tone filter (out / A, r / B) and the wow and flutter phases (u32 turns) */
+  lpa: number;
+  lpb: number;
+  pw: number;
+  pf: number;
 }
+
+/** the tape mode's wow (0.6 Hz, +-60 samples at tape 1) and flutter (7.1 Hz, +-3 samples) at DEVICE_SR */
+const TAPE_WOW_HZ = 0.6, TAPE_FLUT_HZ = 7.1, TAPE_WOW_A = 60, TAPE_FLUT_A = 3;
+/** a u32 phase as a triangle, -0.5 .. 0.5 (engine.c tape_tri) */
+const tapeTri = (ph: number): number => { const v = ph >>> 15; return (v < 65536 ? v - 32768 : 98303 - v) / 65536; };
 
 /**
  * Delay. free: `time` in ms; sync: `time` picks a note length (DELAY_DIVS) at the tempo of the `clk` input (the Main module's
@@ -1301,6 +1312,9 @@ interface DelayState {
  * FM-1 (its line's length bounds a synced note length too); past it the patch is browser only (patchbin.ts browserOnly).
  * `note` (synced): one of DELAY_NOTES in place of the time knob's length. `swell`: the feedback x 198 / 95 (0.95 reads
  * 1.98) and the loop through a soft clip (delayClip), so a feedback past 1 swells to about full level and holds there.
+ * `tape` (KITTEN RACK, 0 = the clean digital line): a tape echo. The read head wanders (wow, a 0.6 Hz triangle of up to
+ * +-60 samples, and flutter, 7.1 Hz, +-3 samples, both x tape; a fractional read), each pass loses highs through the
+ * head's one-pole (coefficient 1 - 0.55 tape) and saturates softly (delayClip) as tape does.
  */
 const delay: ModuleImpl<DelayState> = {
   def: {
@@ -1316,9 +1330,10 @@ const delay: ModuleImpl<DelayState> = {
       param('pingpong', 0, 1, 0, { step: 1, choices: ['off', 'on'], toggle: true }),
       param('note', 0, DELAY_NOTES.length - 1, 0, { step: 1, choices: DELAY_NOTES.map((d) => d.name), since: 35 }),
       param('swell', 0, 1, 0, { step: 1, choices: ['off', 'on'], toggle: true, since: 35 }),
+      param('tape', 0, 1, 0, { step: 0.01, since: 49 }),
     ],
   },
-  init: (sr) => ({ buf: new Float32Array(Math.round((sr * DELAY_LEN_BROWSER) / DEVICE_SR)), w: 0, t: 0, ring: new Float64Array(DELAY_CLK_PPQN), seen: 0, prev: false, beat: Math.round(sr / 2) }),
+  init: (sr) => ({ buf: new Float32Array(Math.round((sr * DELAY_LEN_BROWSER) / DEVICE_SR)), w: 0, t: 0, ring: new Float64Array(DELAY_CLK_PPQN), seen: 0, prev: false, beat: Math.round(sr / 2), lpa: 0, lpb: 0, pw: 0, pf: 0 }),
   process(c, s) {
     const len = s.buf.length;
     const half = Math.floor(len / 2);
@@ -1356,6 +1371,34 @@ const delay: ModuleImpl<DelayState> = {
     const mix = c.p.mix ?? 0;
     const o = c.out.out;
     const r = c.out.r;
+    const tape = c.p.tape ?? 0;
+    if (tape > 0) {
+      const top = pp ? Math.floor(lim / 2) : lim, base = pp ? half : len, d = Math.max(1, Math.min(top - 1, samples));
+      const kc = 1 - tape * 0.55, ws = c.sr / DEVICE_SR, wi = Math.round((TAPE_WOW_HZ * 2 ** 32) / c.sr), fi = Math.round((TAPE_FLUT_HZ * 2 ** 32) / c.sr);
+      if (pp && s.w >= half) s.w = 0;
+      for (let i = 0; i < c.n; i++) {
+        const dl = Math.max(1, Math.min(top - 2, d + tape * ws * (TAPE_WOW_A * 2 * tapeTri(s.pw) + TAPE_FLUT_A * 2 * tapeTri(s.pf))));
+        const di = Math.floor(dl), fr = dl - di;
+        const ra = (s.w - di + base) % base, rb = (ra - 1 + base) % base;
+        s.lpa += (s.buf[ra] + (s.buf[rb] - s.buf[ra]) * fr - s.lpa) * kc;
+        const dry = c.inp.in[i] * (1 - mix);
+        if (pp) {
+          s.lpb += (s.buf[half + ra] + (s.buf[half + rb] - s.buf[half + ra]) * fr - s.lpb) * kc;
+          s.buf[half + s.w] = delayClip(s.lpa * fb);
+          s.buf[s.w] = delayClip(c.inp.in[i] + s.lpb * fb);
+          o[i] = dry + s.lpa * mix;
+          r[i] = dry + s.lpb * mix;
+        } else {
+          s.buf[s.w] = delayClip(c.inp.in[i] + s.lpa * fb);
+          o[i] = dry + s.lpa * mix;
+          r[i] = o[i];
+        }
+        s.w = (s.w + 1) % base;
+        s.pw = (s.pw + wi) >>> 0;
+        s.pf = (s.pf + fi) >>> 0;
+      }
+      return;
+    }
     if (!pp) {
       const d = Math.max(1, Math.min(lim - 1, samples));
       for (let i = 0; i < c.n; i++) {
@@ -1393,7 +1436,9 @@ const delay: ModuleImpl<DelayState> = {
  * line outputs) x RV_GOUT. `freeze` holds the tail: every g is 1, no damping, and the input stops entering the lines (the
  * dry signal still passes). Lines 0 and 1 are read with a fractional delay that swings by mod x RV_MOD samples at
  * RV_MOD_HZ (sine, linear interpolation). Mono, shared per patch like the delay; the firmware keeps the same lines as
- * int16 (Q13) in one 16 KB block per instance.
+ * int16 (Q13) in one 16 KB block per instance. `spring` (KITTEN RACK): a spring tank. No input diffusion (the echoes stay
+ * apart), five allpasses in lines 0 and 1 that spread each pass's lows behind its highs (the chirp, the "boing"), and the
+ * wet band-limited to about 180 Hz .. 4.2 kHz (one-pole high and low pass), thin and drippy.
  */
 export const RV_LINE = [331, 439, 547, 661, 773, 881, 991, 1117];
 export const RV_DIFF = [223, 347];
@@ -1414,7 +1459,14 @@ interface ReverbState {
   lp: number[];
   /** the two modulation LFOs, in turns */
   ph: number[];
+  /** spring: the dispersion allpasses' last inputs and outputs (lines 0 and 1, RV_SPR_N each), the wet's high and low pass */
+  sx: number[];
+  sy: number[];
+  shp: number;
+  slp: number;
 }
+/** the spring mode: RV_SPR_N first-order allpasses (coefficient RV_SPR_A) in lines 0 and 1, the wet band-limited */
+const RV_SPR_N = 5, RV_SPR_A = -0.6, RV_SPR_KH = 1659 / 65536, RV_SPR_KL = 29503 / 65536;
 
 const reverb: ModuleImpl<ReverbState> = {
   def: {
@@ -1429,6 +1481,7 @@ const reverb: ModuleImpl<ReverbState> = {
       param('pre', 0, RV_PRE_MS, 0, { unit: 'ms', step: 0.5 }),
       param('mod', 0, 1, 0.3, { step: 0.01 }),
       param('freeze', 0, 1, 0, { step: 1, choices: ['off', 'on'], toggle: true, since: 35 }),
+      param('spring', 0, 1, 0, { step: 1, choices: ['off', 'on'], toggle: true, since: 49 }),
     ],
   },
   init: (sr) => {
@@ -1442,11 +1495,15 @@ const reverb: ModuleImpl<ReverbState> = {
       li: RV_LINE.map(() => 0),
       lp: RV_LINE.map(() => 0),
       ph: [0, 0],
+      sx: new Array<number>(2 * RV_SPR_N).fill(0),
+      sy: new Array<number>(2 * RV_SPR_N).fill(0),
+      shp: 0,
+      slp: 0,
     };
   },
   process(c, s) {
     // freeze: an infinite decay (every line's gain 1, no damping) and nothing new into the lines; the tail holds
-    const frz = (c.p.freeze ?? 0) >= 0.5;
+    const frz = (c.p.freeze ?? 0) >= 0.5, spr = (c.p.spring ?? 0) >= 0.5;
     const T = 0.2 * Math.pow(2, 5 * (c.p.size ?? 0.5));
     const g = s.line.map((b) => (frz ? 1 : Math.pow(2, (-9.965784 * b.length) / (T * c.sr)))); // 10^(-3 L / (T sr))
     const d = frz ? 0 : (c.p.damp ?? 0.4) * 0.8;
@@ -1466,7 +1523,8 @@ const reverb: ModuleImpl<ReverbState> = {
       }
       s.pre[s.pi] = x;
       if (++s.pi === s.pre.length) s.pi = 0;
-      // input diffusion
+      // input diffusion (a spring has none: its echoes stay apart)
+      const u0 = u;
       for (let k = 0; k < 2; k++) {
         const buf = s.ap[k];
         const bo = buf[s.ai[k]];
@@ -1475,7 +1533,7 @@ const reverb: ModuleImpl<ReverbState> = {
         if (++s.ai[k] === buf.length) s.ai[k] = 0;
         u = y;
       }
-      u *= gin;
+      u = (spr ? u0 : u) * gin;
       // the lines: read (lines 0 and 1 at a modulated fractional delay), damp, decay, mix, write
       let wet = 0, sum = 0;
       for (let k = 0; k < 8; k++) {
@@ -1495,6 +1553,22 @@ const reverb: ModuleImpl<ReverbState> = {
         t[k] = s.lp[k] * g[k];
         sum += t[k];
       }
+      if (spr) {
+        // the spring's chirp: lines 0 and 1 through allpasses (a diagonal of allpasses times the Householder matrix stays
+        // lossless), so each pass round the tank spreads the lows behind the highs once more
+        for (let k = 0; k < 2; k++) {
+          sum -= t[k];
+          let v = t[k];
+          for (let j = 0; j < RV_SPR_N; j++) {
+            const q = k * RV_SPR_N + j, y = RV_SPR_A * (v - s.sy[q]) + s.sx[q];
+            s.sx[q] = v;
+            s.sy[q] = y;
+            v = y;
+          }
+          t[k] = v;
+          sum += v;
+        }
+      }
       sum *= 0.25;
       for (let k = 0; k < 8; k++) {
         const buf = s.line[k];
@@ -1504,6 +1578,11 @@ const reverb: ModuleImpl<ReverbState> = {
       for (let k = 0; k < 2; k++) {
         s.ph[k] += inc[k];
         if (s.ph[k] >= 1) s.ph[k] -= 1;
+      }
+      if (spr) {
+        s.shp += (wet - s.shp) * RV_SPR_KH;
+        s.slp += (wet - s.shp - s.slp) * RV_SPR_KL;
+        wet = s.slp;
       }
       c.out.out[i] = x * (1 - mix) + wet * RV_GOUT * mix;
     }
@@ -3733,9 +3812,100 @@ const chaos: ModuleImpl<ChaosState> = {
   },
 };
 
+/** tanh(x / 32768) x 32767 by MUUG_TANH, interpolated (FMini-1's softclip) */
+const muugClip = (x: number): number => {
+  const a = x < 0 ? -x : x, i = a >> 8;
+  const y = i >= 256 ? MUUG_TANH[256] : MUUG_TANH[i] + (((MUUG_TANH[i + 1] - MUUG_TANH[i]) * (a & 255)) >> 8);
+  return x < 0 ? -y : y;
+};
+/** the feedback gain (Q12) from which the hiss grows from +-4 to +-128 LSB: enough to start the singing (the integer loop has a dead band) */
+const MUUG_HISS_K = 11000;
+/** a x k / 65536 rounded (FMini-1's fmini_mulr; k unsigned 16 bit) */
+const muugMul = (a: number, k: number): number => (a >> 16) * k + Math.floor(((a & 0xffff) * k + 32768) / 65536);
+interface MuugState { s: number[]; seed: number } // the four stages and the lag pole (Q8 of the +-32768 scale), the hiss's LCG
+/**
+ * VCF Muug: FMini-1's Minimoog ladder. Four equal one-pole stages, a tanh in front of each (the differential pairs),
+ * the last fed back to the first through a lag pole (the emphasis network): the 180-degree point sits at 0.686 of the
+ * stage pole, so it sings at 1.578 times its -3 dB corner and starts at a loop gain of 2.92, with the hardware's passband
+ * loss. The knobs are the original's dials: cutoff -5 .. +5 (the CA-72 project's measured law), emphasis 0 .. 10 (it
+ * sings past 8, a sine at the cutoff, 1 V/oct with track). drive feeds the mixer's soft overload. cv (octaves, by cvamt)
+ * and track (the voice's pitch from C4) move it once a block. Integer arithmetic, the same in both engines.
+ */
+const muug: ModuleImpl<MuugState> = {
+  def: {
+    type: 'muug',
+    label: 'VCF Muug',
+    inputs: [audio('in'), control('cv')],
+    outputs: [audio('out')],
+    params: [
+      param('cutoff', -5, 5, 0, { step: 0.01 }),
+      param('emph', 0, 10, 4, { step: 0.01 }),
+      param('drive', 0.25, 4, 1, { step: 0.01, log: true }),
+      param('cvamt', 0, 4, 1, { unit: 'oct', step: 0.01 }),
+      param('track', 0, 1, 0, { step: 1, choices: ['off', 'on'], toggle: true }),
+    ],
+  },
+  init: () => ({ s: [0, 0, 0, 0, 0], seed: 0x9e3779b9 }), // the hiss: +-4 LSB, +-128 near the singing, which it starts
+  process(c, st) {
+    const q = (v: number): number => Math.round(v * 65536);
+    let kn = Math.trunc(((q(c.p.cutoff ?? 0) + 327680) * 127) / 10);
+    kn = Math.min(127 << 16, Math.max(0, kn));
+    let i0 = kn >> 16, fr = (kn >> 8) & 255;
+    let lc = MUUG_CUT[i0];
+    if (i0 < 127) lc += ((MUUG_CUT[i0 + 1] - lc) * fr) >> 8;
+    let oct = (c.p.track ?? 0) >= 0.5 ? q(c.voice.pitch) : 0;
+    if (c.connected.cv) {
+      let sum = 0;
+      for (let i = 0; i < c.n; i++) sum += q(c.inp.cv[i]);
+      const mean = c.n === 128 ? (sum < 0 ? -Math.floor(-sum / 128) : Math.floor(sum / 128)) : Math.trunc(sum / c.n);
+      oct += Math.floor((mean * q(c.p.cvamt ?? 1)) / 65536);
+    }
+    lc += Math.floor((oct * 192) / 65536);
+    lc = Math.min(MUUG_FOSC_MAX16, Math.max(MUUG_GM0 * 16, lc));
+    const ix = (lc >> 4) - MUUG_GM0, gf = lc & 15;
+    const gq = MUUG_G[ix] + ((MUUG_G[ix + 1] - MUUG_G[ix]) * gf >> 4);
+    const gxq = MUUG_GX[ix] + ((MUUG_GX[ix + 1] - MUUG_GX[ix]) * gf >> 4);
+    const G16 = (gq + 128) >> 8, gx16 = (gxq + 128) >> 8, om = 65536 - G16;
+    const g2 = Math.floor((G16 * G16) / 65536), g3 = Math.floor((g2 * G16) / 65536), g4 = Math.floor((g3 * G16) / 65536);
+    const c3 = om >> 2, c2 = Math.floor((G16 * om) / 262144), c1 = Math.floor((g2 * om) / 262144), c0 = Math.floor((g3 * om) / 262144);
+    let ek = Math.min(127 << 16, Math.max(0, Math.trunc((q(c.p.emph ?? 4) * 127) / 10)));
+    i0 = ek >> 16; fr = (ek >> 8) & 255;
+    let k12 = MUUG_K[i0], trim12 = MUUG_TRIM[i0];
+    if (i0 < 127) {
+      k12 += ((MUUG_K[i0 + 1] - k12) * fr) >> 8;
+      trim12 += ((MUUG_TRIM[i0 + 1] - trim12) * fr) >> 8;
+    }
+    const den = 65536 + ((k12 * Math.floor(((gxq >> 8) * g4) / 65536)) >> 12);
+    const inv14 = Math.floor(1073741824 / den), kinv12 = (k12 * inv14) >> 14;
+    const drive = q(c.p.drive ?? 1), hiss = k12 >= MUUG_HISS_K ? 24 : 29;
+    const s = st.s;
+    let s0 = s[0], s1 = s[1], s2 = s[2], s3 = s[3], sx = s[4], seed = st.seed;
+    for (let i = 0; i < c.n; i++) {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      const x = muugClip(Math.floor((q(c.inp.in[i]) * drive) / 131072)) + (seed >>> hiss) - (1 << (31 - hiss));
+      const S = (c0 * ((s0 + 128) >> 8) + c1 * ((s1 + 128) >> 8) + c2 * ((s2 + 128) >> 8) + c3 * ((s3 + 128) >> 8)) >> 14;
+      const fbc = sx + muugMul((S << 8) - sx, gx16);
+      const u = ((x * inv14) >> 14) - ((kinv12 * ((fbc + 128) >> 8)) >> 12);
+      const v1 = muugMul((muugClip(u) << 8) - s0, G16), y1 = v1 + s0;
+      s0 = y1 + v1;
+      const v2 = muugMul((muugClip((y1 + 128) >> 8) << 8) - s1, G16), y2 = v2 + s1;
+      s1 = y2 + v2;
+      const v3 = muugMul((muugClip((y2 + 128) >> 8) << 8) - s2, G16), y3 = v3 + s2;
+      s2 = y3 + v3;
+      const v4 = muugMul((muugClip((y3 + 128) >> 8) << 8) - s3, G16), y4 = v4 + s3;
+      s3 = y4 + v4;
+      const w = muugMul(y4 - sx, gx16);
+      sx += w + w;
+      c.out.out[i] = ((((y4 + 128) >> 8) * trim12) >> 12) / 32768;
+    }
+    s[0] = s0; s[1] = s1; s[2] = s2; s[3] = s3; s[4] = sx;
+    st.seed = seed;
+  },
+};
+
 const ALL = [fm1, osc, lfo, noise, constant, scale, adsr, vca, filter, mixer, delay, reverb, output, glide, shape, env, string, wavetable, chorus, seq, clkdiv, sh, quant, pulse, pan, xfade, vowel, phaser, crush, ladder, dyn, math, logic, grain, comb, modal, shift, part, random, alloc, scope, arp, steps, macro, drummap, pd, env8, select, rateenv, ratio, esp,
   // KITTEN RACK (format 49)
-  lpg, func, ring, turing, euclid, marbles, bern, chaos];
+  lpg, func, ring, turing, euclid, marbles, bern, chaos, muug];
 
 /**
  * Every module except the FM-1 panel (the input) and the output has two parameter inputs, p1 and p2, each with an

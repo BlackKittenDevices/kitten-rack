@@ -37,6 +37,7 @@ export const FAMILIES: Family[] = [
   {
     name: 'Filtros',
     types: [
+      { type: 'muug', label: 'VCF Muug' },
       { type: 'lpg', label: 'LPG' },
       { type: 'ladder', label: 'VCF Ladder' },
       { type: 'filter', label: 'VCF Multi' },
@@ -125,7 +126,8 @@ const PARAM_NAMES: Record<string, string> = {
   tempo: 'TEMPO', morph: 'MORPH', track: 'TRACK', cvamt: 'CV AMT', a: 'ATK', d: 'DEC', s: 'SUS', r: 'REL', value: 'VALOR',
   rise: 'SUBIDA', fall: 'BAJADA', shape: 'CURVA', cycle: 'CICLO', offset: 'OFFSET', mode: 'MODO', length: 'LARGO',
   change: 'CAMBIO', range: 'RANGO', scale: 'ESCALA', root: 'TÓNICA', steps: 'PASOS', pulses: 'GOLPES', rotate: 'ROTAR',
-  spread: 'DISPERS', dejavu: 'DEJA VU', density: 'DENSID', prob: 'PROB', speed: 'VELOC', rho: 'RHO',
+  spread: 'DISPERS', dejavu: 'DEJA VU', density: 'DENSID', prob: 'PROB', speed: 'VELOC', rho: 'RHO', emph: 'ÉNFASIS',
+  tape: 'CINTA', spring: 'RESORTE', freeze: 'CONGELAR', swell: 'SWELL', pingpong: 'PING-PONG',
 };
 export const paramLabel = (name: string): string => PARAM_NAMES[name] ?? name.toUpperCase();
 

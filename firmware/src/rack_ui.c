@@ -31,7 +31,7 @@ static uint16_t rk_family(int t)
         return P_CORAL;                                 /* sources: pumpkin */
     case T_TURING:
         return P_CORAL;                                 /* (the Turing machine sounds too) */
-    case T_FILTER: case T_LADDER: case T_VOWEL: case T_COMB: case T_SHAPE: case T_LPG:
+    case T_FILTER: case T_LADDER: case T_VOWEL: case T_COMB: case T_SHAPE: case T_LPG: case T_MUUG:
         return P_GOLD;                                  /* filters: candle */
     case T_VCA: case T_MIXER: case T_PAN: case T_XFADE: case T_SELECT: case T_DYN: case T_RING:
         return P_SAND;                                  /* VCAs and mixing: bone */
@@ -69,7 +69,7 @@ static const char *rk_short(int t)
     case T_OUTPUT: return "OUT";
     case T_LPG: return "LPG";        case T_FUNC: return "FUNCTION"; case T_RING: return "RING";
     case T_TURING: return "TURING";  case T_EUCLID: return "EUCLID";  case T_MARBLES: return "MARBLES";
-    case T_BERN: return "BERNOULLI"; case T_CHAOS: return "CHAOS";
+    case T_BERN: return "BERNOULLI"; case T_CHAOS: return "CHAOS";   case T_MUUG: return "MUUG";
     default: return 0;
     }
 }

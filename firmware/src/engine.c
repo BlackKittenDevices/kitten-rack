@@ -12,6 +12,7 @@
 #include "dsp_tables.h"
 #include "wt_tables.h"
 #include "rate_envelope.h"
+#include "muug_tables.h"
 
 #ifndef ENG_POOL
 #define ENG_POOL
@@ -376,6 +377,7 @@ typedef struct {
         struct { uint32_t seed; int32_t c1, pitch, cv; int16_t ring[MARBLES_MEMORY]; uint8_t idx, filled, open; } mar;
         struct { uint32_t seed; int32_t t1; int8_t side; } brn;
         struct { int32_t x, y, z, ox, oy, oz; } chs;               /* Q16 */
+        struct { int32_t s[5]; uint32_t seed; } mug;               /* the ladder's four stages and its lag pole (Q8 of +-32768), its hiss */
         struct { int32_t rem, t1; } pls;
         struct { int32_t w[SELECT_NOUT - 1]; int8_t k; uint8_t fading; } sel;   /* Selector: each input's weight (Q16), the position (-1: none yet) */
     } s;
@@ -581,6 +583,9 @@ static uint8_t buf_own[ENG_NBUF];
 static int16_t dly_pool[ENG_NDELAY][DELAY_LEN] ENG_POOL;
 static uint8_t dly_own[ENG_NDELAY];
 static int16_t rev_pool[ENG_NREV][RV_LEN] ENG_POOL;
+typedef struct { int32_t x[2][5], y[2][5], hp, lp; } rev_spr_t;
+static rev_spr_t rev_spr[ENG_NREV];   /* the spring mode's states, by the reverb's block */
+static struct { int32_t lpa, lpb; uint32_t pw, pf; } dly_tape[ENG_NDELAY]; /* the tape mode's, by the delay's line */
 static uint8_t rev_own[ENG_NREV];
 static int16_t str_pool[ENG_NSTRING][STR_LEN] ENG_POOL;
 static uint8_t str_own[ENG_NSTRING];
@@ -697,6 +702,9 @@ static void init_state(const node_t *nd, inst_t *it, uint32_t mod, uint32_t v)
         break;
     case T_EUCLID:
         it->s.euc.pos = -1;
+        break;
+    case T_MUUG:
+        it->s.mug.seed = 0x9e3779b9u;      /* the hiss that starts a silent ladder singing */
         break;
     case T_LFO:
         it->s.lfo.seed = 0x2545f491u;
@@ -1415,6 +1423,11 @@ int eng_load(const uint8_t *p, uint32_t len)
                 it->s.rev.buf = rev_pool[s];
                 for (j = 0; j < RV_LEN; j++)
                     it->s.rev.buf[j] = 0;
+                {
+                    int32_t *z = (int32_t *)&rev_spr[s];
+                    for (j = 0; j < sizeof rev_spr[s] / 4u; j++)
+                        z[j] = 0;
+                }
             }
             if (nd->type == T_DELAY) {
                 int s = slot_take(dly_own, ENG_NDELAY);
@@ -1425,6 +1438,11 @@ int eng_load(const uint8_t *p, uint32_t len)
                 it->s.dly.beat = ENG_SR / 2u;             /* 120 bpm until a clock has come in */
                 for (j = 0; j < DELAY_LEN; j++)
                     it->s.dly.buf[j] = 0;
+                {
+                    int32_t *z = (int32_t *)&dly_tape[s];
+                    for (j = 0; j < sizeof dly_tape[s] / 4u; j++)
+                        z[j] = 0;
+                }
             }
             if (nd->type == T_STRING || nd->type == T_COMB) {         /* (the comb uses a string line, it->s.str) */
                 int s = slot_take(str_own, ENG_NSTRING);
@@ -4618,6 +4636,58 @@ static inline int32_t dly_soft(int32_t x)
     return x - mul16(mul16(mul16(x, x), x), 9709);       /* 4/27 Q16 */
 }
 
+/* the tape mode (modules.ts delay `tape`): wow 0.6 Hz +-60 samples, flutter 7.1 Hz +-3 samples (x tape), triangles */
+#define TAPE_WOW_INC 58411u           /* 0.6 Hz in u32 turns at ENG_SR */
+#define TAPE_FLUT_INC 691198u         /* 7.1 Hz */
+#define TAPE_WOW_A 60
+#define TAPE_FLUT_A 3
+static inline int32_t tape_tri(uint32_t ph)
+{
+    int32_t v = (int32_t)(ph >> 15);
+    return v < 65536 ? v - 32768 : 98303 - v;               /* +-0.5, Q16 */
+}
+
+/* the tape echo: a fractional read that wanders, the head's one-pole on each pass, the loop through dly_soft */
+static void delay_tape(inst_t *it, const esig_t *in, esig_t *out, esig_t *outr, uint32_t n, uint32_t d, int32_t fb, int32_t mix, int pp, int32_t tape)
+{
+    int16_t *buf = it->s.dly.buf, *bb = buf + DELAY_HALF;
+    uint32_t slot = (uint32_t)((buf - dly_pool[0]) / DELAY_LEN), len = pp ? DELAY_HALF : DELAY_LEN, w = it->s.dly.w, i;
+    int32_t lpa = dly_tape[slot].lpa, lpb = dly_tape[slot].lpb, kc = ENG_ONE - mul16(tape, 36045), dry = ENG_ONE - mix;   /* 1 - 0.55 tape */
+    uint32_t pw = dly_tape[slot].pw, pf = dly_tape[slot].pf;
+    if (w >= len)
+        w = 0;
+    for (i = 0; i < n; i++) {
+        int32_t mod = mul16(tape, TAPE_WOW_A * 2 * tape_tri(pw) + TAPE_FLUT_A * 2 * tape_tri(pf));
+        int32_t dl = clampi((int32_t)(d << 16) + mod, 1 << 16, (int32_t)((len - 2u) << 16)), a, b, dr = mul16(in[i], dry);
+        uint32_t di = (uint32_t)dl >> 16, fr = (uint32_t)dl & 0xFFFFu, ra = w >= di ? w - di : w + len - di, rb = ra ? ra - 1u : len - 1u;
+        a = (int32_t)buf[ra] * 8;
+        b = (int32_t)buf[rb] * 8;
+        lpa += mul16(a + (int32_t)(((int64_t)(b - a) * fr) >> 16) - lpa, kc);
+        if (pp) {
+            a = (int32_t)bb[ra] * 8;
+            b = (int32_t)bb[rb] * 8;
+            lpb += mul16(a + (int32_t)(((int64_t)(b - a) * fr) >> 16) - lpb, kc);
+            bb[w] = dly_pack(dly_soft(mul16(lpa, fb)));
+            buf[w] = dly_pack(dly_soft(in[i] + mul16(lpb, fb)));
+            out[i] = dr + mul16(lpa, mix);
+            outr[i] = dr + mul16(lpb, mix);
+        } else {
+            buf[w] = dly_pack(dly_soft(in[i] + mul16(lpa, fb)));
+            out[i] = dr + mul16(lpa, mix);
+            outr[i] = out[i];
+        }
+        if (++w == len)
+            w = 0;
+        pw += TAPE_WOW_INC;
+        pf += TAPE_FLUT_INC;
+    }
+    it->s.dly.w = w;
+    dly_tape[slot].lpa = lpa;
+    dly_tape[slot].lpb = lpb;
+    dly_tape[slot].pw = pw;
+    dly_tape[slot].pf = pf;
+}
+
 /* free or synced time (see modules.ts); ping-pong splits the buffer in two halves, A (input, left) and B (right), see
  * modules.ts. note: a synced length of its own (DELAY_NOTE_NUM / DEN) in place of the time knob's; swell: the feedback
  * x 198 / 95 and the loop through dly_soft (the loops below, apart, so the plain one stays as it was) */
@@ -4657,6 +4727,10 @@ static void m_delay(const node_t *nd, inst_t *it, uint32_t n)
     } else
         smp = ((int64_t)EF(it, DELAY_P_TIME) * ENG_SR + (int64_t)500 * 65536) / (1000 * 65536);   /* round(t_ms / 1000 * sr) */
     d = (uint32_t)(smp < 1 ? 1 : smp > top ? top : smp);
+    if (EF(it, DELAY_P_TAPE) > 0) {
+        delay_tape(it, in, out, outr, n, d, swell ? (int32_t)((int64_t)fb * DELAY_SWELL_NUM / DELAY_SWELL_DEN) : fb, mix, pp, EF(it, DELAY_P_TAPE));
+        return;
+    }
     if (swell) {
         fb = (int32_t)((int64_t)fb * DELAY_SWELL_NUM / DELAY_SWELL_DEN);
         if (w >= (pp ? DELAY_HALF : DELAY_LEN))
@@ -4721,6 +4795,9 @@ static const uint16_t RV_DIFF[2] = {223, 347};
 static const uint32_t RV_MOD_INC[2] = {48696u, 80836u};   /* 0.5 and 0.83 Hz in u32 turns per sample */
 #define RV_LOG2_T0 (-152169)         /* log2(0.2) Q16 */
 #define RV_DB60 653118               /* 3 / log10(2) = 9.966 Q16: the octaves of gain lost per T */
+#define RV_SPR_A (-39322)            /* the spring's allpasses: -0.6 */
+#define RV_SPR_KH 1659               /* the wet's high pass, 180 Hz */
+#define RV_SPR_KL 29503              /* and low pass, 4.2 kHz */
 
 static void m_reverb(const node_t *nd, inst_t *it, uint32_t n)
 {
@@ -4732,6 +4809,8 @@ static void m_reverb(const node_t *nd, inst_t *it, uint32_t n)
     int32_t tq = (int32_t)exp2_q16(mul16(EF(it, REVERB_P_SIZE), 5 << 16) + RV_LOG2_T0 + (16 << 16));   /* T, seconds Q16 */
     uint32_t dpre = (uint32_t)((mulq(EF(it, REVERB_P_PRE), ENG_SR, 16) + 500) / 1000), i, k, off = 0;
     int frz = EF(it, REVERB_P_FREEZE) >= 32768;   /* freeze: every gain 1, no damping, nothing new into the lines */
+    int spr = EF(it, REVERB_P_SPRING) >= 32768;   /* spring: no input diffusion, allpasses in lines 0 and 1, the wet band-limited */
+    rev_spr_t *sp = &rev_spr[(it->s.rev.buf - rev_pool[0]) / RV_LEN];
     int32_t gin = frz ? 0 : RV_GIN;
     if (frz)
         d = 0;
@@ -4759,7 +4838,7 @@ static void m_reverb(const node_t *nd, inst_t *it, uint32_t n)
             lp[k] = it->s.rev.lp[k];
         }
         for (i = 0; i < n; i++) {
-            int32_t x = in[i], u = x, wet = 0, sum = 0, bo, y, o;
+            int32_t x = in[i], u = x, u0, wet = 0, sum = 0, bo, y, o;
             if (dpre) {
                 uint32_t rp = pi + RV_PRE - dpre;
                 if (rp >= RV_PRE)
@@ -4769,6 +4848,7 @@ static void m_reverb(const node_t *nd, inst_t *it, uint32_t n)
             pre[pi] = dly_pack(x);
             if (++pi == RV_PRE)
                 pi = 0;
+            u0 = u;
             bo = (int32_t)ap[0][ai0] * 8;                                   /* input diffusion */
             y = bo - u;
             ap[0][ai0] = dly_pack(u + (bo >> 1));
@@ -4781,7 +4861,7 @@ static void m_reverb(const node_t *nd, inst_t *it, uint32_t n)
             if (++ai1 == 347u)
                 ai1 = 0;
             u = y;
-            u = mulr(u, gin, 16);
+            u = mulr(spr ? u0 : u, gin, 16);
 #define RV_DAMP(k)                                                                      \
             wet += o;                                                                   \
             lp[k] = mulr(o, od, 16) + mulr(lp[k], d, 16);                               \
@@ -4812,6 +4892,20 @@ static void m_reverb(const node_t *nd, inst_t *it, uint32_t n)
 #undef RV_TAP
 #undef RV_MODTAP
 #undef RV_DAMP
+            if (spr) {                                                      /* the spring's chirp (modules.ts) */
+                for (k = 0; k < 2u; k++) {
+                    int32_t v = t[k], q;
+                    sum -= v;
+                    for (q = 0; q < 5; q++) {
+                        int32_t yy = mulr(RV_SPR_A, v - sp->y[k][q], 16) + sp->x[k][q];
+                        sp->x[k][q] = v;
+                        sp->y[k][q] = yy;
+                        v = yy;
+                    }
+                    t[k] = v;
+                    sum += v;
+                }
+            }
             sum >>= 2;
             for (k = 0; k < 8u; k++) {                                      /* Householder feedback, write */
                 uint32_t w = li[k];
@@ -4822,6 +4916,11 @@ static void m_reverb(const node_t *nd, inst_t *it, uint32_t n)
             }
             ph0 += RV_MOD_INC[0];
             ph1 += RV_MOD_INC[1];
+            if (spr) {
+                sp->hp += mulr(wet - sp->hp, RV_SPR_KH, 16);
+                sp->lp += mulr(wet - sp->hp - sp->lp, RV_SPR_KL, 16);
+                wet = sp->lp;
+            }
             out[i] = mulr(x, dry, 16) + mulr(mulr(wet, RV_GOUT, 16), mix, 16);
         }
         for (k = 0; k < 8u; k++) {
@@ -6594,6 +6693,102 @@ static void m_chaos(const node_t *nd, inst_t *it, uint32_t n)
     (void)nd;
 }
 
+#define MUUG_HISS_K 11000
+/* modules.ts muug: FMini-1's Minimoog ladder (eng_fmini.c fmini_render), the coefficients once a block */
+static inline int32_t muug_clip(int32_t x)
+{
+    int32_t a = x < 0 ? -x : x, i = a >> 8, y;
+    if (i >= 256)
+        y = MUUG_TANH[256];
+    else
+        y = MUUG_TANH[i] + (((MUUG_TANH[i + 1] - MUUG_TANH[i]) * (a & 255)) >> 8);
+    return x < 0 ? -y : y;
+}
+static inline int32_t muug_mul(int32_t a, uint32_t k)
+{
+    return (int32_t)(((a >> 16) * (int32_t)k) + (int32_t)(((uint32_t)(a & 0xFFFF) * k + 32768u) >> 16));
+}
+static void m_muug(const node_t *nd, inst_t *it, uint32_t n)
+{
+    const esig_t *in = it->in[MUUG_I_IN], *cv = it->in[MUUG_I_CV];
+    esig_t *out = it->out[MUUG_O_OUT];
+    int32_t kn = (int32_t)((((int64_t)EF(it, MUUG_P_CUTOFF) + 327680) * 127) / 10), i0, fr, lc, oct;
+    int32_t G16, gx16, c0, c1, c2, c3, k12, trim12, den, inv14, kinv12, drive = EF(it, MUUG_P_DRIVE);
+    int32_t s0 = it->s.mug.s[0], s1 = it->s.mug.s[1], s2 = it->s.mug.s[2], s3 = it->s.mug.s[3], sx = it->s.mug.s[4];
+    uint32_t gq, gxq, g2, g3, g4, om, ix, gf, i, seed = it->s.mug.seed, hiss;
+    kn = clampi(kn, 0, 127 << 16);
+    i0 = kn >> 16;
+    fr = (kn >> 8) & 255;
+    lc = MUUG_CUT[i0];
+    if (i0 < 127)
+        lc += ((MUUG_CUT[i0 + 1] - lc) * fr) >> 8;
+    oct = EF(it, MUUG_P_TRACK) >= 32768 ? cur_pv->pitch : 0;
+    if (nd->conn & (1u << MUUG_I_CV)) {
+        int64_t sum = 0;
+        for (i = 0; i < n; i++)
+            sum += cv[i];
+        oct += mul16(block_mean(sum, n), EF(it, MUUG_P_CVAMT));
+    }
+    lc += (int32_t)(((int64_t)oct * 192) >> 16);
+    lc = clampi(lc, MUUG_GM0 * 16, MUUG_FOSC_MAX16);
+    ix = (uint32_t)((lc >> 4) - MUUG_GM0);
+    gf = (uint32_t)lc & 15u;
+    gq = MUUG_G[ix] + (uint32_t)(((int32_t)(MUUG_G[ix + 1] - MUUG_G[ix]) * (int32_t)gf) >> 4);
+    gxq = MUUG_GX[ix] + (uint32_t)(((int32_t)(MUUG_GX[ix + 1] - MUUG_GX[ix]) * (int32_t)gf) >> 4);
+    G16 = (int32_t)((gq + 128u) >> 8);
+    gx16 = (int32_t)((gxq + 128u) >> 8);
+    om = 65536u - (uint32_t)G16;
+    g2 = ((uint32_t)G16 * (uint32_t)G16) >> 16;
+    g3 = (g2 * (uint32_t)G16) >> 16;
+    g4 = (g3 * (uint32_t)G16) >> 16;
+    c3 = (int32_t)(om >> 2);
+    c2 = (int32_t)(((uint32_t)G16 * om) >> 18);
+    c1 = (int32_t)((g2 * om) >> 18);
+    c0 = (int32_t)((g3 * om) >> 18);
+    kn = clampi((int32_t)(((int64_t)EF(it, MUUG_P_EMPH) * 127) / 10), 0, 127 << 16);
+    i0 = kn >> 16;
+    fr = (kn >> 8) & 255;
+    k12 = MUUG_K[i0];
+    trim12 = MUUG_TRIM[i0];
+    if (i0 < 127) {
+        k12 += ((MUUG_K[i0 + 1] - k12) * fr) >> 8;
+        trim12 += ((MUUG_TRIM[i0 + 1] - trim12) * fr) >> 8;
+    }
+    den = 65536 + ((k12 * (int32_t)(((gxq >> 8) * g4) >> 16)) >> 12);
+    inv14 = (int32_t)((1u << 30) / (uint32_t)den);
+    kinv12 = (k12 * inv14) >> 14;
+    hiss = k12 >= MUUG_HISS_K ? 24u : 29u;   /* +-128 LSB near the singing (enough to start it: the integer loop has a dead band), else +-4 */
+    for (i = 0; i < n; i++) {
+        int32_t x, S, fbc, u, v1, v2, v3, v4, y1, y2, y3, y4, w;
+        seed = seed * 1664525u + 1013904223u;
+        x = muug_clip((int32_t)(((int64_t)in[i] * drive) >> 17)) + (int32_t)(seed >> hiss) - (1 << (31 - hiss));   /* the transistors' hiss */
+        S = (c0 * ((s0 + 128) >> 8) + c1 * ((s1 + 128) >> 8) + c2 * ((s2 + 128) >> 8) + c3 * ((s3 + 128) >> 8)) >> 14;
+        fbc = sx + muug_mul((S << 8) - sx, (uint32_t)gx16);
+        u = ((x * inv14) >> 14) - ((kinv12 * ((fbc + 128) >> 8)) >> 12);
+        v1 = muug_mul((muug_clip(u) << 8) - s0, (uint32_t)G16);
+        y1 = v1 + s0;
+        s0 = y1 + v1;
+        v2 = muug_mul((muug_clip((y1 + 128) >> 8) << 8) - s1, (uint32_t)G16);
+        y2 = v2 + s1;
+        s1 = y2 + v2;
+        v3 = muug_mul((muug_clip((y2 + 128) >> 8) << 8) - s2, (uint32_t)G16);
+        y3 = v3 + s2;
+        s2 = y3 + v3;
+        v4 = muug_mul((muug_clip((y3 + 128) >> 8) << 8) - s3, (uint32_t)G16);
+        y4 = v4 + s3;
+        s3 = y4 + v4;
+        w = muug_mul(y4 - sx, (uint32_t)gx16);
+        sx += w + w;
+        out[i] = ((((y4 + 128) >> 8) * trim12) >> 12) * 2;
+    }
+    it->s.mug.s[0] = s0;
+    it->s.mug.s[1] = s1;
+    it->s.mug.s[2] = s2;
+    it->s.mug.s[3] = s3;
+    it->s.mug.s[4] = sx;
+    it->s.mug.seed = seed;
+}
+
 static void process(const node_t *nd, inst_t *it, uint32_t n)
 {
     switch (nd->type) {
@@ -6609,6 +6804,7 @@ static void process(const node_t *nd, inst_t *it, uint32_t n)
     case T_MARBLES: m_marbles(nd, it, n); break;
     case T_BERN: m_bern(nd, it, n); break;
     case T_CHAOS: m_chaos(nd, it, n); break;
+    case T_MUUG: m_muug(nd, it, n); break;
     case T_OSC: m_osc(nd, it, n); break;
     case T_LFO: m_lfo(nd, it, n); break;
     case T_NOISE: m_noise(nd, it, n); break;

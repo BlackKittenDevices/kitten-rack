@@ -29,6 +29,23 @@ function setParams(m: ModuleInst, params: Record<string, number>): ModuleInst {
 }
 
 const demos: Patch[] = [
+  demo('muug tape', (add, wire, main, out) => {
+    const v1 = add('osc', { wave: 2, coarse: -12, level: 0.7 });
+    const v2 = add('osc', { wave: 2, coarse: -12, fine: 7, level: 0.6 });
+    const mix = add('mixer', { l1: 0.7, l2: 0.7 });
+    const vcf = add('muug', { cutoff: -1.5, emph: 6.5, drive: 1.6, cvamt: 3, track: 1 });
+    const fenv = add('adsr', { a: 0.005, d: 0.35, s: 0.2, r: 0.3 });
+    const aenv = add('adsr', { a: 0.004, d: 0.6, s: 0.6, r: 0.25 });
+    const vca = add('vca');
+    const dly = add('delay', { time: 330, fb: 0.55, mix: 0.3, tape: 0.7 });
+    const rev = add('reverb', { size: 0.45, damp: 0.2, mix: 0.25, spring: 1 });
+    wire(main, 'pitch', v1, 'pitch'); wire(main, 'pitch', v2, 'pitch');
+    wire(main, 'gate', fenv, 'gate'); wire(main, 'gate', aenv, 'gate');
+    wire(v1, 'out', mix, 'in1'); wire(v2, 'out', mix, 'in2'); wire(mix, 'out', vcf, 'in');
+    wire(fenv, 'env', vcf, 'cv'); wire(vcf, 'out', vca, 'in'); wire(aenv, 'env', vca, 'cv');
+    wire(vca, 'out', dly, 'in'); wire(dly, 'out', rev, 'in');
+    wire(rev, 'out', out, 'l'); wire(rev, 'out', out, 'r');
+  }, 'Play it: two saws through the Muug ladder (an envelope opens it, the keyboard tracks it), a tape echo and a spring.'),
   demo('bonk west coast', (add, wire, _main, out) => {
     const clock = add('lfo', { wave: 3, rate: 7, depth: 1 });
     const eu = add('euclid', { steps: 16, pulses: 7, rotate: 2 });

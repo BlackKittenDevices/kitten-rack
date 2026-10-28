@@ -48981,6 +48981,10 @@
   "chaos": {
    "run": 16268,
    "cv": 164
+  },
+  "muug": {
+   "run": 31246,
+   "cv": 223
   }
  },
  "checks": [
@@ -49377,5 +49381,5 @@
   "benchNote": "firmware/src/bench.c kernels (4x Q15 MAC 9 us, Q15 SVF 8 us per block, rounded down) give the same scale within a few %",
   "note": "module kits hold note 72; a square or saw oscillator costs more the higher it plays"
  },
- "note_kitten": "KITTEN RACK: the types lpg..chaos measured with clang 18 (tools/cpu), the rest as Matryoshka 1.5.1 committed them"
+ "note_kitten": "KITTEN RACK: the types lpg..chaos and muug measured with clang 18 (tools/cpu), the rest as Matryoshka 1.5.1 committed them"
 }

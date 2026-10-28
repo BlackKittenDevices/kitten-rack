@@ -3,7 +3,7 @@
 #pragma once
 #include <stdint.h>
 
-#define N_TYPES 58
+#define N_TYPES 59
 enum {
     T_FM1,
     T_OSC,
@@ -63,6 +63,7 @@ enum {
     T_MARBLES,
     T_BERN,
     T_CHAOS,
+    T_MUUG,
 };
 
 /* fm1: Main */
@@ -268,9 +269,10 @@ enum {
 #define DELAY_P_PINGPONG 4
 #define DELAY_P_NOTE 5
 #define DELAY_P_SWELL 6
+#define DELAY_P_TAPE 7
 #define DELAY_NIN 4
 #define DELAY_NOUT 2
-#define DELAY_NPAR 7
+#define DELAY_NPAR 8
 #define DELAY_CVBASE 2
 #define DELAY_NDATA 0
 
@@ -285,9 +287,10 @@ enum {
 #define REVERB_P_PRE 3
 #define REVERB_P_MOD 4
 #define REVERB_P_FREEZE 5
+#define REVERB_P_SPRING 6
 #define REVERB_NIN 3
 #define REVERB_NOUT 1
-#define REVERB_NPAR 6
+#define REVERB_NPAR 7
 #define REVERB_CVBASE 1
 #define REVERB_NDATA 0
 
@@ -1115,6 +1118,23 @@ enum {
 #define CHAOS_CVBASE 0
 #define CHAOS_NDATA 0
 
+/* muug: VCF Muug */
+#define MUUG_I_IN 0
+#define MUUG_I_CV 1
+#define MUUG_I_P1 2
+#define MUUG_I_P2 3
+#define MUUG_O_OUT 0
+#define MUUG_P_CUTOFF 0
+#define MUUG_P_EMPH 1
+#define MUUG_P_DRIVE 2
+#define MUUG_P_CVAMT 3
+#define MUUG_P_TRACK 4
+#define MUUG_NIN 4
+#define MUUG_NOUT 1
+#define MUUG_NPAR 5
+#define MUUG_CVBASE 2
+#define MUUG_NDATA 0
+
 #define DELAY_NDIV 11
 #define DELAY_CLK_PPQN 24
 static const uint8_t DELAY_DIV_NUM[DELAY_NDIV] = {1, 1, 1, 3, 1, 3, 1, 3, 2, 5, 4};
@@ -1301,26 +1321,26 @@ static const uint8_t MIXER_LOG[] = {0, 0, 0, 0};
 static const char *const MIXER_UNIT[] = {"", "", "", ""};
 static const char *const *const MIXER_CH[] = {0, 0, 0, 0};
 static const char *const DELAY_INNAMES[] = {"IN", "CLK", "P1", "P2"};
-static const int32_t DELAY_MIN[] = {65536, 0, 0, 0, 0, 0, 0};
-static const int32_t DELAY_MAX[] = {34078720, 62259, 65536, 65536, 65536, 327680, 65536};
-static const int32_t DELAY_DEF[] = {16384000, 26214, 19661, 0, 0, 0, 0};
-static const int32_t DELAY_INC[] = {340132, 655, 655, 65536, 65536, 65536, 65536};
-static const uint8_t DELAY_SINCE[] = {0, 0, 0, 0, 0, 35, 35};
-static const char *const DELAY_PN[] = {"TIME", "FB", "MIX", "SYNC", "PINGPONG", "NOTE", "SWELL"};
-static const uint8_t DELAY_LOG[] = {0, 0, 0, 0, 0, 0, 0};
-static const char *const DELAY_UNIT[] = {"MS", "", "", "", "", "", ""};
+static const int32_t DELAY_MIN[] = {65536, 0, 0, 0, 0, 0, 0, 0};
+static const int32_t DELAY_MAX[] = {34078720, 62259, 65536, 65536, 65536, 327680, 65536, 65536};
+static const int32_t DELAY_DEF[] = {16384000, 26214, 19661, 0, 0, 0, 0, 0};
+static const int32_t DELAY_INC[] = {340132, 655, 655, 65536, 65536, 65536, 65536, 655};
+static const uint8_t DELAY_SINCE[] = {0, 0, 0, 0, 0, 35, 35, 49};
+static const char *const DELAY_PN[] = {"TIME", "FB", "MIX", "SYNC", "PINGPONG", "NOTE", "SWELL", "TAPE"};
+static const uint8_t DELAY_LOG[] = {0, 0, 0, 0, 0, 0, 0, 0};
+static const char *const DELAY_UNIT[] = {"MS", "", "", "", "", "", "", ""};
 static const char *const DELAY_CH5[] = {"TIME", "1/32", "1/2T", "1/2.", "1/1T", "1/1.", 0};
-static const char *const *const DELAY_CH[] = {0, 0, 0, LFO_CH3, ADSR_CH4, DELAY_CH5, ADSR_CH4};
+static const char *const *const DELAY_CH[] = {0, 0, 0, LFO_CH3, ADSR_CH4, DELAY_CH5, ADSR_CH4, 0};
 static const char *const REVERB_INNAMES[] = {"IN", "P1", "P2"};
-static const int32_t REVERB_MIN[] = {0, 0, 0, 0, 0, 0};
-static const int32_t REVERB_MAX[] = {65536, 65536, 65536, 2621440, 65536, 65536};
-static const int32_t REVERB_DEF[] = {32768, 26214, 19661, 0, 19661, 0};
-static const int32_t REVERB_INC[] = {655, 655, 655, 32768, 655, 65536};
-static const uint8_t REVERB_SINCE[] = {0, 0, 0, 0, 0, 35};
-static const char *const REVERB_PN[] = {"SIZE", "DAMP", "MIX", "PRE", "MOD", "FREEZE"};
-static const uint8_t REVERB_LOG[] = {0, 0, 0, 0, 0, 0};
-static const char *const REVERB_UNIT[] = {"", "", "", "MS", "", ""};
-static const char *const *const REVERB_CH[] = {0, 0, 0, 0, 0, ADSR_CH4};
+static const int32_t REVERB_MIN[] = {0, 0, 0, 0, 0, 0, 0};
+static const int32_t REVERB_MAX[] = {65536, 65536, 65536, 2621440, 65536, 65536, 65536};
+static const int32_t REVERB_DEF[] = {32768, 26214, 19661, 0, 19661, 0, 0};
+static const int32_t REVERB_INC[] = {655, 655, 655, 32768, 655, 65536, 65536};
+static const uint8_t REVERB_SINCE[] = {0, 0, 0, 0, 0, 35, 49};
+static const char *const REVERB_PN[] = {"SIZE", "DAMP", "MIX", "PRE", "MOD", "FREEZE", "SPRING"};
+static const uint8_t REVERB_LOG[] = {0, 0, 0, 0, 0, 0, 0};
+static const char *const REVERB_UNIT[] = {"", "", "", "MS", "", "", ""};
+static const char *const *const REVERB_CH[] = {0, 0, 0, 0, 0, ADSR_CH4, ADSR_CH4};
 static const char *const OUTPUT_INNAMES[] = {"L", "R"};
 static const int32_t OUTPUT_MIN[] = {0};
 static const int32_t OUTPUT_MAX[] = {65536};
@@ -1762,6 +1782,15 @@ static const char *const CHAOS_PN[] = {"SPEED", "RHO"};
 static const uint8_t CHAOS_LOG[] = {0, 0};
 static const char *const CHAOS_UNIT[] = {"", ""};
 static const char *const *const CHAOS_CH[] = {0, 0};
+static const char *const MUUG_INNAMES[] = {"IN", "CV", "P1", "P2"};
+static const int32_t MUUG_MIN[] = {-327680, 0, 16384, 0, 0};
+static const int32_t MUUG_MAX[] = {327680, 655360, 262144, 262144, 65536};
+static const int32_t MUUG_DEF[] = {0, 262144, 65536, 65536, 0};
+static const int32_t MUUG_INC[] = {6554, 6554, 2458, 2621, 65536};
+static const char *const MUUG_PN[] = {"CUTOFF", "EMPH", "DRIVE", "CVAMT", "TRACK"};
+static const uint8_t MUUG_LOG[] = {0, 0, 1, 0, 0};
+static const char *const MUUG_UNIT[] = {"", "", "", "OCT", ""};
+static const char *const *const MUUG_CH[] = {0, 0, 0, 0, ADSR_CH4};
 
 static const def_t DEFS[N_TYPES] = {
     {FM1_NIN, FM1_NOUT, FM1_NPAR, 1, FM1_CVBASE, -1, FM1_NDATA, 0, FM1_MIN, FM1_MAX, FM1_DEF, FM1_INC, "MAIN", FM1_PN, FM1_INNAMES, FM1_LOG, FM1_UNIT, FM1_CH, 0, 0},   /* fm1 */
@@ -1822,4 +1851,5 @@ static const def_t DEFS[N_TYPES] = {
     {MARBLES_NIN, MARBLES_NOUT, MARBLES_NPAR, 0, MARBLES_CVBASE, -1, MARBLES_NDATA, 0, MARBLES_MIN, MARBLES_MAX, MARBLES_DEF, MARBLES_INC, "MARBLES", MARBLES_PN, MARBLES_INNAMES, MARBLES_LOG, MARBLES_UNIT, MARBLES_CH, 0, 0},   /* marbles */
     {BERN_NIN, BERN_NOUT, BERN_NPAR, 0, BERN_CVBASE, -1, BERN_NDATA, 0, BERN_MIN, BERN_MAX, BERN_DEF, BERN_INC, "BERNOULLI", BERN_PN, BERN_INNAMES, BERN_LOG, BERN_UNIT, BERN_CH, 0, 0},   /* bern */
     {CHAOS_NIN, CHAOS_NOUT, CHAOS_NPAR, 0, CHAOS_CVBASE, -1, CHAOS_NDATA, 0, CHAOS_MIN, CHAOS_MAX, CHAOS_DEF, CHAOS_INC, "CHAOS", CHAOS_PN, CHAOS_INNAMES, CHAOS_LOG, CHAOS_UNIT, CHAOS_CH, 0, 0},   /* chaos */
+    {MUUG_NIN, MUUG_NOUT, MUUG_NPAR, 0, MUUG_CVBASE, 0, MUUG_NDATA, 1, MUUG_MIN, MUUG_MAX, MUUG_DEF, MUUG_INC, "VCF MUUG", MUUG_PN, MUUG_INNAMES, MUUG_LOG, MUUG_UNIT, MUUG_CH, 0, 0},   /* muug */
 };

@@ -25,8 +25,8 @@
   {
    "id": 2,
    "type": "output",
-   "x": 800,
-   "y": 414,
+   "x": 40,
+   "y": 828,
    "params": {
     "level": 0.45
    }
@@ -297,7 +297,8 @@
     "mix": 0.45,
     "pre": 0,
     "mod": 0.3,
-    "freeze": 0
+    "freeze": 0,
+    "spring": 0
    },
    "att": [
     1,
