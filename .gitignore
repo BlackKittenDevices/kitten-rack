@@ -1,0 +1,11 @@
+node_modules/
+dist/
+build/
+*.fwsc
+.DS_Store
+__pycache__/
+!web/public/firmware/*.fwsc
+tools/emu/target/
+tools/emu/live/
+.claude/
+artifact/

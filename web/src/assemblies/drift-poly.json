@@ -1,0 +1,495 @@
+{
+  "format": "matryoshka-assembly",
+  "version": 1,
+  "name": "drift poly",
+  "category": "Voices",
+  "blurb": "Two oscillators per voice, four voices that drift a little out of tune",
+  "modules": [
+    {
+      "id": 1,
+      "type": "alloc",
+      "x": 0,
+      "y": 1120,
+      "params": {
+        "voices": 4,
+        "assign": 0,
+        "legato": 0,
+        "priority": 0,
+        "unison": 0,
+        "channel": 0,
+        "low": 0,
+        "high": 127,
+        "steal": 1,
+        "stack": 0
+      }
+    },
+    {
+      "id": 2,
+      "type": "random",
+      "x": 320,
+      "y": 1120,
+      "params": {
+        "mode": 1,
+        "rate": 0.7
+      },
+      "att": [
+        1,
+        1
+      ],
+      "map": {
+        "p1": [
+          "mode"
+        ],
+        "p2": [
+          "rate"
+        ],
+        "k1": [],
+        "k2": [],
+        "k3": [],
+        "k4": []
+      }
+    },
+    {
+      "id": 3,
+      "type": "random",
+      "x": 640,
+      "y": 1120,
+      "params": {
+        "mode": 1,
+        "rate": 0.9
+      },
+      "att": [
+        1,
+        1
+      ],
+      "map": {
+        "p1": [
+          "mode"
+        ],
+        "p2": [
+          "rate"
+        ],
+        "k1": [],
+        "k2": [],
+        "k3": [],
+        "k4": []
+      }
+    },
+    {
+      "id": 4,
+      "type": "random",
+      "x": 960,
+      "y": 1120,
+      "params": {
+        "mode": 0,
+        "rate": 1.5
+      },
+      "att": [
+        1,
+        1
+      ],
+      "map": {
+        "p1": [
+          "mode"
+        ],
+        "p2": [
+          "rate"
+        ],
+        "k1": [],
+        "k2": [],
+        "k3": [],
+        "k4": []
+      }
+    },
+    {
+      "id": 5,
+      "type": "osc",
+      "x": 0,
+      "y": 0,
+      "params": {
+        "wave": 2,
+        "pw": 0.5,
+        "coarse": 0,
+        "fine": 0,
+        "pm": 0,
+        "level": 0.7,
+        "fb": 0,
+        "unison": 1,
+        "detune": 10,
+        "blend": 0.5,
+        "stack": 0
+      },
+      "att": [
+        0.03,
+        1
+      ],
+      "map": {
+        "p1": [
+          "fine"
+        ],
+        "p2": [
+          "pw"
+        ],
+        "k1": [],
+        "k2": [],
+        "k3": [],
+        "k4": []
+      }
+    },
+    {
+      "id": 6,
+      "type": "osc",
+      "x": 0,
+      "y": 560,
+      "params": {
+        "wave": 3,
+        "pw": 0.45,
+        "coarse": 0,
+        "fine": 4,
+        "pm": 0,
+        "level": 0.6,
+        "fb": 0,
+        "unison": 1,
+        "detune": 10,
+        "blend": 0.5,
+        "stack": 0
+      },
+      "att": [
+        0.045,
+        1
+      ],
+      "map": {
+        "p1": [
+          "fine"
+        ],
+        "p2": [
+          "pw"
+        ],
+        "k1": [],
+        "k2": [],
+        "k3": [],
+        "k4": []
+      }
+    },
+    {
+      "id": 7,
+      "type": "mixer",
+      "x": 320,
+      "y": 0,
+      "params": {
+        "l1": 0.7,
+        "l2": 0.6,
+        "l3": 0,
+        "l4": 0
+      },
+      "att": [
+        1,
+        1
+      ],
+      "map": {
+        "p1": [
+          "l1"
+        ],
+        "p2": [
+          "l2"
+        ],
+        "k1": [],
+        "k2": [],
+        "k3": [],
+        "k4": []
+      }
+    },
+    {
+      "id": 8,
+      "type": "filter",
+      "x": 640,
+      "y": 0,
+      "params": {
+        "cutoff": 1400,
+        "res": 0.25,
+        "cvamt": 1,
+        "track": 0,
+        "morph": 0,
+        "osc": 0
+      },
+      "att": [
+        0.08,
+        1
+      ],
+      "map": {
+        "p1": [
+          "cutoff"
+        ],
+        "p2": [
+          "res"
+        ],
+        "k1": [],
+        "k2": [],
+        "k3": [],
+        "k4": []
+      }
+    },
+    {
+      "id": 9,
+      "type": "adsr",
+      "x": 320,
+      "y": 560,
+      "params": {
+        "a": 0.008,
+        "d": 0.35,
+        "s": 0.55,
+        "r": 0.3,
+        "long": 0
+      },
+      "att": [
+        0.06,
+        1
+      ],
+      "map": {
+        "p1": [
+          "d"
+        ],
+        "p2": [
+          "d"
+        ],
+        "k1": [],
+        "k2": [],
+        "k3": [],
+        "k4": []
+      }
+    },
+    {
+      "id": 10,
+      "type": "vca",
+      "x": 640,
+      "y": 560,
+      "params": {
+        "gain": 1
+      },
+      "att": [
+        1,
+        1
+      ],
+      "map": {
+        "p1": [
+          "gain"
+        ],
+        "p2": [],
+        "k1": [],
+        "k2": [],
+        "k3": [],
+        "k4": []
+      }
+    }
+  ],
+  "cables": [
+    {
+      "from": {
+        "module": 1,
+        "port": "pitch"
+      },
+      "to": {
+        "module": 5,
+        "port": "pitch"
+      }
+    },
+    {
+      "from": {
+        "module": 1,
+        "port": "pitch"
+      },
+      "to": {
+        "module": 6,
+        "port": "pitch"
+      }
+    },
+    {
+      "from": {
+        "module": 1,
+        "port": "gate"
+      },
+      "to": {
+        "module": 9,
+        "port": "gate"
+      }
+    },
+    {
+      "from": {
+        "module": 2,
+        "port": "out"
+      },
+      "to": {
+        "module": 5,
+        "port": "p1"
+      }
+    },
+    {
+      "from": {
+        "module": 3,
+        "port": "out"
+      },
+      "to": {
+        "module": 6,
+        "port": "p1"
+      }
+    },
+    {
+      "from": {
+        "module": 4,
+        "port": "out"
+      },
+      "to": {
+        "module": 8,
+        "port": "p1"
+      }
+    },
+    {
+      "from": {
+        "module": 4,
+        "port": "out"
+      },
+      "to": {
+        "module": 9,
+        "port": "p1"
+      }
+    },
+    {
+      "from": {
+        "module": 5,
+        "port": "out"
+      },
+      "to": {
+        "module": 7,
+        "port": "in1"
+      }
+    },
+    {
+      "from": {
+        "module": 6,
+        "port": "out"
+      },
+      "to": {
+        "module": 7,
+        "port": "in2"
+      }
+    },
+    {
+      "from": {
+        "module": 7,
+        "port": "out"
+      },
+      "to": {
+        "module": 8,
+        "port": "in"
+      }
+    },
+    {
+      "from": {
+        "module": 8,
+        "port": "lp24"
+      },
+      "to": {
+        "module": 10,
+        "port": "in"
+      }
+    },
+    {
+      "from": {
+        "module": 9,
+        "port": "env"
+      },
+      "to": {
+        "module": 10,
+        "port": "cv"
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "module": 1,
+      "port": "keys",
+      "label": "keys"
+    }
+  ],
+  "outputs": [
+    {
+      "module": 10,
+      "port": "out",
+      "label": "out"
+    }
+  ],
+  "params": [
+    {
+      "module": 1,
+      "param": "voices",
+      "label": "voices"
+    },
+    {
+      "module": 2,
+      "param": "rate",
+      "label": "drift rate"
+    },
+    {
+      "module": 8,
+      "param": "cutoff",
+      "label": "cutoff"
+    },
+    {
+      "module": 8,
+      "param": "res",
+      "label": "res"
+    },
+    {
+      "module": 9,
+      "param": "a",
+      "label": "a"
+    },
+    {
+      "module": 9,
+      "param": "d",
+      "label": "d"
+    },
+    {
+      "module": 9,
+      "param": "s",
+      "label": "s"
+    },
+    {
+      "module": 9,
+      "param": "r",
+      "label": "r"
+    }
+  ],
+  "poly": {
+    "flaws": [
+      {
+        "detune": 4,
+        "drift": 30,
+        "bright": 1,
+        "env": 5,
+        "level": 100
+      },
+      {
+        "detune": -6,
+        "drift": 45,
+        "bright": -2,
+        "env": -8,
+        "level": 95
+      },
+      {
+        "detune": 2,
+        "drift": 25,
+        "bright": 0,
+        "env": 12,
+        "level": 100
+      },
+      {
+        "detune": -3,
+        "drift": 35,
+        "bright": 3,
+        "env": -4,
+        "level": 92
+      }
+    ]
+  }
+}

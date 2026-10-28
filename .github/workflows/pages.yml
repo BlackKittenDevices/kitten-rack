@@ -1,0 +1,143 @@
+name: deploy
+# Publishes the web app (editor, presets, flasher and the committed, device-tested firmware package in web/public/firmware/)
+# to Cloudflare Pages, and the forwarder (deploy/github-pages-forward) to GitHub Pages:
+#   https://matryoshka.lol/  (the Cloudflare Pages project `matry0shka`; `matryoshka` was taken; the address is SITE_URL in web/src/site.ts;
+#   the custom domain is set in the Cloudflare dashboard, and the project's own https://matry0shka.pages.dev/ serves the same app)
+#   https://glvno.github.io/matryoshka/  (the old address: forwards there, and offers to bring the browser data along)
+# The firmware is not built here: Pages publishes the committed, device-tested package in web/public/firmware/ (made with
+# tools/build.py + npm run firmware), so the site never carries a package no device has run.
+# The site serves the latest release, not main: the editor and the firmware are released together, so the site always
+# pairs an editor with the firmware package it was released with. Pushing a release tag vX.Y.Z deploys it (only when it
+# is the newest release: an older tag pushed later leaves the site alone); a manual run builds the newest release tag
+# or the one it names (to roll back). Nothing else deploys: the About card's AI usage figures are as of the last deploy. Merging to main deploys nothing; unreleased
+# work is tried on the dev server (npm run dev). Tags with a suffix (v1.2.0-rc1) are not releases.
+# One-time setup: the repository secret CLOUDFLARE_API_TOKEN (Cloudflare Pages: Edit) and the variable CLOUDFLARE_ACCOUNT_ID;
+# repository Settings > Pages > Source: GitHub Actions (the github-pages environment deploys only main, so the forwarder
+# is published by a manual run on main; a tag push publishes only the app).
+# Runs only in glvno/matryoshka.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'release tag to deploy (empty: the newest release)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  # which release: the pushed tag if it is the newest release, else nothing; a manual run: the newest (or the one asked for)
+  pick:
+    if: github.repository == 'glvno/matryoshka'
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: release
+        env:
+          ASKED: ${{ inputs.tag }}
+        run: |
+          newest=$(git tag -l 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n1)
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            tag=$GITHUB_REF_NAME
+            if [ "$tag" != "$newest" ]; then
+              echo "::notice::$tag is not the newest release ($newest): the site stays as it is"
+              exit 0
+            fi
+          else
+            tag=${ASKED:-$newest}
+          fi
+          git rev-parse -q --verify "refs/tags/$tag" >/dev/null || { echo "::error::no tag $tag"; exit 1; }
+          echo "::notice::deploying $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: pick
+    if: needs.pick.outputs.tag != ''
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.pick.outputs.tag }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      # the FM-1's UI as WebAssembly (firmware/wasm/fm1_ui.c -> public/fm1-ui.wasm): the editor's FM-1 tab and fm1-ui.test.ts
+      - name: clang + wasm-ld, the FM-1 UI as WebAssembly
+        run: |
+          sudo apt-get install -y --no-install-recommends clang lld
+          npm run fm1-wasm
+      # the tests, with coverage: public/coverage.json is the About card's Test coverage figures
+      - run: npm run coverage
+      # the About card's AI usage figures: WakaTime summaries of the projects in web/ai-projects.json, fetched with the
+      # WAKATIME_API_KEY repository secret; a failed fetch keeps the last good file from the cache (the card shows its date)
+      - name: the last good AI usage figures
+        uses: actions/cache/restore@v5
+        with:
+          path: web/public/ai-stats.json
+          key: ai-stats-${{ github.run_id }}
+          restore-keys: ai-stats-
+      - name: fetch the AI usage figures
+        env:
+          WAKATIME_API_KEY: ${{ secrets.WAKATIME_API_KEY }}
+        run: npm run ai-stats
+      - name: keep them for the next run
+        if: hashFiles('web/public/ai-stats.json') != ''
+        uses: actions/cache/save@v5
+        with:
+          path: web/public/ai-stats.json
+          key: ai-stats-${{ github.run_id }}
+      - name: sum the prompt counts (AI_PROMPTS_* variables, set by the pre-push hook in .githooks)
+        env:
+          GH_VARS: ${{ toJSON(vars) }}
+        run: npm run ai-prompts -- collect
+      - run: npm run build
+      - name: the firmware package must be there
+        run: |
+          test -s dist/firmware/matryoshka.fwsc && test -s dist/firmware/matryoshka.json && test -s dist/firmware/FM-1_015.fwsc && test -s dist/firmware/NOTICE-FM-1_015.txt
+          grep -Eq '"product":"FM-1_7[0-9][0-9]"' dist/firmware/matryoshka.json
+      - name: deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          # from web/: wrangler.toml (the KV binding of the stored share links) and functions/ are read from there
+          workingDirectory: web
+          command: pages deploy dist --project-name=matry0shka --branch=main
+
+  # the old address serves only the forwarder, after the app is up at the new one (from main's copy of it)
+  forward:
+    needs: build
+    if: github.ref == 'refs/heads/main'                # (the github-pages environment deploys only main: not on a tag push)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: deploy/github-pages-forward
+      - id: deployment
+        uses: actions/deploy-pages@v5

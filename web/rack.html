@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KITTEN RACK</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Special+Elite&display=swap" rel="stylesheet" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 28V12L3 3l8 6h10l8-6-3 9v16z' fill='%23111'/%3E%3Cellipse cx='12' cy='17' rx='2.5' ry='3' fill='%23ff7a1a'/%3E%3Cellipse cx='20' cy='17' rx='2.5' ry='3' fill='%23ff7a1a'/%3E%3C/svg%3E" />
+</head>
+<body>
+  <header id="bar">
+    <h1 id="logo">KITTEN RACK</h1>
+    <input id="name" class="tag" aria-label="Nombre del patch" maxlength="24" />
+    <button id="power" class="big">ENCENDER</button>
+    <button id="play">▶ PLAY</button>
+    <span id="oct" class="tag">OCT +0</span>
+    <div class="meter" title="CPU estimada del FM-1 para este patch (modelo de Matryoshka)">
+      <span>CPU</span><div class="track"><div id="cpu-bar"></div></div><b id="cpu-txt">0%</b>
+    </div>
+    <span id="hp-txt" class="tag small"></span>
+    <span class="spacer"></span>
+    <button id="new">NUEVO</button>
+    <select id="presets"><option value="">Fábrica…</option></select>
+    <select id="mine"></select>
+    <button id="save">GUARDAR</button>
+    <button id="export">EXPORTAR</button>
+    <button id="import">IMPORTAR</button>
+  </header>
+  <main>
+    <aside id="catalog">
+      <p class="hint">Clic para atornillar un módulo en el primer lugar libre. Arrastrá los paneles por su cabeza para moverlos entre filas.</p>
+    </aside>
+    <section id="stage">
+      <div id="rack"></div>
+      <div class="rowtools">
+        <button id="addrow">+ FILA</button>
+        <button id="delrow">− FILA</button>
+        <label>ZOOM <input id="zoom" type="range" min="50" max="120" value="100" /></label>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <span id="midi">MIDI: buscando…</span>
+    <span>Teclas A–K tocan · Z/X octava · Arrastrá de un jack a otro para cablear · Arrastrá un plug para sacarlo · Clic en un cable lo saca</span>
+    <span class="credit">motor: Matryoshka (GPL-3.0)</span>
+  </footer>
+  <div id="toast"></div>
+  <dialog id="export-box">
+    <b>Patch en texto</b>
+    <p>Copialo y guardalo donde quieras. IMPORTAR acepta este texto en un archivo .json, igual que el editor de Matryoshka.</p>
+    <textarea id="export-text" rows="8" readonly></textarea>
+    <div><button id="export-copy">COPIAR</button> <button id="export-close">CERRAR</button></div>
+  </dialog>
+  <script type="module" src="/src/rack/main.ts"></script>
+</body>
+</html>

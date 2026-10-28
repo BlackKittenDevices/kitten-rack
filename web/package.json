@@ -1,0 +1,49 @@
+{
+  "name": "matryoshka-web",
+  "private": true,
+  "version": "1.5.1",
+  "type": "module",
+  "license": "GPL-3.0-only",
+  "scripts": {
+    "logo-layers": "vite-node scripts/logo-layers.ts",
+    "dev": "vite",
+    "api": "npx -y wrangler@4 pages dev --port 8788",
+    "build": "npm run brand:flex && tsc --noEmit && vite build",
+    "brand:flex": "node scripts/build-brand-flex.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "golden": "vite-node scripts/golden.ts",
+    "firmware": "node scripts/sync-firmware.mjs",
+    "flash": "node scripts/flash.mjs",
+    "export-defs": "vite-node scripts/export-defs.ts",
+    "cpu-costs": "vite-node scripts/cpu-costs.ts",
+    "cpu-hot": "vite-node scripts/cpu-hot.ts",
+    "listen-renders": "vite-node scripts/listen-renders.ts",
+    "fm1-wasm": "node scripts/fm1-wasm.mjs",
+    "emu": "node scripts/emu.mjs",
+    "emu:smoke": "node scripts/emu.mjs --smoke",
+    "ai-stats": "vite-node scripts/ai-stats.ts",
+    "ai-prompts": "vite-node scripts/ai-prompts.ts",
+    "coverage": "vitest run --testTimeout=60000 --coverage --coverage.reporter=json-summary --coverage.reporter=text-summary --coverage.include='src/**' && vite-node scripts/coverage-stats.ts",
+    "emu:scenarios": "node scripts/emu-scenarios.mjs",
+    "device:scenarios": "node scripts/emu-scenarios.mjs --device",
+    "rig": "node scripts/rig.mjs",
+    "rig:bench": "node scripts/rig-bench.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@vitest/coverage-v8": "^5.0.3",
+    "esbuild": "^0.28.2",
+    "fontkit": "^2.0.4",
+    "jsdom": "^29.1.1",
+    "playwright-core": "^1.64.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vite-node": "^6.0.0",
+    "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "markdown-it": "^15.0.2",
+    "markdown-it-footnote": "^4.0.0"
+  }
+}
