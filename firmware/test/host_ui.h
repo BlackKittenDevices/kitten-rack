@@ -254,5 +254,6 @@ static void m1_pattern_now(void) { host_pattern_told++; }
 static void m1_song_now(uint32_t s) { (void)s; host_song_told++; }
 #endif
 #include "../src/seq_ui.c"
+#include "../src/rack_ui.c"
 #include "../src/splash.c"
 

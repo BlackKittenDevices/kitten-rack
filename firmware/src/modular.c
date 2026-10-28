@@ -94,6 +94,7 @@ static const uint8_t *pages_src(uint32_t *len) { *len = m1_cur_len; return m1_cu
 static uint32_t pages_gen(void) { return m1_gen; }
 #include "menu.c"
 #include "seq_ui.c"
+#include "rack_ui.c"         /* KITTEN RACK: the RACK page */
 #include "splash.c"
 #include "panel.c"
 #include "main.c"

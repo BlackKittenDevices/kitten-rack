@@ -82,8 +82,15 @@ static void panel_button_set(uint32_t b, int down)
         page_button(b, down);
         return;
     }
-    if (b == BTN_GLO_IDX && down)                  /* GLO (#118): Main's global page; again (or HOME) goes back. Its jack as a Gate */
-        page_set(PAGE_GLO);
+    if (b == BTN_GLO_IDX && down) {                /* KITTEN RACK: GLO opens the rack; on the rack, Main's global page (#118);
+                                                     * again (or HOME) goes back. Its jack as a Gate */
+        if (page == PAGE_RACK || page == PAGE_GLO || sb_on)   /* (GLO's page: again goes back; sandbox mode: GLO's page) */
+            page_set(PAGE_GLO);
+        else {
+            rack_open();
+            page_set(PAGE_RACK);
+        }
+    }
     pn = m1_panel();
     uint32_t tog = pn ? ((uint32_t)pn[0] | (uint32_t)pn[1] << 8) & ~FIXED_BTNS : 0u, mask = eng_buttons_get(), was = mask;
     if (tog >> b & 1u) {
@@ -404,7 +411,15 @@ static void panel_encoders(int32_t *st)
             ui_dirty = ui_dirty ? ui_dirty : 1;
         st[0] = st[1] = 0;
     }
-    if (page != 0 && page != PAGE_GLO && page != PAGE_ENV)
+    if (page == PAGE_RACK) {                        /* the rack: SELECT the device, ALGO its page; K1..K4 turn it as below */
+        int dev = pages_select(st[0]), pg = pages_page(st[1]);
+        if (dev | pg) {
+            m1_focus_now(pg_cur_dev, pg_cur_page);
+            ui_dirty = ui_dirty ? ui_dirty : 1;
+        }
+        st[0] = st[1] = 0;
+    }
+    if (page != 0 && page != PAGE_GLO && page != PAGE_ENV && page != PAGE_RACK)
         return;
     if (st[0] && pg_list_btn >= 0 && !pg_list_peek) {   /* SELECT inside a page list: leaves it */
         pg_list_btn = -1;
@@ -450,7 +465,7 @@ static void panel_encoders(int32_t *st)
             pages_also(k, v);                       /* (the parameters the row also sets, #357) */
         }
         m1_param_now(mod, par, r == 1 ? v << 16 : v);   /* the editor follows (Live) */
-        if (page == PAGE_ENV)
+        if (page == PAGE_ENV || page == PAGE_RACK)
             env_knob_msg(k);
         midi_send(0xB0u, 16u + k, pages_cc(k));
         if (!ui_dirty)
@@ -559,7 +574,7 @@ static uint8_t env_held_used;
 static void sel_open(void)
 {
     pages_ensure();
-    if (page == PAGE_ENV) {
+    if (page == PAGE_ENV || page == PAGE_RACK) {   /* (the rack: SEL opens the device in focus) */
         page_set(0);
         m1_focus_now(pg_cur_dev, pg_cur_page);
     } else if (page == PAGE_PRESETS || page == PAGE_SONG) {

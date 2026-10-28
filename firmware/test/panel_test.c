@@ -1100,7 +1100,15 @@ int main(void)
         int32_t bpm = eng_get_param((uint32_t)main, FM1_P_TEMPO);
         uint32_t d = pg_cur_dev, g = pg_cur_page, ch = cfg.ch;
         tap(7);
-        check("GLO: the global page, a step on the trail, GLO's jack was high while held", page == PAGE_GLO && trail_n == 1);
+        check("GLO: the RACK page (KITTEN RACK), a step on the trail", page == PAGE_RACK && trail_n == 1);
+        check("  its bar on pumpkin, the rack under it", px(2, 2) == P_CORAL && px(4, 30) != P_CORAL);
+        if (pg_ndev > 1u) {
+            enc(0, 1);
+            check("  SELECT on the rack: the next device in focus", pg_cur_dev == (d + 1u) % pg_ndev && page == PAGE_RACK);
+            enc(0, -1);
+        }
+        tap(7);
+        check("GLO on the rack: the global page, a step on the trail, GLO's jack was high while held", page == PAGE_GLO && trail_n == 2);
         check("its bar: GLOBAL on coral", px(2, 2) == P_CORAL);
         enc(2, 4);
         check("K1 on GLO: the MIDI channel one step a turn, not the patch's tempo", cfg.ch == (ch < 16u ? ch + 1u : 16u) && eng_get_param((uint32_t)main, FM1_P_TEMPO) == bpm);
@@ -1114,10 +1122,15 @@ int main(void)
             if (keep) setenv("PANEL_SNAP", keep, 1);
         }
         tap(BTN_HOME);
+        check("HOME: back to the rack", page == PAGE_RACK && trail_n == 1);
+        tap(BTN_HOME);
         check("HOME: back to the device page it came from", page == 0 && pg_cur_dev == d && pg_cur_page == g && trail_n == 0);
         tap(7);
         tap(7);
-        check("GLO again on its page: back", page == 0);
+        tap(7);
+        check("GLO again on its page: back to the rack", page == PAGE_RACK);
+        tap(BTN_HOME);
+        check("  and HOME to the device page", page == 0);
         eng_set_param((uint32_t)main, FM1_P_TEMPO, bpm);
     }
 
@@ -2335,10 +2348,12 @@ int main(void)
         check("sandbox mode begun on the SEQ page: the sandbox page comes up at once", sb_on && page == 0u && px(4, 4) == P_GOLD);
         m1_live(0);
         loop();
+        tap(BTN_GLO);                                       /* (KITTEN RACK: the rack first, then GLO's page) */
         tap(BTN_GLO);
         m1_live(1);
         loop();
         check("  begun on GLO (the FM-1's own page): GLO stays", sb_on && page == PAGE_GLO);
+        tap(BTN_HOME);
         tap(BTN_HOME);
         m1_live(0);
         loop();

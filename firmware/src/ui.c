@@ -19,6 +19,7 @@ static const char *patch_label;
 #define PAGE_GLO 6u                             /* GLO: the FM-1's own page (#199, pages_ui.c pg_glo) */
 #define PAGE_ENV 9u                             /* ENV: the environment (#197, pages_ui.c env_draw) */
 #define PAGE_PRESETS 10u                        /* SEL on an assembly device: its presets (#194, pages_ui.c presets_draw) */
+#define PAGE_RACK 12u                           /* KITTEN RACK: GLO, the devices as Eurorack panels (rack_ui.c) */
 static uint8_t page;                            /* 0: the device page, 5 menu, 6 GLO, 8 the SEQ page, 9 the environment, 10 the
                                                  * presets, 11 the SONG page (seq_ui.c); (7, the legend, is gone: #114) */
 static void seq_bar(void);
@@ -395,6 +396,8 @@ static uint32_t panel_used(void)
 static void menu_draw(int full);
 static void env_draw(int full);
 static void presets_draw(int full);
+static void rack_draw(int full);
+static void rack_open(void);
 
 #define LEFT_W 216u
 
@@ -429,6 +432,8 @@ static void view_draw(int full)                 /* whichever page is showing */
         env_draw(full);
     else if (page == PAGE_PRESETS)
         presets_draw(full);
+    else if (page == PAGE_RACK)
+        rack_draw(full);
     else if (sb_on && page == 0u)
         sandbox_draw(full);
     else
