@@ -50,7 +50,7 @@ SDK_SHA256 = {
     "cfg/eq_cfg_hw.bin": "41167491bffed4651750719c973d2758adeb9021a5670d02d6a53c85ed80ea7d",
 }
 
-PRODUCT = "FM-1_700"                # package identity (#79: Matryoshka = FM-1_7XY; M-VAVE stock 0XX, M-VAVE Open 8 + 6 digits,
+PRODUCT = "FM-1_790"                # package identity (#79: Matryoshka = FM-1_7XY; M-VAVE stock 0XX, M-VAVE Open 8 + 6 digits,
                                      # Felucca 9XY); must match FELUCCA_ID in firmware/src/modular.c
 VERSION = None                      # FELUCCA_VERSION for release builds (default: firmware/src/modular.c)
 
@@ -345,10 +345,10 @@ def main():
         m = re.fullmatch(r"(\d)\.(\d)(?:\.\d){0,2}(-[A-Za-z0-9]+)?", a.release)
         if not m:
             raise SystemExit(f"--release {a.release}: use X.Y, X.Y.Z, X.Y.Z.W or X.Y-suffix, one digit each")
-        PRODUCT = "FM-1_7" + m[1] + m[2]
+        PRODUCT = "FM-1_79" + m[2]   # KITTEN RACK: FM-1_79Y for 0.Y
         num, _, sfx = a.release.partition("-")
         num = ".".join((num.split(".") + ["0", "0"])[:max(3, len(num.split(".")))])
-        VERSION = "v" + num + ("-" + sfx.upper() if sfx else "")   # e.g. v1.0.0, v1.1.0-RC1 (MENU > SYSTEM, the splash)
+        VERSION = "v" + num + ("-" + sfx.upper() if sfx else "")   # KITTEN RACK; e.g. v1.0.0, v1.1.0-RC1 (MENU > SYSTEM, the splash)
         name = f"matryoshka-{a.release}.fwsc"
     fm1pkg_make.SDK = a.sdk
     for rel, sha in SDK_SHA256.items():          # fail early without the SDK

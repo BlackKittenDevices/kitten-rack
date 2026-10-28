@@ -927,9 +927,9 @@ static void seq_bar(void)
 #define GRID_PAST 0xFFu                 /* past the track's length */
 #define GRID_TIE 0x7Cu                  /* a note going on through the step (no hit has chance code 31) */
 #define GRID_TINT 0x04u                 /* an empty cell of a C row (the roll) */
-#define C_BEAT 0x31C8u                  /* a beat's first empty cell */
-#define C_CROW 0x2987u                  /* the roll's C rows: an empty cell, its name's ground */
-#define C_CBEAT 0x3A49u                 /* ... a beat's first */
+#define C_BEAT 0x3143u                  /* a beat's first empty cell */
+#define C_CROW 0x28E2u                  /* the roll's C rows: an empty cell, its name's ground */
+#define C_CBEAT 0x4164u                 /* ... a beat's first */
 static uint8_t seq_grid_cell[ENG_DRUM_ROWS][16];   /* the cells as drawn (seq_grid_state's codes) */
 static int8_t seq_grid_row = -1, seq_grid_tick = -2; /* the selected row, the playhead's column as drawn (-1 none) */
 static uint8_t seq_grid_lo = 0xFFu;     /* the roll's lowest pitch as drawn (0xFF: a drum grid's names) */

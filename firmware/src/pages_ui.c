@@ -19,20 +19,20 @@
  * only its band is drawn again. A newer click stops a draw, so turning fast redraws only what is needed. */
 
 /* ---- colours (RGB565): web/src/style.css's dark theme */
-#define P_NIGHT 0x10E4u
-#define P_STRIP 0x08A2u
-#define P_PANEL 0x2145u
-#define P_TRACK 0x31E7u
-#define P_INK 0xFFBDu
-#define P_DIM 0x9CF2u
-#define P_FAINT 0x6B6Du
-#define P_CORAL 0xE3ABu
-#define P_GOLD 0xEDABu
-#define P_SEA 0x7E38u
-#define P_SAND 0xCE36u
-#define P_LILAC 0xC55Bu
-#define P_SKY 0x9DFCu
-#define P_REDC 0xE249u
+#define P_NIGHT 0x0841u
+#define P_STRIP 0x0820u
+#define P_PANEL 0x2903u
+#define P_TRACK 0x3144u
+#define P_INK 0xEEF8u
+#define P_DIM 0xA4AFu
+#define P_FAINT 0x6B0Au
+#define P_CORAL 0xFBC3u
+#define P_GOLD 0xFE47u
+#define P_SEA 0x8E09u
+#define P_SAND 0xCDB1u
+#define P_LILAC 0xABBFu
+#define P_SKY 0xFDF1u
+#define P_REDC 0xC8E3u
 static const uint16_t KNOB_HUE[4] = {P_CORAL, P_GOLD, P_SEA, P_SAND};   /* K1..K4: the logo's colours (style.css --k1..--k4) */
 
 /* ---- the model, read from the running patch's binary (in the pool on the device: modular.c UI_POOL) */
@@ -827,22 +827,22 @@ typedef char lk_fonts[(FONT_V_PX == LK_VS && FONT_N_PX == LK_NS && FONT_F_PX == 
 #define MIX24(a, b, t) (MIXC(a, b, t, 16) << 16 | MIXC(a, b, t, 8) << 8 | MIXC(a, b, t, 0))
 #define LK_KS(t) ((t) * LK_TN / 45u > 1000u ? 1000u : (t) * LK_TN / 45u)   /* a section's strength at the header's */
 #define LK_OFF(t) (LK_KS(t) + 140u > 1000u ? 1000u : LK_KS(t) + 140u)     /* .. and its dashes that are not current */
-#define C24_LILAC 0xC6ABDFu
-#define C24_NIGHT 0x171F21u
-#define C24_PANEL 0x232C2Eu
-#define C24_SAND 0xCFC6B5u
+#define C24_LILAC 0xFF7A1Au   /* KITTEN RACK: the header tint, pumpkin */
+#define C24_NIGHT 0x0A0807u
+#define C24_PANEL 0x2A221Cu
+#define C24_SAND 0xE8DCC2u
 #define P_SEC1 RGB565(MIX24(C24_LILAC, C24_NIGHT, LK_KS(260u)))
 #define P_SEC2 RGB565(MIX24(C24_LILAC, C24_NIGHT, LK_KS(170u)))
 #define P_SEC3 RGB565(MIX24(C24_LILAC, C24_NIGHT, LK_KS(100u)))
 #define P_SEC1_OFF RGB565(MIX24(C24_LILAC, C24_NIGHT, LK_OFF(260u)))
 #define P_SEC2_OFF RGB565(MIX24(C24_LILAC, C24_NIGHT, LK_OFF(170u)))
-#define P_MIST RGB565(0xB4B8ADu)                        /* the current subpage, a bar's unit */
-#define P_DARK RGB565(0x2C3638u)                        /* the other subpages */
-#define P_INK2 RGB565(0x202A2Cu)                        /* the footer's second ink */
-#define P_WARN RGB565(0xB33135u)                        /* REC and an empty battery on the footer's sand */
+#define P_MIST RGB565(0xC9BCA0u)                        /* the current subpage, a bar's unit */
+#define P_DARK RGB565(0x2E2620u)                        /* the other subpages */
+#define P_INK2 RGB565(0x22180Fu)                        /* the footer's second ink */
+#define P_WARN RGB565(0xC81E1Eu)                        /* REC and an empty battery on the footer's sand */
 #define P_SLOT_OFF RGB565(MIX24(C24_NIGHT, C24_SAND, 220u))   /* PRESET's toast: a filled slot not current */
-static const uint16_t KNOB_FILL[4] = {RGB565(MIX24(0xE7775Du, C24_PANEL, 400u)), RGB565(MIX24(0xE8B65Au, C24_PANEL, 400u)),
-                                      RGB565(MIX24(0x79C7C1u, C24_PANEL, 400u)), RGB565(MIX24(0xCFC6B5u, C24_PANEL, 400u))};
+static const uint16_t KNOB_FILL[4] = {RGB565(MIX24(0xFF7A1Au, C24_PANEL, 400u)), RGB565(MIX24(0xFFCE40u, C24_PANEL, 400u)),
+                                      RGB565(MIX24(0x8BC34Au, C24_PANEL, 400u)), RGB565(MIX24(0xA875FFu, C24_PANEL, 400u))};
 
 /* where text sits: the mock's canvas puts a text's middle (textBaseline middle) at y, its baseline a third of its size
  * below. BASE6(y2, px): the baseline row for a middle at y2 / 2 */

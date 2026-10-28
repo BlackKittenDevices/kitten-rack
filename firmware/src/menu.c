@@ -213,7 +213,7 @@ static void menu_draw(int full)
     }
     for (t = 0; t < MT_COUNT; t++) {     /* the tabs: chips, the open one in seafoam (as a device's pages) */
         uint32_t w = text_w(&FONT_S, TAB_NAME[t], -1) + 12u;
-        text_bc(&FONT_S, x, 24, TAB_NAME[t], t == menu_tab ? C_BG : C_DIM, t == menu_tab ? 0x7E38u : C_TRACK, w, TA_CENTER);
+        text_bc(&FONT_S, x, 24, TAB_NAME[t], t == menu_tab ? C_BG : C_DIM, t == menu_tab ? 0x8E09u : C_TRACK, w, TA_CENTER);
         x += w + 3u;
     }
     text_bc(&FONT_L, 8, 42, menu_tab == MT_MANUAL ? "Manual" : TAB_NAME[menu_tab], C_ACC, C_BG, 200, TA_LEFT);

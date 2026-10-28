@@ -3,13 +3,13 @@
 /* The LCD's frame: the top bar, messages, and which page shows. Page 0 is the device page (pages_ui.c), the others the
  * menu (menu.c) and the SEQ page (seq_ui.c). The colours are the editor's dark theme (style.css):
  * night paper, ivory ink, the coral accent. */
-#define C_BG 0x10E4u                            /* night */
-#define C_FG 0xFFBDu                            /* ivory */
-#define C_ACC 0xE3ABu                           /* the accent: coral */
-#define C_DIM 0x9CF2u
-#define C_RED 0xE249u
-#define C_TRACK 0x2145u                         /* a bar's empty part, a hot row (the panel colour) */
-#define C_HINT 0x6B6Du                          /* hint lines */
+#define C_BG 0x0841u                            /* warm black (KITTEN RACK) */
+#define C_FG 0xEEF8u                            /* bone */
+#define C_ACC 0xFBC3u                           /* the accent: pumpkin */
+#define C_DIM 0xA4AFu
+#define C_RED 0xC8E3u
+#define C_TRACK 0x2903u                         /* a bar's empty part, a hot row (the panel colour) */
+#define C_HINT 0x6B0Au                          /* hint lines */
 
 /* the panel state of the patch: the preset in the list, the module the knobs act on (SELECT turns it), its load error and name */
 static uint32_t cur_preset, sel;

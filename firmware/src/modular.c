@@ -5,10 +5,10 @@
  * identity on the LCD, plays a sine on MIDI notes, and keeps Felucca's USB-MIDI + OTA path so it can be re-flashed. */
 
 #ifndef FELUCCA_ID
-#define FELUCCA_ID "FM-1_700"    /* package identity (build.py: the .fwsc marker string) */
+#define FELUCCA_ID "FM-1_790"    /* package identity (build.py: the .fwsc marker string) */
 #endif
 #ifndef FELUCCA_VERSION
-#define FELUCCA_VERSION "v1.5.1-DEV"
+#define FELUCCA_VERSION "v0.1.0-DEV"
 #endif
 #define FELUCCA_FLASH 1
 #define FELUCCA_OTA 1

@@ -135,6 +135,6 @@ static const char *const MANUAL[] = {
     " BUTTONS: CC 80-93, 127 / 0 ON",
     "   PRESS AND RELEASE, PLAY ALSO",
     "   START / STOP",
-    "~MORE: GLVNO.GITHUB.IO/MATRYOSHKA",
+    "~MORE: GITHUB.COM/BLACKKITTENDEVICES",
 };
 #define MAN_N ((uint32_t)(sizeof MANUAL / sizeof MANUAL[0]))
