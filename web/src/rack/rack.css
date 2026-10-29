@@ -32,11 +32,12 @@
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--bone); font-family: 'Barlow', sans-serif; }
 body { display: flex; flex-direction: column; background-image: var(--noise), radial-gradient(ellipse at 50% -10%, #2a1306 0%, var(--bg) 60%); }
 button, select, input { font-family: var(--head); font-weight: 600; text-transform: uppercase; color: var(--bone); }
-button, select {
+button, select, a.btnlink {
   background: var(--metal-2) var(--noise); border: 2px solid #000; border-bottom-color: var(--rust); padding: 5px 10px; cursor: pointer;
   font-size: 15px; letter-spacing: .5px; box-shadow: 2px 2px 0 #000;
 }
-button:hover:not(:disabled), select:hover { border-color: var(--orange-dim); color: var(--orange); }
+a.btnlink { font-family: var(--head); font-weight: 600; color: var(--bone); text-decoration: none; display: inline-block; }
+button:hover:not(:disabled), select:hover, a.btnlink:hover { border-color: var(--orange-dim); color: var(--orange); }
 button:active { transform: translate(2px, 2px); box-shadow: none; }
 button:disabled { opacity: .45; cursor: not-allowed; }
 

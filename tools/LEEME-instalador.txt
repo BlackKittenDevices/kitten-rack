@@ -42,18 +42,32 @@ Después, en el FM-1
   SEQ      la pantalla del secuenciador (piano roll): SELECT elige la nota, ALGO el paso, SEL tocado
            pone o saca la nota ahí (SEL sostenido: canciones), las teclas blancas también ponen pasos,
            OCT- / OCT+ las páginas (hasta 64 pasos). Sin paso apretado: K1 pasos, K2 ritmo, K3 swing,
-           K4 tempo. REC sostenido 4 segundos borra el patrón
+           K4 tempo. Con un paso apretado: K1 altura, K2 velocidad, K3 largo de la nota, K4 chance.
+           REC sostenido 4 segundos borra el patrón
   REC      graba desde cualquier pantalla: corriendo, graba donde va; parado, espera la primera nota
-           y arranca solo. REC de nuevo deja de grabar (sigue sonando)
+           y arranca solo. REC de nuevo deja de grabar (sigue sonando). Las notas quedan con el largo
+           que las sostuviste (en pasos: para más detalle subí el ritmo con K2 antes de grabar)
   HOME     en la pantalla de los módulos: el osciloscopio, otra vez: los visuales, otra vez: vuelve
   SAVE     elegí un lugar con SELECT: SAVE guarda ahí (si hay otro patch, SAVE de nuevo lo pisa),
            SEL carga el que está ahí, HOME sale. El patch se guarda entero: sonido y secuencias.
+
+Visuales en pantalla grande (proyector, OBS)
+  En el editor, el botón VISUALES (o https://blackkittendevices.github.io/kitten-rack/visuales.html).
+  La computadora ve al FM-1 como placa de sonido "KittenRack": EMPEZAR, aceptá el permiso de audio
+  y la imagen sigue lo que suena. Teclas: 1 osciloscopio, 2 visual, 3 los dos, flechas la escena,
+  F pantalla completa. En OBS: Captura de ventana.
+
+Grabar el sonido
+  En Audacity, Reaper, OBS o cualquier DAW elegí la entrada "KittenRack" (estéreo, 44100 Hz):
+  es el master del FM-1. Por el mismo cable llega el MIDI (notas y perillas) para grabarlo también.
 
 El editor, en vivo con el FM-1
   Abrí el editor (offline u online, en Chrome o Edge) y apretá el botón FM-1 de arriba:
   lee el patch que toca el FM-1 y desde ahí lo que movés en uno lo hace el otro (perillas, cables,
   módulos, notas). ROLL en el módulo PATTERN abre el piano roll. AL FM-1 guarda en un lugar del banco.
   Para instalar firmware, primero desconectá el editor (botón FM-1) o cerrá su pestaña.
+
+El manual completo: README.md en https://github.com/BlackKittenDevices/kitten-rack
 
 Sin ventana (modo texto)
   python instalar_kitten_rack.py                       instala

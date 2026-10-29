@@ -34,7 +34,7 @@ export default defineConfig(({ command }) => ({
   plugins: [lessonEditor(), branchFirmware(), rigPage(), { name: 'site-url', transformIndexHtml: { order: 'pre', handler: (html: string) => html.replaceAll('%SITE_URL%', SITE_URL) } }],
   define: { __BUILD__: JSON.stringify(buildSha()), __INSTALL_VERSION__: JSON.stringify(installVersion(command)) },
   // two pages: the app and the changelog (changelog.html, served at /changelog on Cloudflare Pages)
-  build: { target: 'es2022', rollupOptions: { input: { main: fileURLToPath(new URL('./index.html', import.meta.url)), changelog: fileURLToPath(new URL('./changelog.html', import.meta.url)), rack: fileURLToPath(new URL('./rack.html', import.meta.url)) } } },
+  build: { target: 'es2022', rollupOptions: { input: { main: fileURLToPath(new URL('./index.html', import.meta.url)), changelog: fileURLToPath(new URL('./changelog.html', import.meta.url)), rack: fileURLToPath(new URL('./rack.html', import.meta.url)), visuales: fileURLToPath(new URL('./visuales.html', import.meta.url)) } } },
   // stored share links (functions/, src/share-store.ts) in dev: `npm run api` serves them on 8788 (else storing fails and
   // the share sheet falls back to a link without the layout)
   server: { proxy: { '/api': 'http://localhost:8788' } },
