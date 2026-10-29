@@ -489,7 +489,16 @@ static uint8_t *rk_begin(uint32_t *len, uint32_t *cap)
 static int rk_finish(uint8_t *b, uint32_t len, int rc, const char *done)
 {
     if (rc == 0 && (rc = rack_apply(b, len)) != 0) {
-        ui_msg(rc == -4 ? "EL FM-1 TIENE UNO SOLO" : "EL MOTOR NO LO TOMA", 2000);
+        if (rc == -4)
+            ui_msg("EL FM-1 TIENE UNO SOLO", 2000);
+        else {                                          /* the reason as a code, for a report (main.c rack_apply, eng_load) */
+            char m[32], *q = put(m, rc == -101 ? "PATCH INVALIDO" : rc == -100 ? "PATCH MUY LARGO" : "EL MOTOR NO LO TOMA ");
+            if (rc > -100) {
+                *q++ = 'E';
+                fmt_int(q, -rc);
+            }
+            ui_msg(m, 2500);
+        }
         return rc;
     }
     if (rc)

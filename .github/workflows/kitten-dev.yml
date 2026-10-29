@@ -1,0 +1,48 @@
+# KITTEN RACK: a development build for the emulator (tools/emu), published as the assets of the "dev" pre-release:
+# dev-app.bin (what m1emu runs) and dev-matryoshka.elf (its symbols). Not a release for the FM-1: nothing to install.
+# Actions > kitten-dev > Run workflow, or a push to main that touches the firmware.
+name: kitten-dev
+on:
+  push:
+    branches: [main]
+    paths: [firmware/**, tools/build.py, .github/workflows/kitten-dev.yml]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: kitten-dev
+  cancel-in-progress: true
+jobs:
+  dev:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: JieLi toolchain and AC79 SDK (cached)
+        id: jieli
+        uses: actions/cache@v5
+        with:
+          path: ~/.jieli
+          key: jieli-AC79NN_SDK_V1.2.1_2023-12-13-toolchain-v1
+      - name: fetch the toolchain and the three SDK files
+        if: steps.jieli.outputs.cache-hit != 'true'
+        run: |
+          tools/get_toolchain.sh
+          git clone --filter=blob:none --no-checkout --depth 1 --branch AC79NN_SDK_V1.2.1_2023-12-13 \
+            https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git ~/.jieli/ac79-sdk
+          git -C ~/.jieli/ac79-sdk sparse-checkout set cpu/wl82/tools
+          git -C ~/.jieli/ac79-sdk checkout
+      - name: build
+        run: |
+          export JIELI_TOOLCHAIN="$HOME/.jieli/toolchain" AC79_SDK="$HOME/.jieli/ac79-sdk"
+          mkdir -p build
+          python3 tools/build.py
+          cp build/matryoshka.bin build/dev-app.bin
+          cp build/matryoshka.elf build/dev-matryoshka.elf
+          echo "$GITHUB_SHA" > build/dev-commit.txt
+      - name: the dev pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view dev >/dev/null 2>&1 || gh release create dev --target "$GITHUB_SHA" --prerelease \
+            --title "dev (para el emulador: no instalar)" --notes "Build de desarrollo para el emulador. No es para instalar en el FM-1."
+          gh release upload dev build/dev-app.bin build/dev-matryoshka.elf build/dev-commit.txt --clobber
