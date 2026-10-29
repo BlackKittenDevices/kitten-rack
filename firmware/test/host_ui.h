@@ -257,12 +257,15 @@ static void m1_song_now(uint32_t s) { (void)s; host_song_told++; }
 /* rack_ui.c's patching on the previewed binary: edited in a copy, loaded, then the preview's */
 static uint8_t host_rack_buf[4096];
 static uint8_t *rack_scratch(uint32_t *cap) { *cap = 3840u; return host_rack_buf; }   /* (proto.c M1_PATCH_MAX) */
-static int rack_apply(const uint8_t *bin, uint32_t len)
+#include "../src/patch_check.h"
+static int rack_apply(const uint8_t *bin, uint32_t len)  /* (main.c's: too long -100, not a patch -100 - the check) */
 {
     uint32_t i;
     int rc;
     if (len > sizeof pv_bin)
-        return -2;
+        return -100;
+    if ((rc = m1_check(bin, len)) != 0)
+        return -100 - rc;
     if ((rc = eng_load(bin, len)) != 0) {
         (void)eng_load(pv_bin, pv_len);             /* (eng_load cleared the engine even when it failed) */
         return rc;

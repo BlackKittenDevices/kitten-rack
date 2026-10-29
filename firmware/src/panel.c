@@ -15,6 +15,7 @@ static void leds_avail(void);
 static void midi_send(uint32_t status, uint32_t d1, uint32_t d2);
 static void midi_send_rt(uint32_t b);                   /* a one-byte real-time message (Start 0xFA, Stop 0xFC) */
 static void preset_step(int32_t d);                     /* PRESET: the next / previous patch */
+static void preset_goto(uint32_t slot);                 /* KITTEN RACK: that slot's patch (the SAVE page's SEL: LOAD) */
 static void save_state(void);                           /* SAVE */
 static int poly_row_set(uint32_t mod, uint32_t field, int32_t v);
 
@@ -781,6 +782,9 @@ static void panel_edges(uint32_t p, uint32_t rel)
             song_prep();
             page_set(PAGE_SONG);
         }
+    } else if ((rel & (1u << BTN_SEL)) && page == PAGE_SAVE) {   /* KITTEN RACK: SEL on the SAVE page loads that slot */
+        if (save_load())
+            screen_back();
     } else if (rel & (1u << BTN_SEL))               /* SEL (#197, fixed): one level deeper */
         sel_open();
     if (p & (1u << BTN_ENV))                        /* ENV (#197, fixed): the environment, on its release (held + SAVE: a preset) */

@@ -488,7 +488,15 @@ static uint8_t *rk_begin(uint32_t *len, uint32_t *cap)
 /* the edit's outcome: loaded and said, or why not */
 static int rk_finish(uint8_t *b, uint32_t len, int rc, const char *done)
 {
+#if defined(KR_DEV) && KR_DEV
+    uint32_t clen;
+    const uint8_t *cur = pages_src(&clen);
+#endif
     if (rc == 0 && (rc = rack_apply(b, len)) != 0) {
+#if defined(KR_DEV) && KR_DEV                           /* (the development build: both binaries into the last slots, for the emulator's flash) */
+        if (cur) (void)sl_write(62, "DBG CUR", cur, clen);
+        (void)sl_write(63, "DBG EDIT", b, len);
+#endif
         if (rc == -4)
             ui_msg("EL FM-1 TIENE UNO SOLO", 2000);
         else {                                          /* the reason as a code, for a report (main.c rack_apply, eng_load) */

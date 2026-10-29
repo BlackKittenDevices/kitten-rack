@@ -35,7 +35,7 @@ jobs:
         run: |
           export JIELI_TOOLCHAIN="$HOME/.jieli/toolchain" AC79_SDK="$HOME/.jieli/ac79-sdk"
           mkdir -p build
-          python3 tools/build.py
+          KR_DEV=1 python3 tools/build.py
           cp build/matryoshka.bin build/dev-app.bin
           cp build/matryoshka.elf build/dev-matryoshka.elf
           echo "$GITHUB_SHA" > build/dev-commit.txt

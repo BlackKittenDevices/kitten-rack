@@ -302,6 +302,13 @@ static int preset_load(uint32_t n)
 
 #include "live.c"                                   /* the editor's Live: PRESET and program change wait (#185); sandbox mode */
 
+static void preset_goto(uint32_t slot)              /* KITTEN RACK: the SAVE page's SEL (LOAD): that slot's patch */
+{
+    if (live_holds_preset() || !slot_used(slot))
+        return;
+    (void)preset_load(slot);
+}
+
 static void preset_step(int32_t d)                  /* the PRESET knob: the next / previous occupied slot */
 {
     uint32_t s = cur_preset, i;

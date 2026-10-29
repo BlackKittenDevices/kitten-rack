@@ -130,6 +130,7 @@ static void midi_send_rt(uint32_t b)
         js_midi(b & 0xFFu, 0u, 0u);
 }
 static void preset_step(int32_t d) { js_preset(d); }
+static void preset_goto(uint32_t slot) { js_preset((int32_t)slot - (int32_t)cur_preset); }
 static void save_state(void) { js_save(); }
 /* a poly group's setting from a device page: into the group record of the running patch, as main.c does on the device
  * (the page hears of it through m1_param_now and sends the edited patch again) */

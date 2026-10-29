@@ -64,6 +64,17 @@ static void preset_step(int32_t d)
         screen_patch();
     }
 }
+static int goto_slot = -1;
+static void preset_goto(uint32_t slot)
+{
+    goto_slot = (int)slot;
+    if (slot < N_PRESETS) {
+        (void)load(PRESET_LIST[slot].name);
+        cur_preset = slot;
+        pv_gen++;
+        screen_patch();
+    }
+}
 static void save_state(void) { saved++; }
 #include "../src/poly_edit.h"
 #include "kitten_fixtures.h"
@@ -728,6 +739,34 @@ int main(void)
             check("an empty slot: saved there at once", saved == 1 && cur_preset == empty);
         }
         cur_preset = was;
+        {                                                   /* SEL on the SAVE page: LOAD, nothing saved; an empty slot says so */
+            uint32_t to = (was + 1u) % M1_SLOTS, i, keep_len = pv_len;
+            static uint8_t keep[sizeof pv_bin];
+            for (i = 0; i < pv_len; i++)
+                keep[i] = pv_bin[i];
+            saved = 0;
+            goto_slot = -1;
+            tap(BTN_SAVE);
+            save_turn(1);
+            tap(BTN_SEL);
+            if (save_slot_name(to, (char[24]){0}))
+                check("SEL on the SAVE page: that slot loaded (LOAD), nothing saved, the page closes", goto_slot == (int)to && saved == 0 && page != PAGE_SAVE);
+            if (empty < M1_SLOTS) {
+                goto_slot = -1;
+                tap(BTN_SAVE);
+                save_turn((int)empty - (int)sv_sel);
+                tap(BTN_SEL);
+                check("SEL on an empty slot: nothing loaded, the page stays", goto_slot == -1 && page == PAGE_SAVE);
+                tap(BTN_HOME);
+            }
+            cur_preset = was;
+            for (i = 0; i < keep_len; i++)                  /* (the patch the tests below go on with) */
+                pv_bin[i] = keep[i];
+            pv_len = keep_len;
+            (void)eng_load(pv_bin, pv_len);
+            pv_gen++;
+            screen_patch();
+        }
         saved = 1;
     }
 
