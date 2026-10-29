@@ -1287,6 +1287,21 @@ int main(void)
             panel_edges(0, 1u << BTN_REC);
             loop();
             check("REC let go before 4 s: nothing cleared, nothing recorded", eng_steps_notes((uint32_t)sm, &ws) == 1 && seq_rec == 0);
+            {                                           /* the roll's cursor: ALGO along the steps, SEL tapped switches the note */
+                uint32_t note;
+                seq_cur = 0;
+                later(200);
+                enc(1, 3);
+                check("ALGO on the roll: the cursor three steps on, the track stays", seq_cur == 3u && seq_module() == sm);
+                note = seq_grid_note(-1, seq_row);
+                tap(BTN_SEL);
+                check("SEL tapped: the selected row's note on the cursor's step", page == PAGE_SEQ && eng_steps_note((uint32_t)sm, 3u, note) != 0u);
+                tap(BTN_SEL);
+                check("  again: off", eng_steps_note((uint32_t)sm, 3u, note) == 0u);
+                later(200);
+                enc(1, 14);
+                check("ALGO past step 16: the cursor on 18, the page of steps 17-32", seq_cur == 17u && seq_pg == 1u);
+            }
             (void)eng_load(pv_bin, pv_len);                 /* (the patch as it was for the rest) */
             pv_gen++;
             pages_ensure();
@@ -3132,8 +3147,13 @@ int main(void)
               && bar_shows("STEPS 1 P03", C_ACC) && seq_len(mod) == 12);
         eng_transport(0);
         eng_render(l, r, 128);
-        tap(BTN_SEL);
-        check("SEL tapped on the SEQ page: the SONG page, song 1, empty (END)", page == PAGE_SONG && song_sel == 0 && song_len() == 0
+        panel_held |= 1u << BTN_SEL;                        /* SEL held (KITTEN RACK: on the roll SEL tapped switches the cursor's note) */
+        panel_edges(1u << BTN_SEL, 0);
+        later(700);
+        panel_held &= ~(1u << BTN_SEL);
+        panel_edges(0, 1u << BTN_SEL);
+        loop();
+        check("SEL held on the SEQ page: the SONG page, song 1, empty (END)", page == PAGE_SONG && song_sel == 0 && song_len() == 0
               && on_screen("END"));
         told = host_song_told;
         enc(2, 1);

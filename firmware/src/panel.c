@@ -520,7 +520,9 @@ static void panel_encoders(int32_t *st)
     if (page == PAGE_SEQ) {                         /* the SEQ page: ALGO picks the track; a step held: its chance, SELECT on a
                                                      * drum grid, K3 on the roll (the owner, 2026-10-24: there SELECT moves the row) */
         int roll = seq_module() >= 0 && seq_map() < 0;
-        if (st[1] && eng_steps_count())
+        if (st[1] && roll && seq_held < 0)           /* KITTEN RACK: the roll: ALGO moves the step cursor (seq_cursor_step) */
+            seq_cursor_step(st[1]);
+        else if (st[1] && eng_steps_count())
             seq_select((uint32_t)((seq_trk + (uint32_t)eng_steps_count() * 8u + (uint32_t)st[1]) % (uint32_t)eng_steps_count()));
         st[1] = 0;
         if (st[0] && seq_held >= 0 && !roll) {
@@ -830,8 +832,12 @@ static void panel_edges(uint32_t p, uint32_t rel)
     if ((rel & (1u << BTN_SEL)) && page == PAGE_SEQ) {   /* SEL tapped on the SEQ page (no key as the pen since its press,
                                                      * a key in the same pass counting): the SONG page (#375, D-541) */
         if (!(seq_pen_ms && (int32_t)((seq_pen_ms & ~1u) - (sel_down_ms & ~1u)) >= 0) && eng_steps_count()) {
-            song_prep();
-            page_set(PAGE_SONG);
+            if (seq_module() >= 0 && seq_map() < 0 && fm1_ms - sel_down_ms < 600u)
+                seq_cursor_toggle();                /* KITTEN RACK: the roll: SEL tapped switches the note on the cursor; held: SONG */
+            else {
+                song_prep();
+                page_set(PAGE_SONG);
+            }
         }
     } else if ((rel & (1u << BTN_SEL)) && page == PAGE_SAVE) {   /* KITTEN RACK: SEL on the SAVE page loads that slot */
         if (save_load())

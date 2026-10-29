@@ -134,6 +134,8 @@ static int seq_armed_trk(void)
 }
 /* the keys are the armed melodic track's keyboard: REC records it on this page while the transport runs (a live take); a
  * drum track's grid takes the black keys as hits instead (seq_key) */
+static uint8_t seq_cur;                 /* KITTEN RACK: the roll's step cursor (ALGO moves it, SEL tapped switches the note there) */
+static int8_t seq_grid_cur = -1;        /* ... its column as drawn under the playhead's lane (-1 none) */
 static uint8_t seq_rec_wait;            /* KITTEN RACK: REC stopped: armed, waiting for the first note to start (kr_rec_note) */
 static int seq_kbd(void)
 {
@@ -874,6 +876,41 @@ static void seq_clear_press(void)
     seq_msg_due = seq_msg_buf;
     seq_msg_ms = SEQ_CLEAR_MS;
 }
+/* KITTEN RACK: the roll's cursor (the user, 2026-10-29): ALGO moves it along the steps as SELECT moves the row (the page
+ * follows it past 16 steps); SEL tapped switches the selected row's note on the cursor's step, as its white key would */
+static void seq_cursor_step(int32_t d)
+{
+    int mod = seq_module();
+    int32_t len = seq_len(mod), c;
+    if (mod < 0)
+        return;
+    c = ((int32_t)seq_cur + d % len + len * 2) % len;
+    seq_cur = (uint8_t)c;
+    if ((uint32_t)(c / 16) != seq_pg) {
+        seq_pg = (uint8_t)(c / 16);
+        ui_dirty = 2;
+    } else
+        ui_dirty = ui_dirty ? ui_dirty : 1;
+}
+static void seq_cursor_toggle(void)
+{
+    int mod = seq_module(), map = seq_map();
+    uint32_t note;
+    if (mod < 0)
+        return;
+    if (seq_cur >= seq_len(mod))
+        seq_cur = 0;
+    note = seq_grid_note(map, seq_row);
+    if (map < 0)
+        seq_roll_toggle(mod, seq_cur, note, STEP_VEL);
+    else
+        eng_steps_toggle((uint32_t)mod, seq_cur, note, STEP_VEL);
+    if (eng_steps_note((uint32_t)mod, seq_cur, note) && !eng_transport_running())
+        (void)eng_steps_hit_note((uint32_t)mod, note, 0, 0);   /* (placed: heard) */
+    seq_sync(mod);
+    ui_dirty = ui_dirty ? ui_dirty : 1;
+}
+
 /* KITTEN RACK: REC held 4 s on the SEQ page (panel.c rec_hold_poll) clears the pattern the selected track plays, at once */
 static void seq_pattern_clear(void)
 {
@@ -1183,6 +1220,7 @@ static void seq_grid_draw(int full, int mod, int map, const char *info)
         seq_grid_row = -1;
         seq_grid_tick = -2;
         seq_grid_mark = 0;
+        seq_grid_cur = -1;
         seq_grid_ok = 0;
     }
     for (r = 0; r < ENG_DRUM_ROWS; r++) {        /* the page's notes, by row, from one pass over the track's notes */
@@ -1221,6 +1259,16 @@ static void seq_grid_draw(int full, int mod, int map, const char *info)
     }
     seq_grid_row = (int8_t)seq_row;
     seq_grid_lo = (uint8_t)lo;
+    {                                            /* KITTEN RACK: the cursor, a white bar under the playhead's lane */
+        int c = (int)seq_cur - k0;
+        if (c < 0 || c >= 16 || seq_cur >= len)
+            c = -1;
+        if (seq_grid_cur >= 0 && seq_grid_cur != c)
+            lcd_fill(seq_grid_x((uint32_t)seq_grid_cur), GRID_TICK_Y + 3u, GRID_CW, 3, C_BG);
+        if (c >= 0 && seq_grid_cur != c)
+            lcd_fill(seq_grid_x((uint32_t)c), GRID_TICK_Y + 3u, GRID_CW, 3, C_FG);
+        seq_grid_cur = (int8_t)c;
+    }
     if (mark != seq_grid_mark || remark) {       /* the markers: only the columns that changed */
         for (i = 0; i < 32u; i++)
             if (((mark ^ seq_grid_mark) >> i & 1u) || remark)
@@ -1259,7 +1307,7 @@ static void seq_grid_draw(int full, int mod, int map, const char *info)
         hint = "KEYS record  SEL row  OCT octave";
     else
         hint = seq_rec == 2u ? "BLACK hear  SEL+KEY pen  WHITE step" : seq_rec ? "BLACK hit  SEL+KEY pen  WHITE step"
-             : "BLANCA PASO  SELECT NOTA  OCT PAGINA";
+             : "ALGO PASO  SELECT NOTA  SEL PONE  OCT PAG";
     seq_grid_line(2, 222, hint, C_HINT, 228);
     seq_grid_ok = 1;
 }
