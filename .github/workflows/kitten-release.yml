@@ -83,6 +83,7 @@ jobs:
           cp "build/matryoshka-$V.fwsc" "dist/$D/kitten-rack-$V.fwsc"
           cp tools/KittenRack.pyw tools/instalar_kitten_rack.py tools/fm1_install.py "dist/$D/"
           cp tools/LEEME-instalador.txt "dist/$D/LEEME.txt"
+          cp tools/README-installer-en.txt "dist/$D/README.txt"
           cp -r build/editor "dist/$D/editor"
           (cd "dist/$D" && sha256sum "kitten-rack-$V.fwsc" > SHA256SUMS)
           (cd dist && zip -qr "$D.zip" "$D")

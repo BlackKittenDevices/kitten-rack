@@ -1,315 +1,326 @@
 # KITTEN RACK
 
-Un Eurorack virtual adentro del **M-VAVE FM-1**: módulos con panel, jacks y cables, donde cualquier salida va a cualquier entrada. Se arma, se toca y se guarda como un instrumento. Naranja sobre negro, de [Black Kitten Devices](https://github.com/BlackKittenDevices).
+A virtual Eurorack inside the **M-VAVE FM-1**: modules with panels, jacks and cables, where any output goes to any input. You build it, play it and save it like an instrument. Orange on black, by [Black Kitten Devices](https://github.com/BlackKittenDevices).
 
-Este documento explica todo lo que tiene el firmware: cómo instalarlo, cómo se usa el FM-1 con él, el secuenciador, el editor en la computadora, las visuales y cómo grabar lo que suena. Al final hay una parte para quien quiera tocar el código.
+[Leer en español](README.es.md) · [▶ Play it in the browser](https://blackkittendevices.github.io/kitten-rack/play.html) · [Editor](https://blackkittendevices.github.io/kitten-rack/)
 
-**Contenido**
+This document covers everything the firmware has: how to install it, how the FM-1 works with it, the sequencer, the editor on the computer, the visuals and how to record what it plays. The last part is for anyone who wants to work on the code.
 
-1. [Instalar y volver atrás](#1-instalar-y-volver-atrás)
-2. [El FM-1, botón por botón](#2-el-fm-1-botón-por-botón)
-3. [El secuenciador](#3-el-secuenciador)
-4. [El rack y el patcheo en el aparato](#4-el-rack-y-el-patcheo-en-el-aparato)
-5. [Guardar y cargar](#5-guardar-y-cargar)
-6. [Las visuales](#6-las-visuales)
-7. [Grabar y capturar: audio, MIDI y pantalla](#7-grabar-y-capturar-audio-midi-y-pantalla)
-8. [El editor en la computadora](#8-el-editor-en-la-computadora)
+**Contents**
+
+1. [Installing and going back](#1-installing-and-going-back)
+2. [The FM-1, button by button](#2-the-fm-1-button-by-button)
+3. [The sequencer](#3-the-sequencer)
+4. [The rack and patching on the device](#4-the-rack-and-patching-on-the-device)
+5. [Saving and loading](#5-saving-and-loading)
+6. [The visuals](#6-the-visuals)
+7. [Recording and capturing: audio, MIDI and the screen](#7-recording-and-capturing-audio-midi-and-the-screen)
+8. [The editor on the computer](#8-the-editor-on-the-computer)
 9. [MIDI](#9-midi)
-10. [Los módulos](#10-los-módulos)
-11. [El banco de fábrica](#11-el-banco-de-fábrica)
-12. [Para desarrolladores](#12-para-desarrolladores)
-13. [Créditos y licencia](#13-créditos-y-licencia)
+10. [The modules](#10-the-modules)
+11. [The factory bank](#11-the-factory-bank)
+12. [For developers](#12-for-developers)
+13. [Credits and license](#13-credits-and-license)
 
 ---
 
-## 1. Instalar y volver atrás
+## 1. Installing and going back
 
-1. En [Releases](https://github.com/BlackKittenDevices/kitten-rack/releases) bajá `KittenRack-instalador-X.Y.Z.zip` (la versión más nueva) y descomprimilo.
-2. Necesitás **Python 3.8 o más nuevo** (python.org o la Microsoft Store). En Windows no hace falta nada más.
-3. **Respaldá** los patches y canciones del firmware que tenés ahora (Kitten Synths: con su editor). KITTEN RACK usa su propio banco.
-4. Conectá el FM-1 con un cable USB de datos y cerrá todo programa que use MIDI (editores web, DAW).
-5. Doble clic en **`KittenRack.pyw`**. La ventana tiene:
+1. From [Releases](https://github.com/BlackKittenDevices/kitten-rack/releases) download `KittenRack-instalador-X.Y.Z.zip` (the newest) and unzip it.
+2. You need **Python 3.8 or newer** (python.org or the Microsoft Store). Nothing else on Windows.
+3. **Back up** the patches and songs of the firmware you have now (Kitten Synths: with its editor). KITTEN RACK uses its own bank, so what another firmware stored may be lost.
+4. Plug in the FM-1 with a USB data cable and close every program that uses MIDI (web editors, DAWs).
+5. Double click **`KittenRack.pyw`**. The window has:
 
-| Botón | Qué hace |
+| Button | What it does |
 | --- | --- |
-| BUSCAR FM-1 | Muestra qué firmware tiene el FM-1 ahora |
-| INSTALAR KITTEN RACK | Sube el firmware (uno o dos minutos, no desenchufes hasta que diga "Listo"). Si algo se corta, apretalo de nuevo: el FM-1 queda esperando |
-| EDITOR OFFLINE | Abre el editor de la carpeta en Chrome o Edge, con MIDI, mientras la ventana esté abierta |
-| EDITOR ONLINE | Abre el editor en internet |
-| OTRO FIRMWARE... | Instala otro `.fwsc`: por ejemplo Kitten Synths para volver atrás |
-| BAJAR EDITOR OFFLINE | Baja la última versión del editor a la carpeta `editor/` |
+| BUSCAR FM-1 (find) | Shows which firmware the FM-1 has now |
+| INSTALAR KITTEN RACK (install) | Uploads the firmware (one or two minutes; don't unplug until it says "Listo"). If something is cut off, press it again: the FM-1 stays waiting |
+| EDITOR OFFLINE | Opens the editor from the folder in Chrome or Edge, with MIDI, while the window is open |
+| EDITOR ONLINE | Opens the editor on the internet |
+| OTRO FIRMWARE... (other firmware) | Installs another `.fwsc`: for example Kitten Synths to go back |
+| BAJAR EDITOR OFFLINE (download) | Downloads the newest editor into the `editor/` folder |
 
-Si la ventana no abre: `python instalar_kitten_rack.py` (modo texto; `--solo-info` solo muestra el firmware, `--paquete ARCHIVO.fwsc` instala otro).
+If the window doesn't open: `python instalar_kitten_rack.py` (text mode; `--solo-info` only shows the firmware, `--paquete FILE.fwsc` installs another one).
 
-**En el primer arranque** KITTEN RACK escribe sus 33 patches de fábrica. Al actualizar, los patches de fábrica que nunca editaste se reemplazan solos por los nuevos; los tuyos no se tocan. Para volver al banco de fábrica entero está FACTORY RESET en el menú SYSTEM (HOME sostenido; pide OCT+ dos veces y borra tus patches).
+**On the first boot** KITTEN RACK writes its 33 factory patches into the bank's first slots. When you update, the factory patches you never edited are replaced by the new ones by themselves; yours are not touched. To get the whole factory bank back there is FACTORY RESET in the SYSTEM menu (hold HOME; it asks for OCT+ twice and erases your patches).
 
-**Arranques especiales** (con el FM-1 apagado, mantené apretado y prendé):
+**Special start-ups** (with the FM-1 off, hold and switch on):
 
-- **OCT- + OCT+:** modo actualización. El FM-1 solo espera un firmware nuevo. Es la vía de vuelta si algo sale mal.
-- **SAVE:** modo seguro: arranca con un patch mínimo de emergencia en vez del guardado (sirve si un patch no deja arrancar).
+- **OCT- + OCT+:** update mode. The FM-1 only waits for new firmware. It is the way back if something goes wrong.
+- **SAVE:** safe mode: starts with a minimal emergency patch instead of the saved one (useful if a patch keeps it from starting).
 
-> **Regla de oro:** nunca instales un firmware que no tenga la actualización por USB de Felucca. KITTEN RACK, Kitten Synths, Felucca, Sloop y Matryoshka la tienen. El original de M-VAVE se puede volver a poner con OTRO FIRMWARE.
+> **Golden rule:** never install firmware without Felucca's USB update. KITTEN RACK, Kitten Synths, Felucca, Sloop and Matryoshka have it. M-VAVE's original can be put back with OTRO FIRMWARE.
 
 ---
 
-## 2. El FM-1, botón por botón
+## 2. The FM-1, button by button
 
-El FM-1 toca **patches**: un patch es un rack entero (módulos, cables, perillas y secuencias). La pantalla muestra un módulo a la vez; **K1 a K4** mueven sus cuatro perillas de la página que se ve.
+The FM-1 plays **patches**: a patch is a whole rack (modules, cables, knob settings and sequences). The screen shows one module at a time; **K1 to K4** turn the four knobs of the page shown.
 
-| Control | Qué hace |
+| Control | What it does |
 | --- | --- |
-| PRESET (perilla) | El patch siguiente o anterior del banco. En SEQ y SONG: el patrón |
-| SELECT (perilla) | Elige el módulo |
-| ALGO (perilla) | Elige la página del módulo |
-| K1 a K4 | Las cuatro perillas de la página |
-| SEL | Abre el RACK (los módulos como paneles Eurorack con sus cables) |
-| EDIT | El patcheo: cables y módulos (ver [4](#4-el-rack-y-el-patcheo-en-el-aparato)) |
-| FX | Salta entre los efectos |
-| LFO | Salta entre las fuentes de sonido y los moduladores |
-| ENV | Salta entre las envolventes y los filtros |
-| ARP | Prende o apaga el arpegiador y muestra su página (modo, ritmo, octavas, largo) |
-| SEQ | La pantalla del secuenciador |
-| REC | Graba (desde cualquier pantalla) |
-| PLAY | Arranca o para. PLAY sostenido + PRESET: el tempo |
-| HOME | Vuelve un paso. En la pantalla del módulo sin nada atrás: osciloscopio, después visuales, después vuelve. Sostenido: el menú (el manual, SYSTEM y los ajustes; ALGO cambia de solapa) |
-| SAVE | La pantalla de guardar (ver [5](#5-guardar-y-cargar)) |
-| OCT- / OCT+ | La octava del teclado. En SEQ: las páginas de pasos |
-| Teclas | Tocan el patch, con velocidad |
+| PRESET (knob) | The next or previous patch in the bank. On SEQ and SONG: the pattern |
+| SELECT (knob) | Picks the module |
+| ALGO (knob) | Picks the module's page |
+| K1 to K4 | The four knobs of the page |
+| SEL | Opens the RACK (the modules as Eurorack panels with their cables) |
+| EDIT | Patching: cables and modules (see [4](#4-the-rack-and-patching-on-the-device)) |
+| FX | Jumps between the effects |
+| LFO | Jumps between the sound sources and the modulators |
+| ENV | Jumps between the envelopes and the filters |
+| ARP | Turns the arpeggiator on or off and shows its page (mode, rate, octaves, length) |
+| SEQ | The sequencer screen |
+| REC | Records (from any screen) |
+| PLAY | Starts or stops. PLAY held + PRESET: the tempo |
+| GLO | Opens the RACK; again, the FM-1's page: K1 MIDI channel, K2 clock in, K3 MIDI out, **K4 language (ENGLISH / ESPANOL)** |
+| HOME | Back one step. On the module page with nothing behind: the oscilloscope, then the visuals, then back. Held: the menu (the manual, SYSTEM and the settings; ALGO changes tab) |
+| SAVE | The save screen (see [5](#5-saving-and-loading)) |
+| OCT- / OCT+ | The keyboard's octave. On SEQ: the step pages |
+| Keys | Play the patch, with velocity |
 
-La batería se ve abajo a la derecha (0 a 3 rayitas, un rayo con USB).
+**Screen language:** GLO, GLO again and **K4**: ENGLISH or ESPANOL (also in the menu: hold HOME → PANEL → LANGUAGE). It is stored at once. It changes the texts KITTEN RACK writes (sequencer, rack, save, visuals, the module catalogue and its jacks); module parameters and patch names stay as they are. It comes in English from the factory.
 
-El manual completo, en inglés y corto, está adentro del FM-1: **HOME sostenido**, en el menú.
+The battery shows at the bottom right (0 to 3 bars, a bolt on USB).
+
+The full manual, short, is inside the FM-1: **hold HOME**, in the menu.
 
 ---
 
-## 3. El secuenciador
+## 3. The sequencer
 
-Cada patch trae sus pistas (módulos **Steps**) con hasta **64 patrones** de hasta **64 pasos**. Todo se guarda con el patch.
+Each patch brings its tracks (**Steps** modules) with up to **64 patterns** of up to **64 steps**. Everything is saved with the patch.
 
-### La pantalla SEQ
+### The SEQ screen
 
-**SEQ** la abre y la cierra. Arriba dice los pasos, el ritmo, el swing y el tempo (por ejemplo `1-16 DE 16  RITMO 1/16  120 BPM`).
+**SEQ** opens and closes it. The top line shows the steps, rate, swing and tempo (for example `1-16 OF 16  RATE 1/16  120 BPM`).
 
-En una pista melódica se ve un **piano roll**:
+A melodic track shows a **piano roll**:
 
-| Control | Qué hace |
+| Control | What it does |
 | --- | --- |
-| ALGO | Mueve el cursor por los pasos |
-| SELECT | Sube o baja la nota (el renglón) |
-| SEL tocado (menos de medio segundo) | Pone o saca la nota donde está el cursor |
-| SEL sostenido | La pantalla SONG (canciones) |
-| Teclas blancas | También ponen pasos |
-| OCT- / OCT+ | Pasos 17-32, 33-48, 49-64 |
-| PRESET | El patrón (1-64). Corriendo: cambia al final de la vuelta; parado: en el momento |
-| Teclas negras | Eligen la pista |
+| ALGO | Moves the cursor along the steps |
+| SELECT | Moves the note (the row) up or down |
+| SEL tapped (under half a second) | Sets or clears the note at the cursor |
+| SEL held | The SONG screen |
+| White keys | Also set steps |
+| OCT- / OCT+ | Steps 17-32, 33-48, 49-64 |
+| PRESET | The pattern (1-64). Running: changes at the end of the pass; stopped: at once |
+| Black keys | Pick the track |
 
-**Sin ningún paso apretado**, las perillas son de la pista:
+**With no step held**, the knobs belong to the track:
 
-| Perilla | Qué cambia |
+| Knob | What it changes |
 | --- | --- |
-| K1 | Cantidad de pasos (1 a 64) |
-| K2 | Ritmo: 1/2, 1/4, 1/8, 1/16, 1/32, 1/64 y los tresillos 1/4T, 1/8T, 1/16T |
-| K3 | Swing (hasta 80 %) |
+| K1 | Number of steps (1 to 64) |
+| K2 | Rate: 1/2, 1/4, 1/8, 1/16, 1/32, 1/64 and the triplets 1/4T, 1/8T, 1/16T |
+| K3 | Swing (up to 80 %) |
 | K4 | Tempo |
 
-**Con un paso apretado** (mantené su tecla), las perillas son de esa nota:
+**With a step held** (keep its key down), the knobs belong to that note:
 
-| Perilla | Qué cambia |
+| Knob | What it changes |
 | --- | --- |
-| K1 | La altura |
-| K2 | La velocidad |
-| K3 | **El largo** (1 a 64 pasos, en pantalla `LARGO 3 PASOS`). La nota suena hasta el final de su último paso |
-| K4 | La probabilidad de que suene (chance) |
+| K1 | Pitch |
+| K2 | Velocity |
+| K3 | **Length** (1 to 64 steps, on screen `LENGTH 3 STEPS`). The note sounds to the end of its last step |
+| K4 | The chance that it plays |
 
-Otros atajos: FX sostenido + tecla blanca pone un acento; LFO sostenido + tecla blanca liga el paso con el anterior; SEQ sostenido + tecla negra silencia una pista.
+Other shortcuts: FX held + white key sets an accent; LFO held + white key ties the step to the one before; SEQ held + black key mutes a track.
 
-**Borrar el patrón:** REC sostenido 4 segundos (cuenta `BORRAR PATRON: 3, 2, 1`).
+**Clear the pattern:** hold REC for 4 seconds (it counts `CLEAR PATTERN: 3, 2, 1`).
 
-### Grabar en vivo (como Kitten Synths)
+### Live recording (as in Kitten Synths)
 
-**REC** funciona desde cualquier pantalla y no te lleva a SEQ:
+**REC** works from any screen and doesn't take you to SEQ:
 
-- **Corriendo:** empieza a grabar donde va el secuenciador.
-- **Parado:** queda esperando. La primera nota que toques arranca el transporte y la grabación a la vez.
-- **REC otra vez:** deja de grabar; lo grabado sigue sonando.
+- **Running:** starts recording where the sequencer is.
+- **Stopped:** it waits. The first note you play starts the transport and the recording together.
+- **REC again:** stops recording; what you recorded keeps playing.
 
-Las notas grabadas **guardan cuánto las sostuviste**: si mantuviste una nota tres pasos, queda de tres pasos y suena entera hasta soltar. El largo se mide en pasos de la grilla; para más detalle, subí el ritmo con K2 (1/32 o 1/64) antes de grabar. Después podés corregir cualquier nota con su paso apretado y K3.
+Recorded notes **keep how long you held them**: a note held for three steps stays three steps long and sounds whole until you let go. Length is measured in grid steps; for finer detail, raise the rate with K2 (1/32 or 1/64) before recording. You can fix any note afterwards with its step held and K3.
 
-### Canciones
+### Songs
 
-SEL sostenido en SEQ abre SONG: una fila de patrones que se tocan uno tras otro. SELECT elige la fila, K1 su patrón (al final: agregar), K2 transpone (-12 a +12), K4 a la derecha toca la canción y a la izquierda el patrón. ALGO elige la canción (1 a 8). SEQ sostenido + REC borra una fila (pide REC de nuevo en 3 segundos). SEL o HOME vuelven a SEQ.
-
----
-
-## 4. El rack y el patcheo en el aparato
-
-**SEL** abre el RACK: los módulos del patch como paneles con sus cables. SELECT elige, K1-K4 giran, SEL abre el panel, HOME vuelve.
-
-**EDIT** abre el menú PATCHEO (EDIT de nuevo sale, HOME vuelve un paso):
-
-- **CABLE NUEVO:** SELECT elige el módulo, ALGO la salida, SEL la agarra. Después SELECT el otro módulo, ALGO la entrada y SEL enchufa.
-- **CABLES:** la lista de todos los cables. SEL marca uno en rojo, SEL otra vez lo saca.
-- **AGREGAR MODULO:** el catálogo por familias. SEL lo pone al final del rack.
-- **QUITAR MODULO:** SELECT elige el módulo, SEL lo marca, SEL otra vez lo saca con sus cables. MIDI-CV y la salida no se pueden sacar (`ESE NO SE QUITA`).
-
-Cada cambio vuelve a cargar el patch, así que las notas que suenan se cortan. Si el motor no tiene lugar (hay un solo delay, una sola reverb y un solo chorus), avisa y el patch queda como estaba. Si el editor está conectado, ve el cambio al instante.
+SEL held on SEQ opens SONG: a row of patterns played one after another. SELECT picks the row, K1 its pattern (at the end: add), K2 transposes (-12 to +12), K4 to the right plays the song and to the left the pattern. ALGO picks the song (1 to 8). SEQ held + REC deletes a row (it asks for REC again within 3 seconds). SEL or HOME go back to SEQ.
 
 ---
 
-## 5. Guardar y cargar
+## 4. The rack and patching on the device
 
-**SAVE** abre la lista de los 64 lugares del banco:
+**SEL** opens the RACK: the patch's modules as panels with their cables. SELECT picks, K1-K4 turn, SEL opens the panel, HOME goes back.
 
-- **SELECT** elige un lugar.
-- **SAVE** guarda ahí. Si ya hay otro patch, pide SAVE de nuevo para pisarlo.
-- **SEL** carga el patch de ese lugar.
-- **HOME** sale.
+**EDIT** opens the PATCHING menu (EDIT again leaves, HOME goes back one step):
 
-Se guarda el patch entero: sonido, cables y secuencias. Los lugares 1 a 33 traen los patches de fábrica; del 34 al 64 están libres.
+- **NEW CABLE:** SELECT picks the module, ALGO the output, SEL takes it. Then SELECT the other module, ALGO the input and SEL plugs it in.
+- **CABLES:** the list of every cable. SEL marks one in red, SEL again pulls it.
+- **ADD MODULE:** the catalogue by family. SEL puts the module at the end of the rack.
+- **REMOVE MODULE:** SELECT picks the module, SEL marks it, SEL again removes it with its cables. MIDI-CV and the output can't be removed (`CANNOT REMOVE THAT`).
+
+Each change reloads the patch, so notes that are sounding are cut. If the engine has no room (there is one delay, one reverb and one chorus), it says so and the patch stays as it was. If the editor is connected, it sees the change at once.
 
 ---
 
-## 6. Las visuales
+## 5. Saving and loading
 
-### En el FM-1
+**SAVE** opens the list of the bank's 64 slots:
 
-En la pantalla del módulo, **HOME** (sin nada para atrás) abre el **osciloscopio**; HOME otra vez, las **visuales**; HOME otra vez vuelve. Las perillas siguen funcionando mientras tanto.
+- **SELECT** picks a slot.
+- **SAVE** saves there. If another patch is there, it asks for SAVE again to overwrite it.
+- **SEL** loads that slot's patch.
+- **HOME** leaves.
 
-- **Osciloscopio:** la onda de la salida, con disparo en el cruce por cero y volumen automático.
-- **Visuales:** cinco escenas en seis tonos de naranja sobre negro: un pasillo, un estallido con onda de choque en cada golpe, tres hélices, una espiral y un plasma. Los graves, los medios, los agudos y los golpes las mueven. Cambian cada 10 segundos, o con un golpe después de 5.
+The whole patch is saved: sound, cables and sequences. Slots 1 to 33 hold the factory patches; 34 to 64 are free.
 
-### En la pantalla grande (proyector, segunda pantalla, OBS)
+---
 
-La página **VISUALES** dibuja lo mismo en la computadora, a pantalla completa y con más detalle. Se abre con el botón **VISUALES** del editor, o directo en https://blackkittendevices.github.io/kitten-rack/visuales.html.
+## 6. The visuals
 
-1. Conectá el FM-1 por USB. La computadora lo ve como una placa de sonido llamada **KittenRack**.
-2. Apretá **EMPEZAR** y aceptá el permiso de audio. La página busca sola la entrada del FM-1; si no, elegila en la lista de arriba.
-3. Tocá: la imagen sigue el audio que sale del FM-1 por USB.
+### On the FM-1
 
-| Control | Qué hace |
+On the module page, **HOME** (with nothing behind) opens the **oscilloscope**; HOME again, the **visuals**; HOME again goes back. The knobs keep working meanwhile.
+
+- **Oscilloscope:** the output's waveform, triggered on the zero crossing, with automatic gain.
+- **Visuals:** five scenes in six shades of orange on black: a corridor, a starburst with a shock ring on every beat, three helices, a spiral and a plasma. The bass, the middle, the highs and the beats drive them. They change every 10 seconds, or on a beat after 5.
+
+### On a big screen (projector, second screen, OBS)
+
+The **VISUALES** page draws the same on the computer, full screen and in more detail. Open it with the editor's **VISUALES** button, or at https://blackkittendevices.github.io/kitten-rack/visuales.html.
+
+1. Plug the FM-1 in over USB. The computer sees it as a sound card called **KittenRack**.
+2. Press **EMPEZAR** (start) and allow audio access. The page finds the FM-1's input by itself; otherwise pick it in the list at the top.
+3. Play: the picture follows the audio the FM-1 sends over USB.
+
+| Control | What it does |
 | --- | --- |
-| OSCILOSCOPIO / VISUAL / LOS DOS (teclas 1, 2, 3) | Qué se ve. LOS DOS pone la onda arriba de las escenas |
-| ESCENA (flechas ← →) | La escena anterior o la siguiente |
-| AUTO | Que cambie sola (cada 10 s o con un golpe) |
-| DETALLE | Cuántas celdas de ancho: 30 es como el FM-1, 160 es fino |
-| MIDI | Las notas y el reloj MIDI del FM-1 también hacen latir la imagen |
-| PANTALLA COMPLETA (tecla F) | Ocupa toda la pantalla. La barra se esconde sola a los 3 segundos (H la muestra o la esconde) |
+| OSCILOSCOPIO / VISUAL / LOS DOS (keys 1, 2, 3) | What shows. LOS DOS (both) puts the waveform over the scenes |
+| ESCENA (arrows ← →) | The previous or next scene |
+| AUTO | Changes by itself (every 10 s or on a beat) |
+| DETALLE (detail) | How many cells across: 30 is like the FM-1, 160 is fine |
+| MIDI | The FM-1's MIDI notes and clock make the picture pulse too |
+| PANTALLA COMPLETA (key F) | Full screen. The bar hides after 3 seconds (H shows or hides it) |
 
-Para probarla sin el FM-1: `visuales.html?demo` toca un sonido propio.
+To try it without the FM-1: `visuales.html?demo` plays a sound of its own.
 
-**Para OBS:** abrí la página en una ventana, ponela en pantalla completa y agregá en OBS una fuente **Captura de ventana** (o Captura de pantalla). Para mandarla a otro programa de VJ (Resolume, TouchDesigner) se puede usar la salida virtual de OBS o NDI.
+**For OBS:** open the page in a window, make it full screen and add a **Window Capture** (or Display Capture) source in OBS. To send it to a VJ program (Resolume, TouchDesigner), use OBS's virtual camera or NDI.
 
-**Para quien programe sus propias visuales:** la página publica lo que escucha en cada cuadro por un `BroadcastChannel` llamado `kitten-rack-visuales`. Cualquier otra página abierta en el mismo navegador lo recibe así:
+**For anyone programming their own visuals:** every frame, the page publishes what it hears on a `BroadcastChannel` named `kitten-rack-visuales`. Any other page open in the same browser gets it like this:
 
 ```js
 const c = new BroadcastChannel('kitten-rack-visuales');
 c.onmessage = (e) => {
   const { bass, mid, high, beat, scene, mode, note } = e.data;
-  // bass, mid, high: 0..255 · beat: true en cada golpe · scene: 0..4 · note: la última nota MIDI
+  // bass, mid, high: 0..255 · beat: true on each beat · scene: 0..4 · note: the last MIDI note
 };
 ```
 
 ---
 
-## 7. Grabar y capturar: audio, MIDI y pantalla
+## 7. Recording and capturing: audio, MIDI and the screen
 
-### El audio (el master)
+### The audio (the master)
 
-Por USB el FM-1 es una **placa de sonido**: audio estéreo de 16 bits a 44,1 kHz que sale del FM-1 hacia la computadora. Es la mezcla final (el master), la misma que sale por los auriculares.
+Over USB the FM-1 is a **sound card**: 16-bit stereo audio at 44.1 kHz from the FM-1 to the computer. It is the final mix (the master), the same as the headphone output.
 
-- **Windows:** aparece como entrada de grabación **KittenRack**. En Audacity, Reaper, Ableton, OBS o cualquier DAW, elegí esa entrada (estéreo, 44 100 Hz) y grabá.
-- **macOS y Linux:** igual, aparece como dispositivo de audio de entrada.
-- No hace falta driver.
-- El FM-1 no recibe audio por USB: es solo salida.
+- **Windows:** it appears as the recording input **KittenRack**. In Audacity, Reaper, Ableton, OBS or any DAW, pick that input (stereo, 44,100 Hz) and record.
+- **macOS and Linux:** the same, it appears as an audio input device.
+- No driver needed.
+- The FM-1 takes no audio in over USB: it is output only.
 
-### El MIDI
+### MIDI
 
-Por el mismo cable el FM-1 es también un **dispositivo MIDI** llamado KittenRack:
+Over the same cable the FM-1 is also a **MIDI device** called KittenRack:
 
-- Grabá en el DAW lo que tocás en el teclado del FM-1 (con MIDI OUT prendido: adentro del RACK, SEL otra vez abre la página del FM-1, con canal MIDI, reloj de entrada, MIDI OUT y LEDs).
-- Las perillas salen como CC 16-19, SELECT / ALGO / PRESET como CC 20, 21 y 23 (relativos), el volumen como CC 7 y los botones como CC 80-93. PLAY manda Start y Stop.
-- El FM-1 puede seguir el **reloj MIDI** del DAW (se activa en esa misma página).
+- Record what you play on the FM-1's keys in the DAW (with MIDI OUT on: GLO and GLO again open the FM-1's page, with the MIDI channel, clock in, MIDI out and language).
+- The knobs go out as CC 16-19, SELECT / ALGO / PRESET as CC 20, 21 and 23 (relative), the volume as CC 7 and the buttons as CC 80-93. PLAY sends Start and Stop.
+- The FM-1 can follow the DAW's **MIDI clock** (turned on on that same page).
 
-### La pantalla
+### The screen
 
-- La pantalla del FM-1 no sale por USB. Para mostrarla en grande usá la página VISUALES ([6](#6-las-visuales)) y capturala con OBS.
+- The FM-1's screen doesn't go out over USB. To show it big, use the VISUALES page ([6](#6-the-visuals)) and capture it with OBS.
 
-### Qué no hace (y por qué)
+### What it doesn't do (and why)
 
-- **Grabación multipista:** no hace falta. KITTEN RACK es un solo instrumento y el master estéreo es su sonido completo. Si algún día hiciera falta, el USB del FM-1 aguanta unos 8 canales de 16 bits a 44,1 kHz.
-- **Disco USB** (copiar archivos arrastrando): no vale la pena. Los patches se respaldan con el editor (EXPORTAR, AL FM-1).
+- **Multitrack recording:** not needed. KITTEN RACK is a single instrument and the stereo master is its whole sound. Should it ever be needed, the FM-1's USB has room for about 8 channels of 16 bits at 44.1 kHz.
+- **USB disk** (drag-and-drop files): not worth it. Patches are backed up with the editor (EXPORTAR, AL FM-1).
 
 ---
 
-## 8. El editor en la computadora
+## 8. The editor on the computer
 
-El editor es un rack en el navegador con el **mismo motor** que el FM-1: lo que suena en uno suena igual en el otro.
+The editor is a rack in the browser with the **same engine** as the FM-1: what sounds in one sounds the same in the other.
 
-- **Online:** https://blackkittendevices.github.io/kitten-rack/ (Chrome o Edge, para tener MIDI).
-- **Offline:** el botón EDITOR OFFLINE del instalador.
+- **Online:** https://blackkittendevices.github.io/kitten-rack/ (Chrome or Edge, for MIDI).
+- **Offline:** the installer's EDITOR OFFLINE button.
 
-Lo que tiene:
+What it has:
 
-- Filas de 42 HP. Los módulos se mueven arrastrando su cabeza.
-- Un clic en el catálogo atornilla el módulo en el primer lugar libre.
-- Cables con color por señal: naranja audio, violeta pitch, verde CV, hueso gates, amarillo keys.
-- Cada módulo tiene dos entradas CV (CV1 y CV2) que se asignan a cualquiera de sus parámetros.
-- Teclado de la computadora (A a K, Z y X para la octava) y Web MIDI.
-- CPU estimada del FM-1 para el patch.
-- **ROLL** en un módulo Steps abre el piano roll grande: clic pone o saca una nota, arrastrar a la derecha la alarga, Shift pone un acento.
-- **GUARDAR** guarda en el navegador; **EXPORTAR / IMPORTAR** a un archivo.
-- **VISUALES** abre la página de visuales.
+- Rows of 42 HP. Modules move by dragging their heads.
+- A click in the catalogue screws the module into the first free place.
+- Cables coloured by signal: orange audio, violet pitch, green CV, bone gates, yellow keys.
+- Each module has two CV inputs (CV1 and CV2) that can be assigned to any of its parameters.
+- The computer keyboard (A to K, Z and X for the octave) and Web MIDI.
+- The FM-1's estimated CPU for the patch.
+- **ROLL** on a Steps module opens the big piano roll: a click sets or clears a note, dragging right makes it longer, Shift sets an accent.
+- **GUARDAR** saves in the browser; **EXPORTAR / IMPORTAR** to and from a file.
+- **VISUALES** opens the visuals page.
 
-### En vivo con el FM-1
+(The editor's labels are in Spanish.)
 
-Apretá **FM-1** arriba. El editor lee el patch que está tocando el FM-1 y desde ahí todo va y viene al instante: perillas, cables, módulos agregados o sacados, notas del piano roll y el patch que elegís con PRESET.
+### Try it without an FM-1
 
-**AL FM-1** guarda el patch del editor en un lugar del banco (elegís el lugar y el nombre).
+https://blackkittendevices.github.io/kitten-rack/play.html is KITTEN RACK in the browser: the real firmware's screens and controls compiled for the web, with the editor's engine making the sound. The 33 factory patches, the sequencer, the rack, the visuals and the language setting work; patching with EDIT and saving are done on the FM-1 or in the editor.
 
-Para instalar firmware, primero desconectá el editor (botón FM-1) o cerrá su pestaña: el MIDI no se puede usar desde dos programas a la vez.
+### Live with the FM-1
+
+Press **FM-1** at the top. The editor reads the patch the FM-1 is playing and from then on everything goes both ways at once: knobs, cables, modules added or removed, piano roll notes and the patch picked with PRESET.
+
+**AL FM-1** stores the editor's patch into a bank slot (you pick the slot and the name).
+
+To install firmware, first disconnect the editor (the FM-1 button) or close its tab: MIDI can't be used by two programs at once.
 
 ---
 
 ## 9. MIDI
 
-El FM-1 y el editor responden a cualquier controlador MIDI, por USB (y el FM-1 también por el jack TRS):
+The FM-1 and the editor answer any MIDI controller, over USB (and the FM-1 also over the TRS jack):
 
-- Notas en todos los canales, con velocidad. El canal se elige en la página del FM-1 (todos por defecto).
-- El pedal de sustain (CC 64) sostiene las notas.
-- K1 a K4: CC 16-19, 21-24 o 70-73 (los bancos de perillas más comunes).
-- Rueda de modulación, pitch bend y aftertouch llegan a las salidas del módulo MIDI-CV.
-- CC 120 y 123 apagan todo.
-- Reloj MIDI y program change se activan en la página del FM-1.
+- Notes on every channel, with velocity. The channel is set on the FM-1's page (all by default).
+- The sustain pedal (CC 64) holds notes.
+- K1 to K4: CC 16-19, 21-24 or 70-73 (the most common knob banks).
+- Mod wheel, pitch bend and aftertouch reach the MIDI-CV module's outputs.
+- CC 120 and 123 stop everything.
+- MIDI clock and program change are turned on on the FM-1's page.
 
 ---
 
-## 10. Los módulos
+## 10. The modules
 
-Unos 60 módulos por familias. Todos andan en el editor y en el FM-1.
+Over 50 modules by family. All of them work in the editor and on the FM-1.
 
-| Familia | Módulos |
+| Family | Modules |
 | --- | --- |
-| Fuentes | VCO, VCO WT (wavetable), VCO CZ (phase distortion), Ruido, Cuerda (Karplus), Resonador (modal) |
-| Generativos | Turing, Marbles, Euclídeo, Bernoulli, Caos (Lorenz), Random, S&H, Seq 8, Steps (el secuenciador), Arpegiador |
-| Filtros | VCF Muug (escalera Minimoog que autooscila), LPG (estilo Buchla), VCF Ladder, VCF Multi, Formante, Comb, Wavefolder |
-| VCA y mezcla | VCA, Ring mod, Mix 4, Xfade, Pan, Selector, Compresor |
-| Moduladores | Función (estilo Maths), ADSR, Env L/R, Env 8, Env DX, LFO, Slew, Pulso, Macro |
-| Lógica y utilidades | Reloj/Div, Cuantizador, Mate, Lógica, Offset, Atenuversor, Ratio, Drum map, Scope |
-| Efectos | Delay (con modo CINTA: wow, flutter y saturación), Reverb (con modo RESORTE), Chorus, Phaser, Bitcrush, Granular, Freq shift |
+| Sources | VCO, VCO WT (wavetable), VCO CZ (phase distortion), Noise, String (Karplus), Resonator (modal) |
+| Generative | Turing, Marbles, Euclidean, Bernoulli, Chaos (Lorenz), Random, S&H, Seq 8, Steps (the sequencer), Arpeggiator |
+| Filters | VCF Muug (a Minimoog ladder that self-oscillates), LPG (Buchla style), VCF Ladder, VCF Multi, Formant, Comb, Wavefolder |
+| VCA and mix | VCA, Ring mod, Mix 4, Xfade, Pan, Selector, Compressor |
+| Modulators | Function (Maths style), ADSR, Env L/R, Env 8, Env DX, LFO, Slew, Pulse, Macro |
+| Logic and utilities | Clock/Div, Quantizer, Math, Logic, Offset, Attenuverter, Ratio, Drum map, Scope |
+| Effects | Delay (with a TAPE mode: wow, flutter and saturation), Reverb (with a SPRING mode), Chorus, Phaser, Bitcrush, Granular, Freq shift |
 
-Fijos en cada patch: **MIDI-CV** (el teclado y el MIDI: pitch, gate, velocidad, bend, mod, aftertouch) y **OUT** (la salida).
+In every patch: **MIDI-CV** (the keyboard and MIDI: pitch, gate, velocity, bend, mod, aftertouch) and **OUT** (the output).
 
-Límites del FM-1: un solo delay, una sola reverb y un solo chorus por patch, y un tope de CPU que el editor estima (barra CPU arriba).
+FM-1 limits: one delay, one reverb and one chorus per patch, and a CPU ceiling the editor estimates (the CPU bar at the top).
 
 ---
 
-## 11. El banco de fábrica
+## 11. The factory bank
 
-33 patches propios, armados desde cero (`web/scripts/rack-factory.ts`). Son los mismos en el editor (**Fábrica…**) y en los primeros 33 lugares del FM-1.
+33 patches of our own, built from scratch (`web/scripts/rack-factory.ts`). They are the same in the editor (**Fábrica…**) and in the FM-1's first 33 slots. Their names stay as they are in either language.
 
-| | Teclado (los modulares de los 60) | | Suenan solos (generativos) | | Drones y ruido |
+| | Keys (the modulars of the 60s) | | Play by themselves (generative) | | Drones and noise |
 | --- | --- | --- | --- | --- | --- |
-| 01 | INIT (con eco de cinta) | 12 | BONK WEST COAST | 25 | LORENZ DRONE |
+| 01 | INIT (with tape echo) | 12 | BONK WEST COAST | 25 | LORENZ DRONE |
 | 02 | MUUG TAPE | 13 | COMPUTADORA S&H | 26 | DRONE MUUG |
 | 03 | MUUG BAJO | 14 | BERLIN SEQ | 27 | NIEBLA GRANULAR |
 | 04 | LEAD 1969 | 15 | PERCUSION MOD | 28 | SHIFT ESPACIAL |
@@ -323,64 +334,74 @@ Límites del FM-1: un solo delay, una sola reverb y un solo chorus por patch, y 
 | | | 23 | POLIRRITMO | | |
 | | | 24 | ENJAMBRE LFO | | |
 
-Los que suenan solos arrancan solos (tienen su propio reloj) y en casi todos una tecla transpone.
+The generative ones start by themselves (they have their own clock) and in almost all of them a key transposes.
 
 ---
 
-## 12. Para desarrolladores
+## 12. For developers
 
-KITTEN RACK es un fork de [Matryoshka](https://github.com/glvno/matryoshka) 1.5.1. Gran parte del código y de los comentarios todavía usa los nombres de Matryoshka; [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explica su diseño (formatos, motor, protocolo) y sigue valiendo.
+KITTEN RACK is a fork of [Matryoshka](https://github.com/glvno/matryoshka) 1.5.1. Much of the code and its comments still use Matryoshka's names; [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explains its design (formats, engine, protocol) and still holds.
 
-### Dónde está cada cosa
+### Where things are
 
-| Carpeta | Qué hay |
+| Folder | What is there |
 | --- | --- |
-| `firmware/src/` | El firmware en C. `engine.c` el motor (punto fijo), `panel.c` los botones y pantallas, `seq_ui.c` el secuenciador, `rack_ui.c` el rack y el patcheo, `save_ui.c` guardar, `viz_ui.c` las visuales, `manual.c` el manual en pantalla, `proto.c` el protocolo con el editor, `usb.c` audio y MIDI USB |
-| `firmware/test/` | Pruebas del firmware en la computadora |
-| `web/rack.html`, `web/src/rack/` | El editor rack |
-| `web/visuales.html`, `web/src/visuals/` | La página de visuales |
-| `web/src/modules.ts`, `engine.ts` | El motor de referencia (el FM-1 tiene que sonar igual) |
-| `web/scripts/rack-factory.ts` | El banco de fábrica |
-| `web/scripts/golden.ts` | Los kits que comparan los dos motores muestra por muestra |
-| `tools/` | Instalador (`KittenRack.pyw`, `instalar_kitten_rack.py`, `fm1_install.py`), pruebas, emulador (`tools/emu`) |
-| `web/index.html`, el resto de `web/src/` | La app original de Matryoshka: queda porque el editor rack y las pruebas usan su motor, su formato y su protocolo |
+| `firmware/src/` | The firmware in C. `engine.c` the engine (fixed point), `panel.c` the buttons and screens, `seq_ui.c` the sequencer, `rack_ui.c` the rack and patching, `save_ui.c` saving, `viz_ui.c` the visuals, `manual.c` the on-screen manual, `proto.c` the editor protocol, `usb.c` USB audio and MIDI |
+| `firmware/wasm/` | The firmware's UI as WebAssembly (`play.html`) |
+| `firmware/test/` | Firmware tests on the computer |
+| `web/rack.html`, `web/src/rack/` | The rack editor |
+| `web/play.html`, `web/src/play/` | The browser player |
+| `web/visuales.html`, `web/src/visuals/` | The visuals page |
+| `web/src/modules.ts`, `engine.ts` | The reference engine (the FM-1 must sound the same) |
+| `web/scripts/rack-factory.ts` | The factory bank |
+| `web/scripts/golden.ts` | The kits that compare the two engines sample by sample |
+| `tools/` | Installer (`KittenRack.pyw`, `instalar_kitten_rack.py`, `fm1_install.py`), tests, emulator (`tools/emu`) |
+| `web/index.html`, the rest of `web/src/` | Matryoshka's original app: kept because the rack editor and the tests use its engine, its format and its protocol |
 
-### Pruebas
+### Tests
 
 ```
 cd web && npm ci
-npx vitest run           # todas las pruebas web
-npx tsc --noEmit -p .    # tipos
+npm run fm1-wasm         # the firmware UI as WebAssembly (needs clang + lld)
+npx vitest run           # every web test
+npx tsc --noEmit -p .    # types
 cd ..
-tools/golden.sh          # los dos motores, muestra por muestra
-tools/panel_test.sh      # los botones y pantallas del FM-1
-tools/bank_test.sh       # el banco de fábrica
-tools/patch_edit_test.sh # agregar módulos desde el aparato
-tools/patch_del_test.sh  # sacar módulos desde el aparato
+tools/golden.sh          # the two engines, sample by sample
+tools/panel_test.sh      # the FM-1's buttons and screens
+tools/bank_test.sh       # the factory bank
+tools/patch_edit_test.sh # adding modules from the device
+tools/patch_del_test.sh  # removing modules from the device
 tools/preset_test.sh
-tools/usb_test.sh
+tools/usb_test.sh        # USB audio and MIDI descriptors
 ```
 
-Para correr el editor: `cd web && npm run dev` y abrir `http://localhost:5173/rack.html`.
+To run the editor: `cd web && npm run dev` and open `http://localhost:5173/rack.html` (or `/play.html`, `/visuales.html`).
 
-### Compilar y publicar
+### Building and publishing
 
-- El compilador de JieLi solo corre en Linux x86-64: el firmware se compila en GitHub Actions.
-- `firmware.yml` compila y prueba cada cambio.
-- `kitten-dev.yml` arma una versión de prueba (pre-release "dev") con el uso de RAM.
-- `kitten-release.yml` (se lanza a mano con el número de versión) arma el `.fwsc`, el zip del instalador y el editor offline, y crea el release.
-- `rack-pages.yml` publica el editor y las visuales en GitHub Pages con cada cambio en `web/`.
+- JieLi's compiler only runs on Linux x86-64: the firmware is built in GitHub Actions.
+- `firmware.yml` builds and tests every change.
+- `kitten-dev.yml` makes a test build (the "dev" pre-release) with the RAM use.
+- `kitten-release.yml` (started by hand with the version number) makes the `.fwsc`, the installer zip and the offline editor, and creates the release.
+- `rack-pages.yml` publishes the editor, the player and the visuals on GitHub Pages with every change.
 
-Antes de instalar algo en un FM-1: **nunca un firmware sin la actualización por USB de Felucca**.
+Before installing anything on an FM-1: **never firmware without Felucca's USB update**.
 
-### El formato de patch
+### The Firmware Hub
 
-Formato 49 (el de Matryoshka 48 más los módulos de KITTEN RACK). Una nota de secuencia es una palabra de 32 bits: paso (6 bits), largo - 1 (6), nota (7), velocidad (7), chance (5) y el bit 31, que marca una nota que suena entera hasta el final de su último paso (las grabadas y las que se alargan con K3).
+- `fmhub.json` (at the root) gives the card's text, its category (`synth`), the ▶ key (`play.html`) and the editor key.
+- Identity: from 1.0 each release reports `FM-1_79XYZ` with its version inside (1.0.0 = `FM-1_79100`); 0.2 to 0.5 were `FM-1_792` to `FM-1_795`. The update loader is Felucca's.
+- USB: MIDI and a UAC1 audio input (16-bit stereo, 44.1 kHz), the same USB the firmware it comes from had; no keyboard or mouse.
+- **VST:** the Hub's VIBE FM converter (still "soon") builds a plugin from an open firmware's source. KITTEN RACK is ready for it: GPL-3.0, its engine is fixed-point C with no hardware inside (`firmware/src/engine.c`), and its UI already compiles to WebAssembly (`firmware/wasm/fm1_ui.c`, the one `play.html` uses).
+
+### The patch format
+
+Format 49 (Matryoshka's 48 plus KITTEN RACK's modules). A sequence note is a 32-bit word: step (6 bits), length - 1 (6), note (7), velocity (7), chance (5), and bit 31, which marks a note that sounds whole to the end of its last step (recorded notes and those lengthened with K3).
 
 ---
 
-## 13. Créditos y licencia
+## 13. Credits and license
 
-KITTEN RACK parte de [Matryoshka](https://github.com/glvno/matryoshka) de michael glaviano (1.5.1, commit `ec7d934`), que viene de [Modular-1](https://github.com/WiggisModular/Modular-1) de WiggisModular y usa la capa de hardware y el instalador de [Felucca](https://github.com/hugelton/Felucca) de Leo Kuroshita / Hügelton Instruments.
+KITTEN RACK starts from [Matryoshka](https://github.com/glvno/matryoshka) by michael glaviano (1.5.1, commit `ec7d934`), which comes from [Modular-1](https://github.com/WiggisModular/Modular-1) by WiggisModular and uses the hardware layer and the installer of [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita / Hügelton Instruments.
 
-Todo el código es **GPL-3.0-only**: ver [LICENSE](LICENSE) y [LICENSING.md](LICENSING.md). Los cambios por versión están en [CHANGELOG.md](CHANGELOG.md).
+All the code is **GPL-3.0-only**: see [LICENSE](LICENSE) and [LICENSING.md](LICENSING.md).
