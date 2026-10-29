@@ -17,6 +17,7 @@ static volatile uint8_t tp_on;                     /* the device test mode (#291
 static volatile uint32_t tp_peak;                  /* the loudest sample since the last TEST_PEAK, 16 bit: before the MASTER pot (as at its
                                                     * default, so a script does not depend on where the knob is), after mute */
 static volatile uint32_t eng_us_last, eng_us_max, eng_halves;
+#include "viz_tap.h"
 static int32_t eng_l[HALF_FRAMES], eng_r[HALF_FRAMES];
 #if FELUCCA_UAC
 /* USB audio out (usb.c, included after this file): the ring's fill is sampled as a half starts, then the half's I2S words
@@ -68,6 +69,7 @@ void fm1_alnk0_irq(void)                       /* via isr_alnk0 (hal/fm1_isr.S) 
         }
         if (eng_run) {
             eng_render(eng_l, eng_r, HALF_FRAMES);
+            viz_tap(eng_l, eng_r, HALF_FRAMES);         /* KITTEN RACK: the visualizers (viz_tap.h), only while one shows */
             int32_t m = snd_muted ? 0 : (int32_t)(((int64_t)master_q12 * patch_gain) >> 16);
             for (i = 0; i < HALF_FRAMES; i++) {         /* Q16 (+-1.0) * MASTER -> 24 bit in the low bits, -6 dBFS ceiling */
                 o[2u * i] = ((eng_l[i] * m) >> 12) << 6;

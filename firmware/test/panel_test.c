@@ -583,9 +583,31 @@ int main(void)
     }
 
     memcpy(before, fb, sizeof before);
+    tap(BTN_HOME);                                          /* KITTEN RACK: the visualizers (viz_ui.c) */
+    check("HOME on the device pages, nothing to go back to: the oscilloscope, the ISR's tap on", page == PAGE_VIZ1 && viz_on && trail_n == 0);
+    {
+        static int32_t l[128], r[128];
+        uint32_t i, k, lit = 0;
+        for (k = 0; k < 8u; k++) {                          /* a tone through the tap, as the ISR would */
+            for (i = 0; i < 128u; i++)
+                l[i] = r[i] = (int32_t)((((k * 128u + i) * 2000u) & 0xFFFFu) < 0x8000u ? (((k * 128u + i) * 2000u) & 0xFFFFu) : 0x10000u - (((k * 128u + i) * 2000u) & 0xFFFFu)) - 0x4000;   /* (a triangle, +-0.25) */
+            viz_tap(l, r, 128);
+        }
+        later(60);
+        for (i = 0; i < 240u * 240u; i++)
+            lit += fb[i] == VIZ_OR || fb[i] == VIZ_OR_HI;
+        check("  its trace drawn, orange on black", lit > 200u && px(2, 120) == VIZ_BLACK);
+        snap_to(getenv("PANEL_SNAP_SCOPE"));
+        tap(BTN_HOME);
+        later(60);
+        for (i = lit = 0; i < 240u * 240u; i++)
+            lit += fb[i] == VIZ_OR || fb[i] == VIZ_OR_HI || fb[i] == VIZ_OR_LO;
+        check("HOME again: the spectrum, its bars", page == PAGE_VIZ2 && lit > 50u);
+        snap_to(getenv("PANEL_SNAP_SPECTRUM"));
+    }
     tap(BTN_HOME);
-    check("HOME on the device pages, nothing to go back to: nothing", page == 0 && pg_cur_dev == 2 && pg_cur_page == 1
-          && trail_n == 0 && memcmp(before, fb, sizeof before) == 0);
+    check("HOME again: the device page as it was, the tap off", page == 0 && pg_cur_dev == 2 && pg_cur_page == 1 && trail_n == 0 && !viz_on
+          && memcmp(before, fb, sizeof before) == 0);
 
     panel_held |= 1u << BTN_HOME;                           /* HOME held: the menu after 0.7 s */
     panel_edges(1u << BTN_HOME, 0);
@@ -2363,7 +2385,6 @@ int main(void)
         tap(BTN_REC);
         check("REC with a drum track armed, stopped: REC on, the page stays", page == 0u && seq_trk == 0u && seq_rec == 2u);
         tap(BTN_REC);
-        tap(BTN_HOME);
         tap(BTN_PLAY);                                      /* running, from the device page: a live take on DRUMS */
         tap(BTN_REC);
         check("(REC, DRUMS armed, running: a live take, the device page stays)", page == 0u && seq_rec == 2u);

@@ -248,6 +248,8 @@ static void trail_push(void)
 static void page_show(uint32_t p)
 {
     page = (uint8_t)p;
+    viz_on = (uint8_t)(p == PAGE_VIZ1 || p == PAGE_VIZ2);   /* (the audio ISR fills the visualizers' ring only then) */
+    viz_ok = 0;
     pg_strip_dirty = 1;
     if (page == PAGE_MENU)
         menu_open();
@@ -925,7 +927,11 @@ static void panel_edges(uint32_t p, uint32_t rel)
             page_set(PAGE_MENU);
     }
     if (rel & (1u << BTN_HOME)) {
-        if (home_t0 && !(home_t0 & 2u) && !(page == PAGE_RACK && rk_back()))
+        if (home_t0 && !(home_t0 & 2u) && viz_page())   /* KITTEN RACK: the visualizers in turn, then the device page */
+            page_show(page == PAGE_VIZ1 ? PAGE_VIZ2 : 0u);
+        else if (home_t0 && !(home_t0 & 2u) && page == 0u && !trail_n && !sb_on)
+            page_show(PAGE_VIZ1);                   /* (HOME on the device page with nothing to go back to) */
+        else if (home_t0 && !(home_t0 & 2u) && !(page == PAGE_RACK && rk_back()))
             screen_back();                          /* a tap: one step back (out of the menu, the SEQ page ...; patching's own) */
         home_t0 = 0;
     }
@@ -942,6 +948,8 @@ static void panel_status(void)
     static uint8_t ovl_seen;
     static uint32_t shed_seen;
     sandbox_poll();                                 /* (no LIVE for 5 s: the FM-1 sounds again) */
+    if (viz_page() && !ui_dirty && fm1_ms - viz_ms >= VIZ_FRAME_MS)
+        ui_dirty = 1;                               /* KITTEN RACK: the visualizer's next frame */
     if (sb_home_due) {                              /* sandbox mode began: its page, unless the FM-1's own settings show */
         sb_home_due = 0;
         if (sb_on && page != 0u && page != PAGE_MENU && page != PAGE_GLO)

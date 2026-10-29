@@ -293,5 +293,7 @@ static int save_slot_name(uint32_t slot, char *name)   /* (the preview's bank: t
     return 1;
 }
 #include "../src/save_ui.c"
+#include "../src/viz_tap.h"
+#include "../src/viz_ui.c"
 #include "../src/splash.c"
 

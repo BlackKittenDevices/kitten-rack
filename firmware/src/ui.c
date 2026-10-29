@@ -400,6 +400,7 @@ static void presets_draw(int full);
 static void rack_draw(int full);
 static void rack_open(void);
 static void save_draw(int full);
+static void viz_draw(int full);                 /* KITTEN RACK: the visualizers (viz_ui.c), pages 14 and 15 */
 
 #define LEFT_W 216u
 
@@ -438,6 +439,8 @@ static void view_draw(int full)                 /* whichever page is showing */
         rack_draw(full);
     else if (page == PAGE_SAVE)
         save_draw(full);
+    else if (page == 14u || page == 15u)
+        viz_draw(full);
     else if (sb_on && page == 0u)
         sandbox_draw(full);
     else

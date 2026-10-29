@@ -96,6 +96,7 @@ static uint32_t pages_gen(void) { return m1_gen; }
 #include "seq_ui.c"
 #include "rack_ui.c"         /* KITTEN RACK: the RACK page */
 #include "save_ui.c"         /* KITTEN RACK: the SAVE page */
+#include "viz_ui.c"          /* KITTEN RACK: the visualizers */
 #include "splash.c"
 #include "panel.c"
 #include "main.c"
