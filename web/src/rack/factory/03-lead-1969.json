@@ -1,0 +1,567 @@
+{
+ "version": 2,
+ "name": "lead 1969",
+ "modules": [
+  {
+   "id": 1,
+   "type": "fm1",
+   "x": 40,
+   "y": 0,
+   "params": {
+    "morph": 0,
+    "tempo": 120
+   },
+   "panel": {
+    "kinds": {
+     "fx": "nothing",
+     "lfo": "nothing",
+     "edit": "nothing",
+     "arp": "nothing"
+    }
+   }
+  },
+  {
+   "id": 2,
+   "type": "output",
+   "x": 480,
+   "y": 828,
+   "params": {
+    "level": 1
+   }
+  },
+  {
+   "id": 3,
+   "type": "glide",
+   "x": 240,
+   "y": 0,
+   "params": {
+    "time": 0.12,
+    "curve": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "time"
+    ],
+    "p2": [
+     "curve"
+    ],
+    "k1": [
+     "time"
+    ],
+    "k2": [
+     "curve"
+    ],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 4,
+   "type": "lfo",
+   "x": 320,
+   "y": 0,
+   "params": {
+    "wave": 0,
+    "rate": 5.6,
+    "depth": 0.012,
+    "sync": 0,
+    "div": 6,
+    "bpm": 120,
+    "phase": 0,
+    "range": 0,
+    "dir": 0,
+    "mult": 3,
+    "wide": 4
+   },
+   "att": [
+    0.05,
+    1
+   ],
+   "map": {
+    "p1": [
+     "depth"
+    ],
+    "p2": [],
+    "k1": [],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 5,
+   "type": "osc",
+   "x": 560,
+   "y": 0,
+   "params": {
+    "wave": 2,
+    "pw": 0.5,
+    "coarse": 0,
+    "fine": 0,
+    "pm": 0,
+    "level": 0.7,
+    "fb": 0,
+    "unison": 1,
+    "detune": 10,
+    "blend": 0.5,
+    "stack": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "pw"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "pw"
+    ],
+    "k3": [
+     "coarse"
+    ],
+    "k4": [
+     "fine"
+    ]
+   }
+  },
+  {
+   "id": 6,
+   "type": "osc",
+   "x": 40,
+   "y": 414,
+   "params": {
+    "wave": 2,
+    "pw": 0.5,
+    "coarse": 0,
+    "fine": 9,
+    "pm": 0,
+    "level": 0.6,
+    "fb": 0,
+    "unison": 1,
+    "detune": 10,
+    "blend": 0.5,
+    "stack": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "pw"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "pw"
+    ],
+    "k3": [
+     "coarse"
+    ],
+    "k4": [
+     "fine"
+    ]
+   }
+  },
+  {
+   "id": 7,
+   "type": "mixer",
+   "x": 280,
+   "y": 414,
+   "params": {
+    "l1": 0.7,
+    "l2": 0.7,
+    "l3": 0.7,
+    "l4": 0.7
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "l1"
+    ],
+    "p2": [
+     "l2"
+    ],
+    "k1": [
+     "l1"
+    ],
+    "k2": [
+     "l2"
+    ],
+    "k3": [
+     "l3"
+    ],
+    "k4": [
+     "l4"
+    ]
+   }
+  },
+  {
+   "id": 8,
+   "type": "muug",
+   "x": 440,
+   "y": 414,
+   "params": {
+    "cutoff": -0.6,
+    "emph": 6.2,
+    "drive": 1.4,
+    "cvamt": 2.4,
+    "track": 1
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "cutoff"
+    ],
+    "p2": [
+     "emph"
+    ],
+    "k1": [
+     "cutoff"
+    ],
+    "k2": [
+     "emph"
+    ],
+    "k3": [
+     "drive"
+    ],
+    "k4": [
+     "cvamt"
+    ]
+   }
+  },
+  {
+   "id": 9,
+   "type": "adsr",
+   "x": 600,
+   "y": 414,
+   "params": {
+    "a": 0.01,
+    "d": 0.5,
+    "s": 0.35,
+    "r": 0.4,
+    "long": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "a"
+    ],
+    "p2": [
+     "d"
+    ],
+    "k1": [
+     "a"
+    ],
+    "k2": [
+     "d"
+    ],
+    "k3": [
+     "s"
+    ],
+    "k4": [
+     "r"
+    ]
+   }
+  },
+  {
+   "id": 10,
+   "type": "adsr",
+   "x": 40,
+   "y": 828,
+   "params": {
+    "a": 0.008,
+    "d": 0.3,
+    "s": 0.9,
+    "r": 0.35,
+    "long": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "a"
+    ],
+    "p2": [
+     "d"
+    ],
+    "k1": [
+     "a"
+    ],
+    "k2": [
+     "d"
+    ],
+    "k3": [
+     "s"
+    ],
+    "k4": [
+     "r"
+    ]
+   }
+  },
+  {
+   "id": 11,
+   "type": "vca",
+   "x": 200,
+   "y": 828,
+   "params": {
+    "gain": 1
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "gain"
+    ],
+    "p2": [],
+    "k1": [
+     "gain"
+    ],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 12,
+   "type": "delay",
+   "x": 280,
+   "y": 828,
+   "params": {
+    "time": 380,
+    "fb": 0.45,
+    "mix": 0.3,
+    "sync": 0,
+    "pingpong": 0,
+    "note": 0,
+    "swell": 0,
+    "tape": 0.6
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "time"
+    ],
+    "p2": [
+     "fb"
+    ],
+    "k1": [
+     "time"
+    ],
+    "k2": [
+     "fb"
+    ],
+    "k3": [
+     "mix"
+    ],
+    "k4": [
+     "sync"
+    ]
+   }
+  }
+ ],
+ "cables": [
+  {
+   "from": {
+    "module": 1,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 3,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "out"
+   },
+   "to": {
+    "module": 5,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "out"
+   },
+   "to": {
+    "module": 6,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "out"
+   },
+   "to": {
+    "module": 5,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "out"
+   },
+   "to": {
+    "module": 6,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "mod"
+   },
+   "to": {
+    "module": 4,
+    "port": "p1"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "gate"
+   },
+   "to": {
+    "module": 9,
+    "port": "gate"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "gate"
+   },
+   "to": {
+    "module": 10,
+    "port": "gate"
+   }
+  },
+  {
+   "from": {
+    "module": 5,
+    "port": "out"
+   },
+   "to": {
+    "module": 7,
+    "port": "in1"
+   }
+  },
+  {
+   "from": {
+    "module": 6,
+    "port": "out"
+   },
+   "to": {
+    "module": 7,
+    "port": "in2"
+   }
+  },
+  {
+   "from": {
+    "module": 7,
+    "port": "out"
+   },
+   "to": {
+    "module": 8,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 9,
+    "port": "env"
+   },
+   "to": {
+    "module": 8,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 8,
+    "port": "out"
+   },
+   "to": {
+    "module": 11,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 10,
+    "port": "env"
+   },
+   "to": {
+    "module": 11,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 11,
+    "port": "out"
+   },
+   "to": {
+    "module": 12,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 12,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "l"
+   }
+  },
+  {
+   "from": {
+    "module": 12,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "r"
+   }
+  }
+ ],
+ "notes": "Lead que canta: portamento, vibrato que la rueda de modulación profundiza, dos sierras al Muug resonante, eco de cinta. Teclado."
+}

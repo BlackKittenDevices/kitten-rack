@@ -1,0 +1,441 @@
+{
+ "version": 2,
+ "name": "buchla timbre",
+ "modules": [
+  {
+   "id": 1,
+   "type": "fm1",
+   "x": 40,
+   "y": 0,
+   "params": {
+    "morph": 0,
+    "tempo": 120
+   },
+   "panel": {
+    "kinds": {
+     "fx": "nothing",
+     "lfo": "nothing",
+     "edit": "nothing",
+     "arp": "nothing"
+    }
+   }
+  },
+  {
+   "id": 2,
+   "type": "output",
+   "x": 720,
+   "y": 414,
+   "params": {
+    "level": 0.9
+   }
+  },
+  {
+   "id": 3,
+   "type": "osc",
+   "x": 240,
+   "y": 0,
+   "params": {
+    "wave": 0,
+    "pw": 0.5,
+    "coarse": 12,
+    "fine": 0,
+    "pm": 0,
+    "level": 0.8,
+    "fb": 0,
+    "unison": 1,
+    "detune": 10,
+    "blend": 0.5,
+    "stack": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "pw"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "pw"
+    ],
+    "k3": [
+     "coarse"
+    ],
+    "k4": [
+     "fine"
+    ]
+   }
+  },
+  {
+   "id": 4,
+   "type": "osc",
+   "x": 480,
+   "y": 0,
+   "params": {
+    "wave": 1,
+    "pw": 0.5,
+    "coarse": 0,
+    "fine": 0,
+    "pm": 0.9,
+    "level": 0.85,
+    "fb": 0,
+    "unison": 1,
+    "detune": 10,
+    "blend": 0.5,
+    "stack": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "pw"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "pw"
+    ],
+    "k3": [
+     "coarse"
+    ],
+    "k4": [
+     "fine"
+    ]
+   }
+  },
+  {
+   "id": 5,
+   "type": "shape",
+   "x": 720,
+   "y": 0,
+   "params": {
+    "drive": 2.2,
+    "mode": 2,
+    "level": 0.75,
+    "os": 0,
+    "sym": 0,
+    "stages": 2
+   },
+   "att": [
+    0.9,
+    1
+   ],
+   "map": {
+    "p1": [
+     "drive"
+    ],
+    "p2": [],
+    "k1": [],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 6,
+   "type": "func",
+   "x": 40,
+   "y": 414,
+   "params": {
+    "rise": 0.004,
+    "fall": 0.7,
+    "shape": 0.5,
+    "cycle": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "rise"
+    ],
+    "p2": [
+     "fall"
+    ],
+    "k1": [
+     "rise"
+    ],
+    "k2": [
+     "fall"
+    ],
+    "k3": [
+     "shape"
+    ],
+    "k4": [
+     "cycle"
+    ]
+   }
+  },
+  {
+   "id": 7,
+   "type": "const",
+   "x": 200,
+   "y": 414,
+   "params": {
+    "value": 3
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "value"
+    ],
+    "p2": [],
+    "k1": [
+     "value"
+    ],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 8,
+   "type": "vca",
+   "x": 280,
+   "y": 414,
+   "params": {
+    "gain": 1
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "gain"
+    ],
+    "p2": [],
+    "k1": [
+     "gain"
+    ],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 9,
+   "type": "lpg",
+   "x": 360,
+   "y": 414,
+   "params": {
+    "mode": 0,
+    "decay": 0.7,
+    "offset": 0,
+    "level": 1.6
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "mode"
+    ],
+    "p2": [
+     "decay"
+    ],
+    "k1": [
+     "mode"
+    ],
+    "k2": [
+     "decay"
+    ],
+    "k3": [
+     "offset"
+    ],
+    "k4": [
+     "level"
+    ]
+   }
+  },
+  {
+   "id": 10,
+   "type": "reverb",
+   "x": 520,
+   "y": 414,
+   "params": {
+    "size": 0.5,
+    "damp": 0.3,
+    "mix": 0.25,
+    "pre": 0,
+    "mod": 0.3,
+    "freeze": 0,
+    "spring": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "size"
+    ],
+    "p2": [
+     "damp"
+    ],
+    "k1": [
+     "size"
+    ],
+    "k2": [
+     "damp"
+    ],
+    "k3": [
+     "mix"
+    ],
+    "k4": [
+     "pre"
+    ]
+   }
+  }
+ ],
+ "cables": [
+  {
+   "from": {
+    "module": 1,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 3,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 4,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "out"
+   },
+   "to": {
+    "module": 4,
+    "port": "pm"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "out"
+   },
+   "to": {
+    "module": 5,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "gate"
+   },
+   "to": {
+    "module": 6,
+    "port": "trig"
+   }
+  },
+  {
+   "from": {
+    "module": 7,
+    "port": "out"
+   },
+   "to": {
+    "module": 8,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 6,
+    "port": "out"
+   },
+   "to": {
+    "module": 8,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 8,
+    "port": "out"
+   },
+   "to": {
+    "module": 5,
+    "port": "p1"
+   }
+  },
+  {
+   "from": {
+    "module": 5,
+    "port": "out"
+   },
+   "to": {
+    "module": 9,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "gate"
+   },
+   "to": {
+    "module": 9,
+    "port": "strike"
+   }
+  },
+  {
+   "from": {
+    "module": 9,
+    "port": "out"
+   },
+   "to": {
+    "module": 10,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 10,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "l"
+   }
+  },
+  {
+   "from": {
+    "module": 10,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "r"
+   }
+  }
+ ],
+ "notes": "Costa oeste desde el teclado: una senoidal modula en frecuencia a un triángulo, el wavefolder dobla según la función, low pass gate. Teclado."
+}

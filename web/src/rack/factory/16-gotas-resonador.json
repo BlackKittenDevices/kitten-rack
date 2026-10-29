@@ -1,6 +1,6 @@
 {
  "version": 2,
- "name": "bonk west coast",
+ "name": "gotas resonador",
  "modules": [
   {
    "id": 1,
@@ -14,8 +14,6 @@
    "panel": {
     "kinds": {
      "fx": "nothing",
-     "scl": "nothing",
-     "env": "nothing",
      "lfo": "nothing",
      "edit": "nothing",
      "arp": "nothing"
@@ -25,10 +23,10 @@
   {
    "id": 2,
    "type": "output",
-   "x": 800,
-   "y": 414,
+   "x": 240,
+   "y": 828,
    "params": {
-    "level": 0.45
+    "level": 0.19
    }
   },
   {
@@ -76,13 +74,17 @@
   },
   {
    "id": 4,
-   "type": "euclid",
+   "type": "marbles",
    "x": 480,
    "y": 0,
    "params": {
-    "steps": 16,
-    "pulses": 7,
-    "rotate": 2
+    "spread": 0.6,
+    "dejavu": 0.4,
+    "length": 8,
+    "density": 0.35,
+    "range": 1,
+    "scale": 4,
+    "root": 4
    },
    "att": [
     1,
@@ -90,36 +92,33 @@
    ],
    "map": {
     "p1": [
-     "steps"
+     "spread"
     ],
     "p2": [
-     "pulses"
+     "dejavu"
     ],
     "k1": [
-     "steps"
+     "spread"
     ],
     "k2": [
-     "pulses"
+     "dejavu"
     ],
     "k3": [
-     "rotate"
+     "length"
     ],
-    "k4": []
+    "k4": [
+     "density"
+    ]
    }
   },
   {
    "id": 5,
-   "type": "turing",
-   "x": 600,
+   "type": "noise",
+   "x": 680,
    "y": 0,
    "params": {
-    "length": 8,
-    "change": 0.08,
-    "range": 1,
-    "scale": 4,
-    "root": 9,
-    "decay": 0.25,
-    "level": 0
+    "level": 0.6,
+    "color": 0.7
    },
    "att": [
     1,
@@ -127,116 +126,31 @@
    ],
    "map": {
     "p1": [
-     "length"
+     "level"
     ],
     "p2": [
-     "change"
+     "color"
     ],
     "k1": [
-     "length"
+     "level"
     ],
     "k2": [
-     "change"
+     "color"
     ],
-    "k3": [
-     "range"
-    ],
-    "k4": [
-     "scale"
-    ]
+    "k3": [],
+    "k4": []
    }
   },
   {
    "id": 6,
-   "type": "osc",
+   "type": "lpg",
    "x": 40,
    "y": 414,
    "params": {
-    "wave": 1,
-    "pw": 0.5,
-    "coarse": 0,
-    "fine": 0,
-    "pm": 0,
-    "level": 0.9,
-    "fb": 0,
-    "unison": 1,
-    "detune": 10,
-    "blend": 0.5,
-    "stack": 0
-   },
-   "att": [
-    1,
-    1
-   ],
-   "map": {
-    "p1": [
-     "wave"
-    ],
-    "p2": [
-     "pw"
-    ],
-    "k1": [
-     "wave"
-    ],
-    "k2": [
-     "pw"
-    ],
-    "k3": [
-     "coarse"
-    ],
-    "k4": [
-     "fine"
-    ]
-   }
-  },
-  {
-   "id": 7,
-   "type": "shape",
-   "x": 280,
-   "y": 414,
-   "params": {
-    "drive": 3,
-    "mode": 0,
-    "level": 0.7,
-    "os": 0,
-    "sym": 0,
-    "stages": 1
-   },
-   "att": [
-    1,
-    1
-   ],
-   "map": {
-    "p1": [
-     "drive"
-    ],
-    "p2": [
-     "mode"
-    ],
-    "k1": [
-     "drive"
-    ],
-    "k2": [
-     "mode"
-    ],
-    "k3": [
-     "level"
-    ],
-    "k4": [
-     "os"
-    ]
-   }
-  },
-  {
-   "id": 8,
-   "type": "lpg",
-   "x": 440,
-   "y": 414,
-   "params": {
-    "mode": 0,
-    "decay": 0.35,
+    "mode": 2,
+    "decay": 0.02,
     "offset": 0,
-    "level": 1
+    "level": 0.8
    },
    "att": [
     1,
@@ -264,14 +178,125 @@
    }
   },
   {
-   "id": 9,
-   "type": "reverb",
-   "x": 600,
+   "id": 7,
+   "type": "modal",
+   "x": 200,
    "y": 414,
    "params": {
-    "size": 0.6,
-    "damp": 0.4,
-    "mix": 0.3,
+    "coarse": 0,
+    "decay": 2.4,
+    "struct": 0.35,
+    "bright": 0.6,
+    "damp": 0.3
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "coarse"
+    ],
+    "p2": [
+     "decay"
+    ],
+    "k1": [
+     "coarse"
+    ],
+    "k2": [
+     "decay"
+    ],
+    "k3": [
+     "struct"
+    ],
+    "k4": [
+     "bright"
+    ]
+   }
+  },
+  {
+   "id": 8,
+   "type": "filter",
+   "x": 360,
+   "y": 414,
+   "params": {
+    "cutoff": 900,
+    "res": 0.1,
+    "cvamt": 1,
+    "track": 0,
+    "morph": 0,
+    "osc": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "cutoff"
+    ],
+    "p2": [
+     "res"
+    ],
+    "k1": [
+     "cutoff"
+    ],
+    "k2": [
+     "res"
+    ],
+    "k3": [
+     "cvamt"
+    ],
+    "k4": [
+     "track"
+    ]
+   }
+  },
+  {
+   "id": 9,
+   "type": "mixer",
+   "x": 560,
+   "y": 414,
+   "params": {
+    "l1": 0.9,
+    "l2": 0.12,
+    "l3": 0.7,
+    "l4": 0.7
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "l1"
+    ],
+    "p2": [
+     "l2"
+    ],
+    "k1": [
+     "l1"
+    ],
+    "k2": [
+     "l2"
+    ],
+    "k3": [
+     "l3"
+    ],
+    "k4": [
+     "l4"
+    ]
+   }
+  },
+  {
+   "id": 10,
+   "type": "reverb",
+   "x": 40,
+   "y": 828,
+   "params": {
+    "size": 0.8,
+    "damp": 0.3,
+    "mix": 0.45,
     "pre": 0,
     "mod": 0.3,
     "freeze": 0,
@@ -316,67 +341,97 @@
   },
   {
    "from": {
-    "module": 3,
+    "module": 5,
     "port": "out"
-   },
-   "to": {
-    "module": 5,
-    "port": "clock"
-   }
-  },
-  {
-   "from": {
-    "module": 5,
-    "port": "pitch"
    },
    "to": {
     "module": 6,
-    "port": "pitch"
-   }
-  },
-  {
-   "from": {
-    "module": 6,
-    "port": "out"
-   },
-   "to": {
-    "module": 7,
-    "port": "in"
-   }
-  },
-  {
-   "from": {
-    "module": 7,
-    "port": "out"
-   },
-   "to": {
-    "module": 8,
     "port": "in"
    }
   },
   {
    "from": {
     "module": 4,
-    "port": "trig"
+    "port": "gate"
    },
    "to": {
-    "module": 8,
+    "module": 6,
     "port": "strike"
    }
   },
   {
    "from": {
-    "module": 8,
+    "module": 6,
     "port": "out"
    },
    "to": {
-    "module": 9,
+    "module": 7,
     "port": "in"
    }
   },
   {
    "from": {
+    "module": 4,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 7,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 7,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 5,
+    "port": "out"
+   },
+   "to": {
+    "module": 8,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 7,
+    "port": "out"
+   },
+   "to": {
     "module": 9,
+    "port": "in1"
+   }
+  },
+  {
+   "from": {
+    "module": 8,
+    "port": "lp24"
+   },
+   "to": {
+    "module": 9,
+    "port": "in2"
+   }
+  },
+  {
+   "from": {
+    "module": 9,
+    "port": "out"
+   },
+   "to": {
+    "module": 10,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 10,
     "port": "out"
    },
    "to": {
@@ -386,7 +441,7 @@
   },
   {
    "from": {
-    "module": 9,
+    "module": 10,
     "port": "out"
    },
    "to": {
@@ -395,5 +450,5 @@
    }
   }
  ],
- "notes": "Plays itself after ENCENDER: a Turing machine picks notes, a Euclidean rhythm strikes a low pass gate."
+ "notes": "Gotas sobre una barra: Marbles dispara notas sueltas en Mi menor pentatónica a un resonador, sobre una lluvia suave. Suena solo."
 }

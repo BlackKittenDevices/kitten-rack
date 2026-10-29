@@ -42,10 +42,10 @@ import { resolve } from 'node:path';
 import { validatePatch } from '../patch';
 import { encodePatch } from '../patchbin';
 
-/** the demo patches (scripts/rack-demos.ts) load, are written in format 49 and make sound (a held key for the drone) */
-it.each(readdirSync(resolve(__dirname, 'demos')))('demo %s plays', (file) => {
-  const p = validatePatch(JSON.parse(readFileSync(resolve(__dirname, 'demos', file), 'utf8')), DEFS);
-  expect(encodePatch(p)[1]).toBe(49);
+/** the factory bank (scripts/rack-factory.ts) loads, fits the FM-1 and makes sound (a held key for the ones played from the keys) */
+it.each(readdirSync(resolve(__dirname, 'factory')))('factory %s plays', (file) => {
+  const p = validatePatch(JSON.parse(readFileSync(resolve(__dirname, 'factory', file), 'utf8')), DEFS);
+  expect(encodePatch(p)[1]).toBeGreaterThanOrEqual(46);
   const e = new Engine(44118);
   e.load(p);
   e.noteOn(48, 0.8);

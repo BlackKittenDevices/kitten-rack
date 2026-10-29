@@ -1,6 +1,6 @@
 {
  "version": 2,
- "name": "muug tape",
+ "name": "lorenz drone",
  "modules": [
   {
    "id": 1,
@@ -14,8 +14,6 @@
    "panel": {
     "kinds": {
      "fx": "nothing",
-     "scl": "nothing",
-     "env": "nothing",
      "lfo": "nothing",
      "edit": "nothing",
      "arp": "nothing"
@@ -25,29 +23,20 @@
   {
    "id": 2,
    "type": "output",
-   "x": 240,
+   "x": 40,
    "y": 828,
    "params": {
-    "level": 0.45
+    "level": 0.97
    }
   },
   {
    "id": 3,
-   "type": "osc",
+   "type": "chaos",
    "x": 240,
    "y": 0,
    "params": {
-    "wave": 2,
-    "pw": 0.5,
-    "coarse": -12,
-    "fine": 0,
-    "pm": 0,
-    "level": 0.7,
-    "fb": 0,
-    "unison": 1,
-    "detune": 10,
-    "blend": 0.5,
-    "stack": 0
+    "speed": 0.3,
+    "rho": 30
    },
    "att": [
     1,
@@ -55,35 +44,31 @@
    ],
    "map": {
     "p1": [
-     "wave"
+     "speed"
     ],
     "p2": [
-     "pw"
+     "rho"
     ],
     "k1": [
-     "wave"
+     "speed"
     ],
     "k2": [
-     "pw"
+     "rho"
     ],
-    "k3": [
-     "coarse"
-    ],
-    "k4": [
-     "fine"
-    ]
+    "k3": [],
+    "k4": []
    }
   },
   {
    "id": 4,
    "type": "osc",
-   "x": 480,
+   "x": 360,
    "y": 0,
    "params": {
     "wave": 2,
     "pw": 0.5,
     "coarse": -12,
-    "fine": 7,
+    "fine": 0,
     "pm": 0,
     "level": 0.6,
     "fb": 0,
@@ -119,12 +104,55 @@
   },
   {
    "id": 5,
-   "type": "mixer",
-   "x": 720,
+   "type": "osc",
+   "x": 600,
    "y": 0,
    "params": {
-    "l1": 0.7,
-    "l2": 0.7,
+    "wave": 3,
+    "pw": 0.5,
+    "coarse": -12,
+    "fine": 9,
+    "pm": 0,
+    "level": 0.5,
+    "fb": 0,
+    "unison": 1,
+    "detune": 10,
+    "blend": 0.5,
+    "stack": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "pw"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "pw"
+    ],
+    "k3": [
+     "coarse"
+    ],
+    "k4": [
+     "fine"
+    ]
+   }
+  },
+  {
+   "id": 6,
+   "type": "mixer",
+   "x": 40,
+   "y": 414,
+   "params": {
+    "l1": 0.8,
+    "l2": 0.8,
     "l3": 0.7,
     "l4": 0.7
    },
@@ -154,16 +182,16 @@
    }
   },
   {
-   "id": 6,
-   "type": "muug",
-   "x": 40,
+   "id": 7,
+   "type": "ladder",
+   "x": 200,
    "y": 414,
    "params": {
-    "cutoff": -1.5,
-    "emph": 6.5,
-    "drive": 1.6,
-    "cvamt": 3,
-    "track": 1
+    "cutoff": 600,
+    "res": 0.55,
+    "drive": 1,
+    "cvamt": 2,
+    "track": 0
    },
    "att": [
     1,
@@ -174,13 +202,13 @@
      "cutoff"
     ],
     "p2": [
-     "emph"
+     "res"
     ],
     "k1": [
      "cutoff"
     ],
     "k2": [
-     "emph"
+     "res"
     ],
     "k3": [
      "drive"
@@ -191,53 +219,13 @@
    }
   },
   {
-   "id": 7,
-   "type": "adsr",
-   "x": 200,
-   "y": 414,
-   "params": {
-    "a": 0.005,
-    "d": 0.35,
-    "s": 0.2,
-    "r": 0.3,
-    "long": 0
-   },
-   "att": [
-    1,
-    1
-   ],
-   "map": {
-    "p1": [
-     "a"
-    ],
-    "p2": [
-     "d"
-    ],
-    "k1": [
-     "a"
-    ],
-    "k2": [
-     "d"
-    ],
-    "k3": [
-     "s"
-    ],
-    "k4": [
-     "r"
-    ]
-   }
-  },
-  {
    "id": 8,
-   "type": "adsr",
+   "type": "ring",
    "x": 360,
    "y": 414,
    "params": {
-    "a": 0.004,
-    "d": 0.6,
-    "s": 0.6,
-    "r": 0.25,
-    "long": 0
+    "mode": 1,
+    "level": 1
    },
    "att": [
     1,
@@ -245,64 +233,31 @@
    ],
    "map": {
     "p1": [
-     "a"
+     "mode"
     ],
     "p2": [
-     "d"
+     "level"
     ],
     "k1": [
-     "a"
+     "mode"
     ],
     "k2": [
-     "d"
+     "level"
     ],
-    "k3": [
-     "s"
-    ],
-    "k4": [
-     "r"
-    ]
-   }
-  },
-  {
-   "id": 9,
-   "type": "vca",
-   "x": 520,
-   "y": 414,
-   "params": {
-    "gain": 1
-   },
-   "att": [
-    1,
-    1
-   ],
-   "map": {
-    "p1": [
-     "gain"
-    ],
-    "p2": [],
-    "k1": [
-     "gain"
-    ],
-    "k2": [],
     "k3": [],
     "k4": []
    }
   },
   {
-   "id": 10,
-   "type": "delay",
-   "x": 600,
+   "id": 9,
+   "type": "func",
+   "x": 480,
    "y": 414,
    "params": {
-    "time": 330,
-    "fb": 0.55,
-    "mix": 0.3,
-    "sync": 0,
-    "pingpong": 0,
-    "note": 0,
-    "swell": 0,
-    "tape": 0.7
+    "rise": 2,
+    "fall": 3,
+    "shape": 0.4,
+    "cycle": 1
    },
    "att": [
     1,
@@ -310,38 +265,38 @@
    ],
    "map": {
     "p1": [
-     "time"
+     "rise"
     ],
     "p2": [
-     "fb"
+     "fall"
     ],
     "k1": [
-     "time"
+     "rise"
     ],
     "k2": [
-     "fb"
+     "fall"
     ],
     "k3": [
-     "mix"
+     "shape"
     ],
     "k4": [
-     "sync"
+     "cycle"
     ]
    }
   },
   {
-   "id": 11,
+   "id": 10,
    "type": "reverb",
-   "x": 40,
-   "y": 828,
+   "x": 640,
+   "y": 414,
    "params": {
-    "size": 0.45,
-    "damp": 0.2,
-    "mix": 0.25,
+    "size": 0.85,
+    "damp": 0.4,
+    "mix": 0.45,
     "pre": 0,
     "mod": 0.3,
     "freeze": 0,
-    "spring": 1
+    "spring": 0
    },
    "att": [
     1,
@@ -376,16 +331,6 @@
     "port": "pitch"
    },
    "to": {
-    "module": 3,
-    "port": "pitch"
-   }
-  },
-  {
-   "from": {
-    "module": 1,
-    "port": "pitch"
-   },
-   "to": {
     "module": 4,
     "port": "pitch"
    }
@@ -393,86 +338,76 @@
   {
    "from": {
     "module": 1,
-    "port": "gate"
-   },
-   "to": {
-    "module": 7,
-    "port": "gate"
-   }
-  },
-  {
-   "from": {
-    "module": 1,
-    "port": "gate"
-   },
-   "to": {
-    "module": 8,
-    "port": "gate"
-   }
-  },
-  {
-   "from": {
-    "module": 3,
-    "port": "out"
+    "port": "pitch"
    },
    "to": {
     "module": 5,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "out"
+   },
+   "to": {
+    "module": 6,
     "port": "in1"
    }
   },
   {
    "from": {
-    "module": 4,
+    "module": 5,
     "port": "out"
    },
    "to": {
-    "module": 5,
+    "module": 6,
     "port": "in2"
    }
   },
   {
    "from": {
-    "module": 5,
+    "module": 6,
     "port": "out"
    },
    "to": {
-    "module": 6,
+    "module": 7,
     "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "x"
+   },
+   "to": {
+    "module": 7,
+    "port": "cv"
    }
   },
   {
    "from": {
     "module": 7,
-    "port": "env"
+    "port": "lp24"
    },
    "to": {
-    "module": 6,
-    "port": "cv"
+    "module": 8,
+    "port": "a"
    }
   },
   {
    "from": {
-    "module": 6,
+    "module": 9,
     "port": "out"
    },
    "to": {
-    "module": 9,
-    "port": "in"
+    "module": 8,
+    "port": "b"
    }
   },
   {
    "from": {
     "module": 8,
-    "port": "env"
-   },
-   "to": {
-    "module": 9,
-    "port": "cv"
-   }
-  },
-  {
-   "from": {
-    "module": 9,
     "port": "out"
    },
    "to": {
@@ -483,16 +418,6 @@
   {
    "from": {
     "module": 10,
-    "port": "out"
-   },
-   "to": {
-    "module": 11,
-    "port": "in"
-   }
-  },
-  {
-   "from": {
-    "module": 11,
     "port": "out"
    },
    "to": {
@@ -502,7 +427,7 @@
   },
   {
    "from": {
-    "module": 11,
+    "module": 10,
     "port": "out"
    },
    "to": {
@@ -511,5 +436,5 @@
    }
   }
  ],
- "notes": "Play it: two saws through the Muug ladder (an envelope opens it, the keyboard tracks it), a tape echo and a spring."
+ "notes": "Mantené una tecla: dos osciladores por un ladder que mueve el atractor de Lorenz, respirando con una función en ciclo."
 }

@@ -119,7 +119,7 @@ static void lcd_line_out(uint32_t x, uint32_t y, uint32_t w)   /* lcd.c's */
 }
 
 #include "../src/engine.c"
-#include "../src/presets.h"
+#include "presets_matryoshka.h"                /* (Matryoshka's factory patches: the tests' fixtures; the firmware ships KITTEN RACK's, src/presets.h) */
 /* the preset store (presetstore.c, #194) over 7 sectors of RAM flash (all 0xFF until host_ps_init) */
 static uint8_t host_ps_flash[7u * 0x1000u];
 static void fm1_wdt_feed(void) {}

@@ -87,7 +87,7 @@ describe('808 Kit (the FM-1 version)', () => {
     expect(rangeList(p).length).toBe(8);
     const bin = encodePatch(p);
     expect(bin[6] & 2).toBe(2);   // (the macro ranges section's flag)
-    const h = readFileSync(new URL('../../firmware/src/presets.h', import.meta.url), 'utf8');
+    const h = readFileSync(new URL('../../firmware/test/presets_matryoshka.h', import.meta.url), 'utf8');
     const shipped = [...h.matchAll(/static const uint8_t PRESET_\d+\[\d+\] = \{([^}]*)\}/g)].map((m) => m[1].split(',').map(Number));
     expect(shipped.some((b) => b.length === bin.length && b.every((x, i) => x === bin[i]))).toBe(true);
   });

@@ -1,0 +1,382 @@
+{
+ "version": 2,
+ "name": "marbles pluck",
+ "modules": [
+  {
+   "id": 1,
+   "type": "fm1",
+   "x": 40,
+   "y": 0,
+   "params": {
+    "morph": 0,
+    "tempo": 120
+   },
+   "panel": {
+    "kinds": {
+     "fx": "nothing",
+     "lfo": "nothing",
+     "edit": "nothing",
+     "arp": "nothing"
+    }
+   }
+  },
+  {
+   "id": 2,
+   "type": "output",
+   "x": 720,
+   "y": 414,
+   "params": {
+    "level": 0.78
+   }
+  },
+  {
+   "id": 3,
+   "type": "lfo",
+   "x": 240,
+   "y": 0,
+   "params": {
+    "wave": 3,
+    "rate": 5,
+    "depth": 1,
+    "sync": 0,
+    "div": 6,
+    "bpm": 120,
+    "phase": 0,
+    "range": 0,
+    "dir": 0,
+    "mult": 3,
+    "wide": 4
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "rate"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "rate"
+    ],
+    "k3": [
+     "depth"
+    ],
+    "k4": [
+     "sync"
+    ]
+   }
+  },
+  {
+   "id": 4,
+   "type": "bern",
+   "x": 480,
+   "y": 0,
+   "params": {
+    "prob": 0.35,
+    "mode": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "prob"
+    ],
+    "p2": [
+     "mode"
+    ],
+    "k1": [
+     "prob"
+    ],
+    "k2": [
+     "mode"
+    ],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 5,
+   "type": "marbles",
+   "x": 600,
+   "y": 0,
+   "params": {
+    "spread": 0.7,
+    "dejavu": 0.7,
+    "length": 6,
+    "density": 0.85,
+    "range": 1,
+    "scale": 1,
+    "root": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "spread"
+    ],
+    "p2": [
+     "dejavu"
+    ],
+    "k1": [
+     "spread"
+    ],
+    "k2": [
+     "dejavu"
+    ],
+    "k3": [
+     "length"
+    ],
+    "k4": [
+     "density"
+    ]
+   }
+  },
+  {
+   "id": 6,
+   "type": "osc",
+   "x": 40,
+   "y": 414,
+   "params": {
+    "wave": 2,
+    "pw": 0.5,
+    "coarse": 0,
+    "fine": 0,
+    "pm": 0,
+    "level": 0.8,
+    "fb": 0,
+    "unison": 1,
+    "detune": 10,
+    "blend": 0.5,
+    "stack": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "pw"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "pw"
+    ],
+    "k3": [
+     "coarse"
+    ],
+    "k4": [
+     "fine"
+    ]
+   }
+  },
+  {
+   "id": 7,
+   "type": "func",
+   "x": 280,
+   "y": 414,
+   "params": {
+    "rise": 0.003,
+    "fall": 0.25,
+    "shape": 0.7,
+    "cycle": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "rise"
+    ],
+    "p2": [
+     "fall"
+    ],
+    "k1": [
+     "rise"
+    ],
+    "k2": [
+     "fall"
+    ],
+    "k3": [
+     "shape"
+    ],
+    "k4": [
+     "cycle"
+    ]
+   }
+  },
+  {
+   "id": 8,
+   "type": "vca",
+   "x": 440,
+   "y": 414,
+   "params": {
+    "gain": 1
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "gain"
+    ],
+    "p2": [],
+    "k1": [
+     "gain"
+    ],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 9,
+   "type": "delay",
+   "x": 520,
+   "y": 414,
+   "params": {
+    "time": 300,
+    "fb": 0.4,
+    "mix": 0.3,
+    "sync": 0,
+    "pingpong": 0,
+    "note": 0,
+    "swell": 0,
+    "tape": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "time"
+    ],
+    "p2": [
+     "fb"
+    ],
+    "k1": [
+     "time"
+    ],
+    "k2": [
+     "fb"
+    ],
+    "k3": [
+     "mix"
+    ],
+    "k4": [
+     "sync"
+    ]
+   }
+  }
+ ],
+ "cables": [
+  {
+   "from": {
+    "module": 3,
+    "port": "out"
+   },
+   "to": {
+    "module": 4,
+    "port": "trig"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "a"
+   },
+   "to": {
+    "module": 5,
+    "port": "clock"
+   }
+  },
+  {
+   "from": {
+    "module": 5,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 6,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 5,
+    "port": "gate"
+   },
+   "to": {
+    "module": 7,
+    "port": "trig"
+   }
+  },
+  {
+   "from": {
+    "module": 6,
+    "port": "out"
+   },
+   "to": {
+    "module": 8,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 7,
+    "port": "out"
+   },
+   "to": {
+    "module": 8,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 8,
+    "port": "out"
+   },
+   "to": {
+    "module": 9,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 9,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "l"
+   }
+  },
+  {
+   "from": {
+    "module": 9,
+    "port": "r"
+   },
+   "to": {
+    "module": 2,
+    "port": "r"
+   }
+  }
+ ],
+ "notes": "Suena solo: Bernoulli ralea el reloj, Marbles elige notas que se repiten a medias, una Función pulsa el VCA."
+}

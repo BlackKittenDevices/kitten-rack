@@ -1,0 +1,662 @@
+{
+ "version": 2,
+ "name": "berlin seq",
+ "modules": [
+  {
+   "id": 1,
+   "type": "fm1",
+   "x": 40,
+   "y": 0,
+   "params": {
+    "morph": 0,
+    "tempo": 120
+   },
+   "panel": {
+    "kinds": {
+     "fx": "nothing",
+     "lfo": "nothing",
+     "edit": "nothing",
+     "arp": "nothing"
+    }
+   }
+  },
+  {
+   "id": 2,
+   "type": "output",
+   "x": 240,
+   "y": 1242,
+   "params": {
+    "level": 0.84
+   }
+  },
+  {
+   "id": 3,
+   "type": "lfo",
+   "x": 240,
+   "y": 0,
+   "params": {
+    "wave": 3,
+    "rate": 7.2,
+    "depth": 1,
+    "sync": 0,
+    "div": 6,
+    "bpm": 120,
+    "phase": 0,
+    "range": 0,
+    "dir": 0,
+    "mult": 3,
+    "wide": 4
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "rate"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "rate"
+    ],
+    "k3": [
+     "depth"
+    ],
+    "k4": [
+     "sync"
+    ]
+   }
+  },
+  {
+   "id": 4,
+   "type": "seq",
+   "x": 480,
+   "y": 0,
+   "params": {
+    "s1": 0,
+    "s2": 0,
+    "s3": 0.25,
+    "s4": 0,
+    "s5": 0.5833,
+    "s6": 0.4167,
+    "s7": 0.8333,
+    "s8": 0.5833,
+    "len": 8,
+    "dir": 0,
+    "glide": 0,
+    "gate": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "s1"
+    ],
+    "p2": [
+     "s2"
+    ],
+    "k1": [
+     "s1"
+    ],
+    "k2": [
+     "s2"
+    ],
+    "k3": [
+     "s3"
+    ],
+    "k4": [
+     "s4"
+    ]
+   }
+  },
+  {
+   "id": 5,
+   "type": "quant",
+   "x": 720,
+   "y": 0,
+   "params": {
+    "scale": 2,
+    "root": 9
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "scale"
+    ],
+    "p2": [
+     "root"
+    ],
+    "k1": [
+     "scale"
+    ],
+    "k2": [
+     "root"
+    ],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 6,
+   "type": "osc",
+   "x": 40,
+   "y": 414,
+   "params": {
+    "wave": 2,
+    "pw": 0.5,
+    "coarse": -15,
+    "fine": 0,
+    "pm": 0,
+    "level": 0.75,
+    "fb": 0,
+    "unison": 1,
+    "detune": 10,
+    "blend": 0.5,
+    "stack": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "pw"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "pw"
+    ],
+    "k3": [
+     "coarse"
+    ],
+    "k4": [
+     "fine"
+    ]
+   }
+  },
+  {
+   "id": 7,
+   "type": "osc",
+   "x": 280,
+   "y": 414,
+   "params": {
+    "wave": 3,
+    "pw": 0.4,
+    "coarse": -27,
+    "fine": 6,
+    "pm": 0,
+    "level": 0.5,
+    "fb": 0,
+    "unison": 1,
+    "detune": 10,
+    "blend": 0.5,
+    "stack": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "pw"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "pw"
+    ],
+    "k3": [
+     "coarse"
+    ],
+    "k4": [
+     "fine"
+    ]
+   }
+  },
+  {
+   "id": 8,
+   "type": "mixer",
+   "x": 520,
+   "y": 414,
+   "params": {
+    "l1": 0.75,
+    "l2": 0.6,
+    "l3": 0.7,
+    "l4": 0.7
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "l1"
+    ],
+    "p2": [
+     "l2"
+    ],
+    "k1": [
+     "l1"
+    ],
+    "k2": [
+     "l2"
+    ],
+    "k3": [
+     "l3"
+    ],
+    "k4": [
+     "l4"
+    ]
+   }
+  },
+  {
+   "id": 9,
+   "type": "lfo",
+   "x": 40,
+   "y": 828,
+   "params": {
+    "wave": 1,
+    "rate": 0.045,
+    "depth": 1,
+    "sync": 0,
+    "div": 6,
+    "bpm": 120,
+    "phase": 0,
+    "range": 0,
+    "dir": 0,
+    "mult": 3,
+    "wide": 4
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "rate"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "rate"
+    ],
+    "k3": [
+     "depth"
+    ],
+    "k4": [
+     "sync"
+    ]
+   }
+  },
+  {
+   "id": 10,
+   "type": "muug",
+   "x": 280,
+   "y": 828,
+   "params": {
+    "cutoff": -1.6,
+    "emph": 7,
+    "drive": 1.8,
+    "cvamt": 2.6,
+    "track": 0
+   },
+   "att": [
+    0.35,
+    1
+   ],
+   "map": {
+    "p1": [
+     "cutoff"
+    ],
+    "p2": [],
+    "k1": [],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 11,
+   "type": "func",
+   "x": 440,
+   "y": 828,
+   "params": {
+    "rise": 0.002,
+    "fall": 0.18,
+    "shape": 0.6,
+    "cycle": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "rise"
+    ],
+    "p2": [
+     "fall"
+    ],
+    "k1": [
+     "rise"
+    ],
+    "k2": [
+     "fall"
+    ],
+    "k3": [
+     "shape"
+    ],
+    "k4": [
+     "cycle"
+    ]
+   }
+  },
+  {
+   "id": 12,
+   "type": "vca",
+   "x": 600,
+   "y": 828,
+   "params": {
+    "gain": 1.4
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "gain"
+    ],
+    "p2": [],
+    "k1": [
+     "gain"
+    ],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 13,
+   "type": "func",
+   "x": 680,
+   "y": 828,
+   "params": {
+    "rise": 0.002,
+    "fall": 0.25,
+    "shape": 0.3,
+    "cycle": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "rise"
+    ],
+    "p2": [
+     "fall"
+    ],
+    "k1": [
+     "rise"
+    ],
+    "k2": [
+     "fall"
+    ],
+    "k3": [
+     "shape"
+    ],
+    "k4": [
+     "cycle"
+    ]
+   }
+  },
+  {
+   "id": 14,
+   "type": "delay",
+   "x": 40,
+   "y": 1242,
+   "params": {
+    "time": 250,
+    "fb": 0.5,
+    "mix": 0.3,
+    "sync": 0,
+    "pingpong": 0,
+    "note": 0,
+    "swell": 0,
+    "tape": 0.4
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "time"
+    ],
+    "p2": [
+     "fb"
+    ],
+    "k1": [
+     "time"
+    ],
+    "k2": [
+     "fb"
+    ],
+    "k3": [
+     "mix"
+    ],
+    "k4": [
+     "sync"
+    ]
+   }
+  }
+ ],
+ "cables": [
+  {
+   "from": {
+    "module": 3,
+    "port": "out"
+   },
+   "to": {
+    "module": 4,
+    "port": "clock"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "out"
+   },
+   "to": {
+    "module": 5,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 5,
+    "port": "out"
+   },
+   "to": {
+    "module": 6,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 5,
+    "port": "out"
+   },
+   "to": {
+    "module": 7,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 6,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 7,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 6,
+    "port": "out"
+   },
+   "to": {
+    "module": 8,
+    "port": "in1"
+   }
+  },
+  {
+   "from": {
+    "module": 7,
+    "port": "out"
+   },
+   "to": {
+    "module": 8,
+    "port": "in2"
+   }
+  },
+  {
+   "from": {
+    "module": 8,
+    "port": "out"
+   },
+   "to": {
+    "module": 10,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "out"
+   },
+   "to": {
+    "module": 11,
+    "port": "trig"
+   }
+  },
+  {
+   "from": {
+    "module": 11,
+    "port": "out"
+   },
+   "to": {
+    "module": 10,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 9,
+    "port": "out"
+   },
+   "to": {
+    "module": 10,
+    "port": "p1"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "out"
+   },
+   "to": {
+    "module": 13,
+    "port": "trig"
+   }
+  },
+  {
+   "from": {
+    "module": 10,
+    "port": "out"
+   },
+   "to": {
+    "module": 12,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 13,
+    "port": "out"
+   },
+   "to": {
+    "module": 12,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 12,
+    "port": "out"
+   },
+   "to": {
+    "module": 14,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 14,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "l"
+   }
+  },
+  {
+   "from": {
+    "module": 14,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "r"
+   }
+  }
+ ],
+ "notes": "Secuencia de 8 pasos en La menor, dos osciladores al Muug, el filtro respira lento, eco de cinta. Suena solo; una tecla transpone."
+}

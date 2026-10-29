@@ -1,6 +1,6 @@
 {
  "version": 2,
- "name": "lorenz drone",
+ "name": "maquina ruido",
  "modules": [
   {
    "id": 1,
@@ -14,8 +14,6 @@
    "panel": {
     "kinds": {
      "fx": "nothing",
-     "scl": "nothing",
-     "env": "nothing",
      "lfo": "nothing",
      "edit": "nothing",
      "arp": "nothing"
@@ -28,17 +26,17 @@
    "x": 40,
    "y": 828,
    "params": {
-    "level": 0.45
+    "level": 0.28
    }
   },
   {
    "id": 3,
-   "type": "chaos",
+   "type": "noise",
    "x": 240,
    "y": 0,
    "params": {
-    "speed": 0.3,
-    "rho": 30
+    "level": 0.8,
+    "color": 0
    },
    "att": [
     1,
@@ -46,16 +44,16 @@
    ],
    "map": {
     "p1": [
-     "speed"
+     "level"
     ],
     "p2": [
-     "rho"
+     "color"
     ],
     "k1": [
-     "speed"
+     "level"
     ],
     "k2": [
-     "rho"
+     "color"
     ],
     "k3": [],
     "k4": []
@@ -63,21 +61,21 @@
   },
   {
    "id": 4,
-   "type": "osc",
-   "x": 360,
+   "type": "lfo",
+   "x": 320,
    "y": 0,
    "params": {
-    "wave": 2,
-    "pw": 0.5,
-    "coarse": -12,
-    "fine": 0,
-    "pm": 0,
-    "level": 0.6,
-    "fb": 0,
-    "unison": 1,
-    "detune": 10,
-    "blend": 0.5,
-    "stack": 0
+    "wave": 3,
+    "rate": 3.2,
+    "depth": 1,
+    "sync": 0,
+    "div": 6,
+    "bpm": 120,
+    "phase": 0,
+    "range": 0,
+    "dir": 0,
+    "mult": 3,
+    "wide": 4
    },
    "att": [
     1,
@@ -88,39 +86,39 @@
      "wave"
     ],
     "p2": [
-     "pw"
+     "rate"
     ],
     "k1": [
      "wave"
     ],
     "k2": [
-     "pw"
+     "rate"
     ],
     "k3": [
-     "coarse"
+     "depth"
     ],
     "k4": [
-     "fine"
+     "sync"
     ]
    }
   },
   {
    "id": 5,
-   "type": "osc",
-   "x": 600,
+   "type": "lfo",
+   "x": 560,
    "y": 0,
    "params": {
     "wave": 3,
-    "pw": 0.5,
-    "coarse": -12,
-    "fine": 9,
-    "pm": 0,
-    "level": 0.5,
-    "fb": 0,
-    "unison": 1,
-    "detune": 10,
-    "blend": 0.5,
-    "stack": 0
+    "rate": 0.9,
+    "depth": 1,
+    "sync": 0,
+    "div": 6,
+    "bpm": 120,
+    "phase": 0,
+    "range": 0,
+    "dir": 0,
+    "mult": 3,
+    "wide": 4
    },
    "att": [
     1,
@@ -131,103 +129,30 @@
      "wave"
     ],
     "p2": [
-     "pw"
+     "rate"
     ],
     "k1": [
      "wave"
     ],
     "k2": [
-     "pw"
+     "rate"
     ],
     "k3": [
-     "coarse"
+     "depth"
     ],
     "k4": [
-     "fine"
+     "sync"
     ]
    }
   },
   {
    "id": 6,
-   "type": "mixer",
+   "type": "random",
    "x": 40,
    "y": 414,
    "params": {
-    "l1": 0.8,
-    "l2": 0.8,
-    "l3": 0.7,
-    "l4": 0.7
-   },
-   "att": [
-    1,
-    1
-   ],
-   "map": {
-    "p1": [
-     "l1"
-    ],
-    "p2": [
-     "l2"
-    ],
-    "k1": [
-     "l1"
-    ],
-    "k2": [
-     "l2"
-    ],
-    "k3": [
-     "l3"
-    ],
-    "k4": [
-     "l4"
-    ]
-   }
-  },
-  {
-   "id": 7,
-   "type": "ladder",
-   "x": 200,
-   "y": 414,
-   "params": {
-    "cutoff": 600,
-    "res": 0.55,
-    "drive": 1,
-    "cvamt": 2,
-    "track": 0
-   },
-   "att": [
-    1,
-    1
-   ],
-   "map": {
-    "p1": [
-     "cutoff"
-    ],
-    "p2": [
-     "res"
-    ],
-    "k1": [
-     "cutoff"
-    ],
-    "k2": [
-     "res"
-    ],
-    "k3": [
-     "drive"
-    ],
-    "k4": [
-     "cvamt"
-    ]
-   }
-  },
-  {
-   "id": 8,
-   "type": "ring",
-   "x": 360,
-   "y": 414,
-   "params": {
-    "mode": 1,
-    "level": 1
+    "mode": 0,
+    "rate": 1.5
    },
    "att": [
     1,
@@ -238,28 +163,28 @@
      "mode"
     ],
     "p2": [
-     "level"
+     "rate"
     ],
     "k1": [
      "mode"
     ],
     "k2": [
-     "level"
+     "rate"
     ],
     "k3": [],
     "k4": []
    }
   },
   {
-   "id": 9,
-   "type": "func",
-   "x": 480,
+   "id": 7,
+   "type": "comb",
+   "x": 160,
    "y": 414,
    "params": {
-    "rise": 2,
-    "fall": 3,
-    "shape": 0.4,
-    "cycle": 1
+    "coarse": -12,
+    "fb": 0.92,
+    "damp": 0.15,
+    "mix": 1
    },
    "att": [
     1,
@@ -267,38 +192,103 @@
    ],
    "map": {
     "p1": [
-     "rise"
+     "coarse"
     ],
     "p2": [
-     "fall"
+     "fb"
     ],
     "k1": [
-     "rise"
+     "coarse"
     ],
     "k2": [
-     "fall"
+     "fb"
     ],
     "k3": [
-     "shape"
+     "damp"
     ],
     "k4": [
-     "cycle"
+     "mix"
+    ]
+   }
+  },
+  {
+   "id": 8,
+   "type": "crush",
+   "x": 320,
+   "y": 414,
+   "params": {
+    "bits": 5,
+    "rate": 10,
+    "os": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "bits"
+    ],
+    "p2": [
+     "rate"
+    ],
+    "k1": [
+     "bits"
+    ],
+    "k2": [
+     "rate"
+    ],
+    "k3": [
+     "os"
+    ],
+    "k4": []
+   }
+  },
+  {
+   "id": 9,
+   "type": "shape",
+   "x": 440,
+   "y": 414,
+   "params": {
+    "drive": 3,
+    "mode": 1,
+    "level": 0.6,
+    "os": 0,
+    "sym": 0,
+    "stages": 1
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "drive"
+    ],
+    "p2": [
+     "mode"
+    ],
+    "k1": [
+     "drive"
+    ],
+    "k2": [
+     "mode"
+    ],
+    "k3": [
+     "level"
+    ],
+    "k4": [
+     "os"
     ]
    }
   },
   {
    "id": 10,
-   "type": "reverb",
-   "x": 640,
+   "type": "vca",
+   "x": 600,
    "y": 414,
    "params": {
-    "size": 0.85,
-    "damp": 0.4,
-    "mix": 0.45,
-    "pre": 0,
-    "mod": 0.3,
-    "freeze": 0,
-    "spring": 0
+    "gain": 1
    },
    "att": [
     1,
@@ -306,22 +296,54 @@
    ],
    "map": {
     "p1": [
-     "size"
+     "gain"
+    ],
+    "p2": [],
+    "k1": [
+     "gain"
+    ],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 11,
+   "type": "delay",
+   "x": 680,
+   "y": 414,
+   "params": {
+    "time": 140,
+    "fb": 0.6,
+    "mix": 0.3,
+    "sync": 0,
+    "pingpong": 0,
+    "note": 0,
+    "swell": 0,
+    "tape": 0.85
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "time"
     ],
     "p2": [
-     "damp"
+     "fb"
     ],
     "k1": [
-     "size"
+     "time"
     ],
     "k2": [
-     "damp"
+     "fb"
     ],
     "k3": [
      "mix"
     ],
     "k4": [
-     "pre"
+     "sync"
     ]
    }
   }
@@ -329,47 +351,27 @@
  "cables": [
   {
    "from": {
-    "module": 1,
-    "port": "pitch"
-   },
-   "to": {
-    "module": 4,
-    "port": "pitch"
-   }
-  },
-  {
-   "from": {
-    "module": 1,
-    "port": "pitch"
-   },
-   "to": {
-    "module": 5,
-    "port": "pitch"
-   }
-  },
-  {
-   "from": {
     "module": 4,
     "port": "out"
    },
    "to": {
     "module": 6,
-    "port": "in1"
+    "port": "clock"
    }
   },
   {
    "from": {
-    "module": 5,
-    "port": "out"
+    "module": 6,
+    "port": "held"
    },
    "to": {
-    "module": 6,
-    "port": "in2"
+    "module": 7,
+    "port": "pitch"
    }
   },
   {
    "from": {
-    "module": 6,
+    "module": 3,
     "port": "out"
    },
    "to": {
@@ -379,22 +381,22 @@
   },
   {
    "from": {
-    "module": 3,
-    "port": "x"
+    "module": 7,
+    "port": "out"
    },
    "to": {
-    "module": 7,
-    "port": "cv"
+    "module": 8,
+    "port": "in"
    }
   },
   {
    "from": {
-    "module": 7,
-    "port": "lp24"
+    "module": 8,
+    "port": "out"
    },
    "to": {
-    "module": 8,
-    "port": "a"
+    "module": 9,
+    "port": "in"
    }
   },
   {
@@ -403,23 +405,33 @@
     "port": "out"
    },
    "to": {
-    "module": 8,
-    "port": "b"
-   }
-  },
-  {
-   "from": {
-    "module": 8,
-    "port": "out"
-   },
-   "to": {
     "module": 10,
     "port": "in"
    }
   },
   {
    "from": {
+    "module": 5,
+    "port": "out"
+   },
+   "to": {
     "module": 10,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 10,
+    "port": "out"
+   },
+   "to": {
+    "module": 11,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 11,
     "port": "out"
    },
    "to": {
@@ -429,7 +441,7 @@
   },
   {
    "from": {
-    "module": 10,
+    "module": 11,
     "port": "out"
    },
    "to": {
@@ -438,5 +450,5 @@
    }
   }
  ],
- "notes": "Hold a key: two oscillators through a ladder that the Lorenz attractor moves, breathing with a cycling function."
+ "notes": "Máquina de ruido: ruido en un comb cuyo tono salta al azar, bitcrush, recorte, cortado por una cuadrada, eco de cinta gastada. Suena solo."
 }

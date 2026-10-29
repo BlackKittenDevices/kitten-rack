@@ -28,6 +28,7 @@ on:
       - web/src/modules.ts
       - web/src/muugTables.ts
       - web/src/rack/catalog.ts
+      - web/src/rack/factory/**
       - web/src/parameter-routing.ts
       - web/src/patch.ts
       - web/src/patchbin.ts
@@ -115,7 +116,7 @@ jobs:
         working-directory: web
         run: |
           npm run export-defs
-          git diff --exit-code ../firmware/src/defs.h ../firmware/src/presets.h || { echo "::error::defs.h / presets.h are stale: run 'npm run export-defs' and commit"; exit 1; }
+          git diff --exit-code ../firmware/src/defs.h ../firmware/src/presets.h ../firmware/test/presets_matryoshka.h || { echo "::error::defs.h / presets.h are stale: run 'npm run export-defs' and commit"; exit 1; }
       - name: build the firmware, no warnings, pool headroom >= 8 KB
         run: |
           export JIELI_TOOLCHAIN="$HOME/.jieli/toolchain" AC79_SDK="$HOME/.jieli/ac79-sdk"
@@ -132,6 +133,7 @@ jobs:
           tools/panel_test.sh
           tools/preset_test.sh
           tools/patch_edit_test.sh
+          tools/bank_test.sh
           tools/ui_preview.sh build/ui-preview.png 0 1
       - uses: actions/upload-artifact@v4
         with:

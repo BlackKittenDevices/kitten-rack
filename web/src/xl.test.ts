@@ -74,7 +74,7 @@ describe('XLs', () => {
     for (const name of fm1) expect(isXl(name)).toBe(false);
     expect(Object.keys(PRESETS).filter((n) => !isXl(n))).toEqual(fm1);
     // presets.h (export-defs) holds the FM-1's factory patches only
-    const h = readFileSync(new URL('../../firmware/src/presets.h', import.meta.url), 'utf8');
+    const h = readFileSync(new URL('../../firmware/test/presets_matryoshka.h', import.meta.url), 'utf8');
     expect(Number(/#define N_PRESETS (\d+)/.exec(h)![1])).toBe(fm1.length);
     for (const name of xls) expect(h).not.toContain(`"${name.toUpperCase()}"`);
   });

@@ -1,0 +1,318 @@
+{
+ "version": 2,
+ "name": "drone muug",
+ "modules": [
+  {
+   "id": 1,
+   "type": "fm1",
+   "x": 40,
+   "y": 0,
+   "params": {
+    "morph": 0,
+    "tempo": 120
+   },
+   "panel": {
+    "kinds": {
+     "fx": "nothing",
+     "lfo": "nothing",
+     "edit": "nothing",
+     "arp": "nothing"
+    }
+   }
+  },
+  {
+   "id": 2,
+   "type": "output",
+   "x": 640,
+   "y": 414,
+   "params": {
+    "level": 0.98
+   }
+  },
+  {
+   "id": 3,
+   "type": "muug",
+   "x": 240,
+   "y": 0,
+   "params": {
+    "cutoff": -2.1,
+    "emph": 9.2,
+    "drive": 1,
+    "cvamt": 1,
+    "track": 1
+   },
+   "att": [
+    0.06,
+    1
+   ],
+   "map": {
+    "p1": [
+     "cutoff"
+    ],
+    "p2": [],
+    "k1": [],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 4,
+   "type": "muug",
+   "x": 400,
+   "y": 0,
+   "params": {
+    "cutoff": -1.52,
+    "emph": 8.8,
+    "drive": 1,
+    "cvamt": 0.15,
+    "track": 1
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "cutoff"
+    ],
+    "p2": [
+     "emph"
+    ],
+    "k1": [
+     "cutoff"
+    ],
+    "k2": [
+     "emph"
+    ],
+    "k3": [
+     "drive"
+    ],
+    "k4": [
+     "cvamt"
+    ]
+   }
+  },
+  {
+   "id": 5,
+   "type": "chaos",
+   "x": 560,
+   "y": 0,
+   "params": {
+    "speed": 0.12,
+    "rho": 26
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "speed"
+    ],
+    "p2": [
+     "rho"
+    ],
+    "k1": [
+     "speed"
+    ],
+    "k2": [
+     "rho"
+    ],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 6,
+   "type": "lfo",
+   "x": 40,
+   "y": 414,
+   "params": {
+    "wave": 0,
+    "rate": 0.03,
+    "depth": 1,
+    "sync": 0,
+    "div": 6,
+    "bpm": 120,
+    "phase": 0,
+    "range": 0,
+    "dir": 0,
+    "mult": 3,
+    "wide": 4
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "rate"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "rate"
+    ],
+    "k3": [
+     "depth"
+    ],
+    "k4": [
+     "sync"
+    ]
+   }
+  },
+  {
+   "id": 7,
+   "type": "mixer",
+   "x": 280,
+   "y": 414,
+   "params": {
+    "l1": 0.7,
+    "l2": 0.6,
+    "l3": 0.7,
+    "l4": 0.7
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "l1"
+    ],
+    "p2": [
+     "l2"
+    ],
+    "k1": [
+     "l1"
+    ],
+    "k2": [
+     "l2"
+    ],
+    "k3": [
+     "l3"
+    ],
+    "k4": [
+     "l4"
+    ]
+   }
+  },
+  {
+   "id": 8,
+   "type": "reverb",
+   "x": 440,
+   "y": 414,
+   "params": {
+    "size": 0.85,
+    "damp": 0.4,
+    "mix": 0.5,
+    "pre": 0,
+    "mod": 0.3,
+    "freeze": 0,
+    "spring": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "size"
+    ],
+    "p2": [
+     "damp"
+    ],
+    "k1": [
+     "size"
+    ],
+    "k2": [
+     "damp"
+    ],
+    "k3": [
+     "mix"
+    ],
+    "k4": [
+     "pre"
+    ]
+   }
+  }
+ ],
+ "cables": [
+  {
+   "from": {
+    "module": 5,
+    "port": "y"
+   },
+   "to": {
+    "module": 3,
+    "port": "p1"
+   }
+  },
+  {
+   "from": {
+    "module": 6,
+    "port": "out"
+   },
+   "to": {
+    "module": 4,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "out"
+   },
+   "to": {
+    "module": 7,
+    "port": "in1"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "out"
+   },
+   "to": {
+    "module": 7,
+    "port": "in2"
+   }
+  },
+  {
+   "from": {
+    "module": 7,
+    "port": "out"
+   },
+   "to": {
+    "module": 8,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 8,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "l"
+   }
+  },
+  {
+   "from": {
+    "module": 8,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "r"
+   }
+  }
+ ],
+ "notes": "Dos Muug cantando solos (énfasis pasado 8), a una quinta y a la deriva; el teclado los mueve. Girá CORTE y ENFASIS."
+}

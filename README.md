@@ -57,7 +57,24 @@ Y dos modos nuevos en efectos que ya estaban:
 - **Delay, CINTA (0..1):** eco de cinta. La cabeza tiembla (wow lento y flutter rápido), cada vuelta pierde agudos y satura suave.
 - **Reverb, RESORTE (on/off):** tanque de resortes. Ecos separados, el "boing" de la dispersión y la banda recortada, fina y goteante.
 
-El editor trae cuatro patches de ejemplo en **Fábrica… › KITTEN RACK** (el nuevo, *muug tape*, junta el Muug, la cinta y el resorte).
+## Banco de fábrica
+
+24 patches propios, armados desde cero con módulos y cables (`web/scripts/rack-factory.ts`). Son los mismos en el editor (**Fábrica…**) y en los primeros 24 lugares del FM-1 (con FACTORY RESET). Los otros 40 lugares quedan libres para tus patches. El volumen de todos se igualó haciéndolos sonar en el motor.
+
+| | Teclado (los modulares de los 60) | | Suenan solos (generativos) | | Drones y ruido |
+| --- | --- | --- | --- | --- | --- |
+| 00 | INIT (con eco de cinta) | 08 | BONK WEST COAST | 18 | LORENZ DRONE |
+| 01 | MUUG TAPE | 09 | COMPUTADORA S&H | 19 | DRONE MUUG |
+| 02 | MUUG BAJO | 10 | BERLIN SEQ | 20 | NIEBLA GRANULAR |
+| 03 | LEAD 1969 | 11 | PERCUSION MOD | 21 | SHIFT ESPACIAL |
+| 04 | BRONCES 1971 | 12 | TURING MAQUINA | 22 | MAREA DE RUIDO |
+| 05 | THEREMIN | 13 | EUCLIDES | 23 | MAQUINA RUIDO |
+| 06 | CAMPANAS RING | 14 | MARBLES PLUCK | | |
+| 07 | BUCHLA TIMBRE | 15 | CAOS MELODICO | | |
+| | | 16 | GOTAS RESONADOR | | |
+| | | 17 | CUERDAS AZAR | | |
+
+Los que suenan solos arrancan al ENCENDER (tienen su propio reloj) y en casi todos una tecla transpone. Los patches de Matryoshka ya no están en el firmware: quedan solo como material de prueba de los tests (`firmware/test/presets_matryoshka.h`).
 
 ## Patchear en el FM-1
 
