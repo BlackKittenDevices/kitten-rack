@@ -1,0 +1,285 @@
+{
+ "version": 2,
+ "name": "cuerda infinita",
+ "modules": [
+  {
+   "id": 1,
+   "type": "fm1",
+   "x": 40,
+   "y": 0,
+   "params": {
+    "morph": 0,
+    "tempo": 120
+   },
+   "panel": {
+    "kinds": {
+     "fx": "nothing",
+     "lfo": "nothing",
+     "edit": "nothing",
+     "arp": "nothing"
+    }
+   }
+  },
+  {
+   "id": 2,
+   "type": "output",
+   "x": 240,
+   "y": 414,
+   "params": {
+    "level": 1
+   }
+  },
+  {
+   "id": 3,
+   "type": "string",
+   "x": 240,
+   "y": 0,
+   "params": {
+    "decay": 3,
+    "damp": 0.3,
+    "burst": 0,
+    "coarse": 0,
+    "level": 0.8
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "decay"
+    ],
+    "p2": [
+     "damp"
+    ],
+    "k1": [
+     "decay"
+    ],
+    "k2": [
+     "damp"
+    ],
+    "k3": [
+     "burst"
+    ],
+    "k4": [
+     "coarse"
+    ]
+   }
+  },
+  {
+   "id": 4,
+   "type": "string",
+   "x": 400,
+   "y": 0,
+   "params": {
+    "decay": 2.5,
+    "damp": 0.45,
+    "burst": 0,
+    "coarse": 12,
+    "level": 0.35
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "decay"
+    ],
+    "p2": [
+     "damp"
+    ],
+    "k1": [
+     "decay"
+    ],
+    "k2": [
+     "damp"
+    ],
+    "k3": [
+     "burst"
+    ],
+    "k4": [
+     "coarse"
+    ]
+   }
+  },
+  {
+   "id": 5,
+   "type": "mixer",
+   "x": 560,
+   "y": 0,
+   "params": {
+    "l1": 0.8,
+    "l2": 0.5,
+    "l3": 0.7,
+    "l4": 0.7
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "l1"
+    ],
+    "p2": [
+     "l2"
+    ],
+    "k1": [
+     "l1"
+    ],
+    "k2": [
+     "l2"
+    ],
+    "k3": [
+     "l3"
+    ],
+    "k4": [
+     "l4"
+    ]
+   }
+  },
+  {
+   "id": 6,
+   "type": "reverb",
+   "x": 40,
+   "y": 414,
+   "params": {
+    "size": 0.85,
+    "damp": 0.25,
+    "mix": 0.55,
+    "pre": 0,
+    "mod": 0.5,
+    "freeze": 0,
+    "spring": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "freeze"
+    ],
+    "p2": [],
+    "k1": [],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  }
+ ],
+ "cables": [
+  {
+   "from": {
+    "module": 1,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 3,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 4,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "gate"
+   },
+   "to": {
+    "module": 3,
+    "port": "gate"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "gate"
+   },
+   "to": {
+    "module": 4,
+    "port": "gate"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "out"
+   },
+   "to": {
+    "module": 5,
+    "port": "in1"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "out"
+   },
+   "to": {
+    "module": 5,
+    "port": "in2"
+   }
+  },
+  {
+   "from": {
+    "module": 5,
+    "port": "out"
+   },
+   "to": {
+    "module": 6,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "fx"
+   },
+   "to": {
+    "module": 6,
+    "port": "p1"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "sustain"
+   },
+   "to": {
+    "module": 6,
+    "port": "p1"
+   }
+  },
+  {
+   "from": {
+    "module": 6,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "l"
+   }
+  },
+  {
+   "from": {
+    "module": 6,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "r"
+   }
+  }
+ ],
+ "notes": "Tocá una nota y congelala: FX (o el pedal de sustain) congela la reverb; la cuerda sigue sonando encima. Teclado."
+}

@@ -59,22 +59,37 @@ Y dos modos nuevos en efectos que ya estaban:
 
 ## Banco de fábrica
 
-24 patches propios, armados desde cero con módulos y cables (`web/scripts/rack-factory.ts`). Son los mismos en el editor (**Fábrica…**) y en los primeros 24 lugares del FM-1 (con FACTORY RESET). Los otros 40 lugares quedan libres para tus patches. El volumen de todos se igualó haciéndolos sonar en el motor.
+33 patches propios, armados desde cero con módulos y cables (`web/scripts/rack-factory.ts`). Son los mismos en el editor (**Fábrica…**) y en los primeros 33 lugares del FM-1 (con FACTORY RESET). Los otros 31 lugares quedan libres para tus patches. El volumen de todos se igualó haciéndolos sonar en el motor, y cada uno se comparó en los dos motores (editor y FM-1).
 
 | | Teclado (los modulares de los 60) | | Suenan solos (generativos) | | Drones y ruido |
 | --- | --- | --- | --- | --- | --- |
-| 00 | INIT (con eco de cinta) | 08 | BONK WEST COAST | 18 | LORENZ DRONE |
-| 01 | MUUG TAPE | 09 | COMPUTADORA S&H | 19 | DRONE MUUG |
-| 02 | MUUG BAJO | 10 | BERLIN SEQ | 20 | NIEBLA GRANULAR |
-| 03 | LEAD 1969 | 11 | PERCUSION MOD | 21 | SHIFT ESPACIAL |
-| 04 | BRONCES 1971 | 12 | TURING MAQUINA | 22 | MAREA DE RUIDO |
-| 05 | THEREMIN | 13 | EUCLIDES | 23 | MAQUINA RUIDO |
-| 06 | CAMPANAS RING | 14 | MARBLES PLUCK | | |
-| 07 | BUCHLA TIMBRE | 15 | CAOS MELODICO | | |
-| | | 16 | GOTAS RESONADOR | | |
-| | | 17 | CUERDAS AZAR | | |
+| 00 | INIT (con eco de cinta) | 11 | BONK WEST COAST | 24 | LORENZ DRONE |
+| 01 | MUUG TAPE | 12 | COMPUTADORA S&H | 25 | DRONE MUUG |
+| 02 | MUUG BAJO | 13 | BERLIN SEQ | 26 | NIEBLA GRANULAR |
+| 03 | LEAD 1969 | 14 | PERCUSION MOD | 27 | SHIFT ESPACIAL |
+| 04 | BRONCES 1971 | 15 | TURING MAQUINA | 28 | MAREA DE RUIDO |
+| 05 | THEREMIN | 16 | EUCLIDES | 29 | MAQUINA RUIDO |
+| 06 | CAMPANAS RING | 17 | MARBLES PLUCK | 30 | FEEDBACK COMB |
+| 07 | BUCHLA TIMBRE | 18 | CAOS MELODICO | 31 | BITCRUSH RADIO |
+| 08 | FM CHOWNING | 19 | GOTAS RESONADOR | 32 | CUERDA INFINITA |
+| 09 | VOCES FORMANTE | 20 | CUERDAS AZAR | | |
+| 10 | SYNC LEAD | 21 | ARPEGIO MARBLES | | |
+| | | 22 | POLIRRITMO | | |
+| | | 23 | ENJAMBRE LFO | | |
 
 Los que suenan solos arrancan al ENCENDER (tienen su propio reloj) y en casi todos una tecla transpone. Los patches de Matryoshka ya no están en el firmware: quedan solo como material de prueba de los tests (`firmware/test/presets_matryoshka.h`).
+
+## MIDI
+
+El editor web usa MIDI en su propia página, https://blackkittendevices.github.io/kitten-rack/ (en Chrome o Edge). La vista previa dentro de claude.ai no deja usar MIDI. La página se publica sola con cada cambio (`.github/workflows/rack-pages.yml`); hace falta activarla una vez en el repositorio: **Settings › Pages › Source: GitHub Actions**.
+
+El FM-1 y el editor responden a cualquier controlador MIDI por USB (y el FM-1 también por TRS):
+
+- Notas en todos los canales, con velocidad. El canal se elige en el menú del FM-1 (todos por defecto).
+- El pedal de sustain (CC 64) sostiene las notas.
+- K1 a K4 del FM-1: CC 16-19, 21-24 o 70-73 (los bancos de perillas más comunes).
+- Rueda de modulación, pitch bend y aftertouch llegan a las salidas de MIDI-CV.
+- CC 120 y 123 apagan todo. Reloj MIDI y program change se activan en el menú.
 
 ## Patchear en el FM-1
 

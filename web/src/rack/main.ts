@@ -129,7 +129,15 @@ function render(): void {
   $<HTMLInputElement>('#name').value = patch.name;
   $('#oct').textContent = `OCT ${octave >= 0 ? '+' : ''}${octave}`;
   $('#about').textContent = patch.notes ?? '';
+  showSelected();
   meters();
+}
+
+/** the lists show the patch the rack holds: its factory entry or its stored name (else their first line) */
+function showSelected(): void {
+  const fac = Object.entries(factoryFiles).find(([, raw]) => (raw as { name?: string }).name === patch.name)?.[0] ?? '';
+  $<HTMLSelectElement>('#presets').value = fac;
+  $<HTMLSelectElement>('#mine').value = !fac && stored()[patch.name] ? patch.name : '';
 }
 
 const toRoman = (n: number): string => ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'][n - 1] ?? String(n);
@@ -606,7 +614,6 @@ function fillPresets(): void {
   }
   sel.onchange = () => {
     if (sel.value) load(factoryFiles[sel.value]);
-    sel.value = '';
   };
 }
 
@@ -617,7 +624,6 @@ function fillMine(): void {
   sel.onchange = () => {
     const p = stored()[sel.value];
     if (p) load(p);
-    sel.value = '';
   };
 }
 
@@ -689,10 +695,18 @@ window.addEventListener('keyup', (e) => {
   host.send({ t: 'off', note: 60 + octave * 12 + i });
 });
 
+/** where the editor runs on its own page, so the browser lets it use MIDI (.github/workflows/rack-pages.yml) */
+const SITE = 'https://blackkittendevices.github.io/kitten-rack/';
+const held = new Set<number>();   // notes the sustain pedal holds after their key went up
+let pedal = false;
+
 async function midi(): Promise<void> {
   const st = $('#midi');
+  const blocked = (why: string): void => {
+    st.innerHTML = `MIDI: ${why} — <a href="${SITE}" target="_blank" rel="noopener">abrí el editor en su página</a>`;
+  };
   if (!navigator.requestMIDIAccess) {
-    st.textContent = 'MIDI: no disponible';
+    blocked(window.isSecureContext ? 'este navegador no tiene MIDI (usá Chrome o Edge)' : 'hace falta https');
     return;
   }
   try {
@@ -703,24 +717,35 @@ async function midi(): Promise<void> {
         names.push(inp.name ?? 'MIDI');
         inp.onmidimessage = (ev) => {
           const d = ev.data;
-          if (!d) return;
+          if (!d || !d.length) return;
           const s = d[0] & 0xf0;
-          if (s === 0x90 && d[2] > 0) noteOn(d[1], d[2]);
-          else if (s === 0x80 || (s === 0x90 && d[2] === 0)) host.send({ t: 'off', note: d[1] });
-          else if (s === 0xb0) host.send({ t: 'cc', n: d[1], v: d[2] });
-          else if (s === 0xe0) host.send({ t: 'bend', v: ((d[2] << 7) | d[1]) / 8192 - 1 });
+          if (s === 0x90 && d[2] > 0) {
+            if (held.delete(d[1])) host.send({ t: 'off', note: d[1] });   // (a held note struck again starts afresh)
+            noteOn(d[1], d[2]);
+          } else if (s === 0x80 || (s === 0x90 && d[2] === 0)) {
+            if (pedal) held.add(d[1]);
+            else host.send({ t: 'off', note: d[1] });
+          } else if (s === 0xb0) {
+            if (d[1] === 64) {                                            // sustain pedal: holds the notes let go meanwhile
+              pedal = d[2] >= 64;
+              if (!pedal) { for (const n of held) host.send({ t: 'off', note: n }); held.clear(); }
+            }
+            if (d[1] === 120 || d[1] === 123) { held.clear(); host.send({ t: 'panic' }); }
+            else host.send({ t: 'cc', n: d[1], v: d[2] });
+          } else if (s === 0xe0) host.send({ t: 'bend', v: ((d[2] << 7) | d[1]) / 8192 - 1 });
           else if (s === 0xd0) host.send({ t: 'at', v: d[1] / 127 });
           else if (d[0] === 0xf8) host.send({ t: 'clock' });
           else if (d[0] === 0xfa || d[0] === 0xfb) host.send({ t: 'clockrun', on: true });
           else if (d[0] === 0xfc) host.send({ t: 'clockrun', on: false });
         };
       });
-      st.textContent = names.length ? `MIDI: ${names.join(', ')}` : 'MIDI: sin equipos';
+      st.textContent = names.length ? `MIDI: ${names.join(', ')}` : 'MIDI: sin equipos (conectá el controlador)';
     };
     hook();
     access.onstatechange = hook;
   } catch {
-    st.textContent = 'MIDI: permiso negado';
+    // inside another page (the claude.ai preview) the browser refuses MIDI whatever the user says
+    blocked(window.top !== window ? 'esta vista no deja usar MIDI' : 'permiso negado (habilitalo en el candado de la barra)');
   }
 }
 

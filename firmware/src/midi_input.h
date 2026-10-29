@@ -4,6 +4,30 @@
 /* USB and TRS events from midi_queue.h, dispatched on the main thread. */
 static uint32_t midi_clk_ms;                    /* fm1_ms of the last MIDI clock tick (MIDI clock drives the clock while they come) */
 static uint8_t midi_clk_seen;
+/* KITTEN RACK: the sustain pedal (CC 64) holds the notes let go while it is down, as most controllers expect, and also
+ * reaches Main's sustain output as before. midi_sus_held[n]: the channel (1..16) of note n's held release, 0 none */
+static uint8_t midi_sus_on, midi_sus_held[128];
+/* KITTEN RACK: K1..K4 (the rows of the device page in focus) also answer the knob banks common controllers send: CC 16..19,
+ * 21..24 (Novation, nanoKONTROL-style) and 70..73 (Akai MPK, the sound controllers). The row, or -1 */
+static int midi_knob_row(uint32_t n)
+{
+    return n >= 16u && n <= 19u ? (int)n - 16 : n >= 21u && n <= 24u ? (int)n - 21 : n >= 70u && n <= 73u ? (int)n - 70 : -1;
+}
+static void midi_sus_clear(void)
+{
+    uint32_t k;
+    for (k = 0; k < 128u; k++)
+        midi_sus_held[k] = 0;
+}
+static void midi_sus_release(void)
+{
+    uint32_t k;
+    for (k = 0; k < 128u; k++)
+        if (midi_sus_held[k]) {
+            eng_note_off(k, midi_sus_held[k]);
+            midi_sus_held[k] = 0;
+        }
+}
 
 /* Keep the input order: page controls and program changes may draw or rebuild the engine, so they and the events
  * behind them wait for the main loop. Notes, clock, bend, aftertouch, modulation and all-notes-off never draw.
@@ -19,7 +43,7 @@ static void midi_drain_mode(int quick)
         uint32_t pkt = midi_in_q[mi_r % MQ], st = (pkt >> 8) & 0xF0u, n = (pkt >> 16) & 0x7Fu, v = pkt >> 24;
         uint32_t chn = ((pkt >> 8) & 15u) + 1u;
         if (quick && (!cfg.ch || cfg.ch == chn) &&
-            (st == 0xC0u || (st == 0xB0u && ((n >= 16u && n <= 19u) ||
+            (st == 0xC0u || (st == 0xB0u && (midi_knob_row(n) >= 0 ||
                                              (n >= 80u && n < 80u + ENG_PANEL_BUTTONS)))))
             break;
         RING_PUBLISH();
@@ -41,21 +65,33 @@ static void midi_drain_mode(int quick)
             }
         } else if (st == 0x90u || st == 0x80u) {  /* notes on every channel: the engine judges them (a Voice allocator may take its own channel) */
             eng_midi_channel(cfg.ch);
-            if (st == 0x90u && v)
+            if (st == 0x90u && v) {
+                if (midi_sus_held[n]) {                 /* a held note struck again starts afresh */
+                    eng_note_off(n, midi_sus_held[n]);
+                    midi_sus_held[n] = 0;
+                }
                 eng_note_on(n, (int32_t)(v * 65536u / 127u), chn);
+            } else if (midi_sus_on && (!cfg.ch || cfg.ch == chn))
+                midi_sus_held[n] = (uint8_t)chn;        /* the pedal holds it */
             else
                 eng_note_off(n, chn);
         } else if (!cfg.ch || cfg.ch == chn) {  /* other channel messages on the MIDI channel (MENU > MIDI CHANNEL; 0 = all) */
-            if (st == 0xB0u && n == 123u) {
+            if (st == 0xB0u && (n == 123u || n == 120u)) {   /* all notes off, all sound off */
+                midi_sus_clear();
                 eng_all_notes_off();
             } else if (st == 0xB0u && n == 1u) {        /* mod wheel: the Main module's mod output */
                 eng_ctl(ENG_CTL_MOD, (int32_t)(v * 65536u / 127u));
             } else if (st == 0xB0u && (n == 2u || n == 64u || n == 65u)) { /* Main's breath, sustain and foot outputs */
                 eng_ctl(n == 2u ? ENG_CTL_BREATH : n == 64u ? ENG_CTL_SUSTAIN : ENG_CTL_FOOT,
                         (int32_t)(v * 65536u / 127u));
-            } else if (st == 0xB0u && n >= 16u && n <= 19u) {   /* CC 16..19: K1..K4, the rows of the device page in focus */
-                uint32_t mod, par;
-                int32_t val, r = pages_set_unit(n - 16u, (int32_t)(v * 65536u / 127u), &mod, &par, &val);
+                if (n == 64u) {
+                    if (midi_sus_on && v < 64u)
+                        midi_sus_release();
+                    midi_sus_on = (uint8_t)(v >= 64u);
+                }
+            } else if (st == 0xB0u && midi_knob_row(n) >= 0) {   /* CC 16..19 (21..24, 70..73): K1..K4, the rows of the device page in focus */
+                uint32_t mod, par, row = (uint32_t)midi_knob_row(n);
+                int32_t val, r = pages_set_unit(row, (int32_t)(v * 65536u / 127u), &mod, &par, &val);
                 if (r >= 0) {
                     if (r == 1) {
                         if (poly_row_set(mod, par & 0x7Fu, val))
@@ -63,7 +99,7 @@ static void midi_drain_mode(int quick)
                     } else {
                         eng_set_param(mod, par, val);
                         m1_patch_param(mod, par, val);
-                        pages_also(n - 16u, val);       /* (the parameters the row also sets, #357) */
+                        pages_also(row, val);           /* (the parameters the row also sets, #357) */
                     }
                     m1_param_now(mod, par, r == 1 ? val << 16 : val);
                     if (!ui_dirty)

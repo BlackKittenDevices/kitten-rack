@@ -176,6 +176,54 @@ const BANK: [string, () => Built][] = [
     wire(lpg, 'out', rev, 'in'); wire(rev, 'out', out, 'l'); wire(rev, 'out', out, 'r');
   })],
 
+  ['fm chowning', () => build('fm chowning', 'keys', 'FM de Chowning (1967): una senoidal modula a otra a una razón inarmónica; el índice baja con la envolvente, de metal a campana. Teclado.', (add, wire, main, out) => {
+    const mod = add('osc', { wave: 0, coarse: 21, fine: 50, level: 0.9 });
+    const car = add('osc', { wave: 0, pm: 0, level: 0.85 }, { p1: ['pm'], att: [1, 1] });
+    const index = add('adsr', { a: 0.002, d: 1.4, s: 0.15, r: 1.2 });
+    const k = add('const', { value: 4.5 });
+    const amt = add('vca', { gain: 1 });
+    const amp = add('adsr', { a: 0.002, d: 2.5, s: 0, r: 1.5 });
+    const vca = add('vca');
+    const rev = add('reverb', { size: 0.6, damp: 0.35, mix: 0.3 });
+    wire(main, 'pitch', mod, 'pitch'); wire(main, 'pitch', car, 'pitch'); wire(mod, 'out', car, 'pm');
+    wire(main, 'gate', index, 'gate'); wire(k, 'out', amt, 'in'); wire(index, 'env', amt, 'cv'); wire(amt, 'out', car, 'p1');
+    wire(main, 'gate', amp, 'gate'); wire(car, 'out', vca, 'in'); wire(amp, 'env', vca, 'cv');
+    wire(vca, 'out', rev, 'in'); wire(rev, 'out', out, 'l'); wire(rev, 'out', out, 'r');
+  })],
+  ['voces formante', () => build('voces formante', 'keys', 'Un coro de los primeros sintes: sierras desafinadas por un filtro de vocales que un LFO lento lleva de A a U, chorus y sala. Teclado.', (add, wire, main, out) => {
+    const v = add('osc', { wave: 2, unison: 3, detune: 18, level: 0.8 });
+    const sub = add('osc', { wave: 1, coarse: -12, level: 0.4 });
+    const mix = add('mixer', { l1: 0.8, l2: 0.45 });
+    const talk = add('lfo', { wave: 1, rate: 0.18, depth: 1 });
+    const half = add('scale', { gain: 2, offset: 2 });
+    const vow = add('vowel', { vowel: 0, res: 0.65, level: 1 });
+    const boost = add('vca', { gain: 2 });
+    const one = add('const', { value: 1 });
+    const env = add('adsr', { a: 0.15, d: 0.4, s: 0.85, r: 0.8 });
+    const vca = add('vca', { gain: 2 });
+    const ch = add('chorus', { rate: 0.35, depth: 0.5, mix: 0.45 });
+    wire(main, 'pitch', v, 'pitch'); wire(main, 'pitch', sub, 'pitch');
+    wire(v, 'out', mix, 'in1'); wire(sub, 'out', mix, 'in2'); wire(mix, 'out', vow, 'in');
+    wire(talk, 'out', half, 'in'); wire(half, 'out', vow, 'vowel');
+    wire(vow, 'out', boost, 'in'); wire(one, 'out', boost, 'cv'); wire(boost, 'out', vca, 'in');
+    wire(main, 'gate', env, 'gate'); wire(env, 'env', vca, 'cv');
+    wire(vca, 'out', ch, 'in'); wire(ch, 'l', out, 'l'); wire(ch, 'r', out, 'r');
+  })],
+  ['sync lead', () => build('sync lead', 'keys', 'Oscilador sincronizado: una sierra esclava de otra, su afinación barrida por la envolvente; el grito clásico. Teclado.', (add, wire, main, out) => {
+    const master = add('osc', { wave: 3, level: 0 });
+    const slave = add('osc', { wave: 2, coarse: 7, level: 0.8 });
+    const sweep = add('adsr', { a: 0.003, d: 0.7, s: 0.25, r: 0.4 });
+    const depth = add('scale', { gain: 1.8, offset: 0 });
+    const vcf = add('muug', { cutoff: 1, emph: 3, drive: 1.5, cvamt: 1, track: 1 });
+    const amp = add('adsr', { a: 0.004, d: 0.3, s: 0.85, r: 0.3 });
+    const vca = add('vca');
+    const dly = add('delay', { time: 290, fb: 0.35, mix: 0.22, tape: 0.4 });
+    wire(main, 'pitch', master, 'pitch'); wire(main, 'pitch', slave, 'pitch'); wire(master, 'out', slave, 'sync');
+    wire(main, 'gate', sweep, 'gate'); wire(sweep, 'env', depth, 'in'); wire(depth, 'out', slave, 'pitch');
+    wire(slave, 'out', vcf, 'in'); wire(main, 'gate', amp, 'gate'); wire(vcf, 'out', vca, 'in'); wire(amp, 'env', vca, 'cv');
+    wire(vca, 'out', dly, 'in'); wire(dly, 'out', out, 'l'); wire(dly, 'out', out, 'r');
+  })],
+
   // ---------------------------------------------------------------- patches that play themselves
   ['bonk west coast', () => build('bonk west coast', 'self', 'Suena solo: una Turing elige notas, un ritmo euclídeo golpea la low pass gate.', (add, wire, _main, out) => {
     const clock = add('lfo', { wave: 3, rate: 7, depth: 1 });
@@ -340,6 +388,54 @@ const BANK: [string, () => Built][] = [
     wire(rev, 'out', ch, 'in'); wire(ch, 'l', out, 'l'); wire(ch, 'r', out, 'r');
   })],
 
+  ['arpegio marbles', () => build('arpegio marbles', 'self', 'Un arpegio que muta: Marbles repite a medias una frase de 4 notas en Do pentatónica, el oscilador CZ por el Muug, ecos ping-pong. Suena solo; una tecla transpone.', (add, wire, main, out) => {
+    const clock = add('lfo', { wave: 3, rate: 9, depth: 1 });
+    const mar = add('marbles', { spread: 0.8, dejavu: 0.85, length: 4, density: 1, range: 1, scale: 3, root: 0 });
+    const cz = add('pd', { wave: 0, dcw: 0.6, range: 3, level: 0.8 });
+    const vcf = add('muug', { cutoff: -0.4, emph: 5.5, cvamt: 2, track: 0 });
+    const env = add('func', { rise: 0.002, fall: 0.12, shape: 0.7 });
+    const vca = add('vca', { gain: 2 });
+    const dly = add('delay', { time: 333, fb: 0.5, mix: 0.35, pingpong: 1 });
+    wire(clock, 'out', mar, 'clock'); wire(mar, 'pitch', cz, 'pitch'); wire(main, 'pitch', cz, 'pitch');
+    wire(cz, 'out', vcf, 'in'); wire(mar, 'gate', env, 'trig'); wire(env, 'out', vcf, 'cv');
+    wire(vcf, 'out', vca, 'in'); wire(env, 'out', vca, 'cv');
+    wire(vca, 'out', dly, 'in'); wire(dly, 'out', out, 'l'); wire(dly, 'r', out, 'r');
+  })],
+  ['polirritmo', () => build('polirritmo', 'self', 'Tres relojes divididos (3, 4 y 5) golpean tres barras afinadas: nunca coinciden igual. Suena solo; una tecla transpone.', (add, wire, main, out) => {
+    const clock = add('lfo', { wave: 3, rate: 10, depth: 1 });
+    const d3 = add('clkdiv', { div: 3 });
+    const d5 = add('clkdiv', { div: 5 });
+    const nz = add('noise', { level: 0.7 });
+    const mix = add('mixer', { l1: 0.9, l2: 0.8, l3: 0.7 });
+    const rev = add('reverb', { size: 0.6, damp: 0.3, mix: 0.3 });
+    const taps: [ModuleInst, string][] = [[d3, 'out'], [d3, 'd4'], [d5, 'out']];
+    ([[-12, 1.4], [3, 0.9], [10, 0.6]] as const).forEach(([st, dec], i) => {
+      const hit = add('lpg', { mode: 2, decay: 0.015, level: 0.7 });
+      const bar = add('modal', { coarse: st, decay: dec, struct: 0.7, bright: 0.55, damp: 0.35 });
+      wire(nz, 'out', hit, 'in'); wire(taps[i][0], taps[i][1], hit, 'strike'); wire(hit, 'out', bar, 'in');
+      wire(main, 'pitch', bar, 'pitch'); wire(bar, 'out', mix, `in${i + 1}`);
+    });
+    wire(clock, 'out', d3, 'clock'); wire(clock, 'out', d5, 'clock');
+    wire(mix, 'out', rev, 'in'); wire(rev, 'out', out, 'l'); wire(rev, 'out', out, 'r');
+  })],
+  ['enjambre lfo', () => build('enjambre lfo', 'self', 'Ambient que cambia solo: un acorde de tres osciladores y LFO lentos que se modulan entre ellos (afinación, filtro, mezcla). Suena solo; el teclado cambia la raíz.', (add, wire, main, out) => {
+    const v1 = add('osc', { wave: 1, coarse: -12, level: 0.6 });
+    const v2 = add('osc', { wave: 0, coarse: -5, level: 0.5 });
+    const v3 = add('osc', { wave: 2, coarse: 4, fine: 6, level: 0.3 });
+    const mix = add('mixer', { l1: 0.7, l2: 0.6, l3: 0.4 }, { p1: ['l3'], p2: ['l2'], att: [0.4, 0.3] });
+    const mother = add('lfo', { wave: 0, rate: 0.03, depth: 1 });
+    const l1 = add('lfo', { wave: 1, rate: 0.11, depth: 0.012 }, { p1: ['rate'], att: [0.5, 1] });
+    const l2 = add('lfo', { wave: 0, rate: 0.07, depth: 1 }, { p1: ['depth'], att: [0.5, 1] });
+    const l3 = add('lfo', { wave: 0, rate: 0.19, depth: 1 });
+    const vcf = add('filter', { cutoff: 900, res: 0.45, cvamt: 1.6 });
+    const rev = add('reverb', { size: 0.9, damp: 0.4, mix: 0.5 });
+    wire(main, 'pitch', v1, 'pitch'); wire(main, 'pitch', v2, 'pitch'); wire(main, 'pitch', v3, 'pitch');
+    wire(mother, 'out', l1, 'p1'); wire(mother, 'out', l2, 'p1'); wire(l1, 'out', v3, 'pitch'); wire(l1, 'out', v2, 'pitch');
+    wire(l2, 'out', vcf, 'cv'); wire(l3, 'out', mix, 'p1'); wire(mother, 'out', mix, 'p2');
+    wire(v1, 'out', mix, 'in1'); wire(v2, 'out', mix, 'in2'); wire(v3, 'out', mix, 'in3');
+    wire(mix, 'out', vcf, 'in'); wire(vcf, 'lp12', rev, 'in'); wire(rev, 'out', out, 'l'); wire(rev, 'out', out, 'r');
+  })],
+
   // ---------------------------------------------------------------- drones and noise machines, knobs to turn live
   ['lorenz drone', () => build('lorenz drone', 'keys', 'Mantené una tecla: dos osciladores por un ladder que mueve el atractor de Lorenz, respirando con una función en ciclo.', (add, wire, main, out) => {
     const chaos = add('chaos', { speed: 0.3, rho: 30 });
@@ -413,6 +509,42 @@ const BANK: [string, () => Built][] = [
     wire(nz, 'out', comb, 'in'); wire(comb, 'out', crush, 'in'); wire(crush, 'out', clip, 'in');
     wire(clip, 'out', vca, 'in'); wire(chop, 'out', vca, 'cv');
     wire(vca, 'out', dly, 'in'); wire(dly, 'out', out, 'l'); wire(dly, 'out', out, 'r');
+  })],
+  ['feedback comb', () => build('feedback comb', 'self', 'Un comb al borde de la autooscilación, excitado por ruido suave: un tono que silba y se quiebra. El teclado lo afina; girá REALIM y AMORT.', (add, wire, main, out) => {
+    const nz = add('noise', { level: 0.25, color: 0.6 });
+    const wob = add('lfo', { wave: 0, rate: 0.2, depth: 0.01 });
+    const comb = add('comb', { coarse: -12, fb: 0.975, damp: 0.25, mix: 1 });
+    const comb2 = add('comb', { coarse: -5, fb: -0.95, damp: 0.4, mix: 1 });
+    const mix = add('mixer', { l1: 0.7, l2: 0.5 });
+    const rev = add('reverb', { size: 0.75, damp: 0.4, mix: 0.4 });
+    wire(nz, 'out', comb, 'in'); wire(nz, 'out', comb2, 'in');
+    wire(main, 'pitch', comb, 'pitch'); wire(main, 'pitch', comb2, 'pitch'); wire(wob, 'out', comb, 'pitch');
+    wire(comb, 'out', mix, 'in1'); wire(comb2, 'out', mix, 'in2');
+    wire(mix, 'out', rev, 'in'); wire(rev, 'out', out, 'l'); wire(rev, 'out', out, 'r');
+  })],
+  ['bitcrush radio', () => build('bitcrush radio', 'self', 'Onda corta: estática, una portadora que busca sintonía al azar, modulada en amplitud, recortada en bits y pasada por un resorte. Suena solo.', (add, wire, _main, out) => {
+    const tune = add('random', { mode: 1, rate: 0.6 });
+    const car = add('osc', { wave: 0, coarse: 12, level: 0.8 });
+    const am = add('osc', { wave: 3, coarse: -24, level: 0.9 });
+    const ring = add('ring', { mode: 1, level: 1 });
+    const nz = add('noise', { level: 0.35, color: 0.1 });
+    const mix = add('mixer', { l1: 0.7, l2: 0.6 });
+    const bp = add('filter', { cutoff: 1500, res: 0.6, cvamt: 2 });
+    const crush = add('crush', { bits: 6, rate: 4 });
+    const rev = add('reverb', { size: 0.4, mix: 0.3, spring: 1 });
+    wire(tune, 'out', car, 'pitch'); wire(tune, 'out', am, 'pitch'); wire(car, 'out', ring, 'a'); wire(am, 'out', ring, 'b');
+    wire(ring, 'out', mix, 'in1'); wire(nz, 'out', mix, 'in2'); wire(mix, 'out', bp, 'in'); wire(tune, 'out', bp, 'cv');
+    wire(bp, 'bp', crush, 'in'); wire(crush, 'out', rev, 'in'); wire(rev, 'out', out, 'l'); wire(rev, 'out', out, 'r');
+  })],
+  ['cuerda infinita', () => build('cuerda infinita', 'keys', 'Tocá una nota y congelala: FX (o el pedal de sustain) congela la reverb; la cuerda sigue sonando encima. Teclado.', (add, wire, main, out) => {
+    const s = add('string', { decay: 3, damp: 0.3, level: 0.8 });
+    const s2 = add('string', { decay: 2.5, damp: 0.45, coarse: 12, level: 0.35 });
+    const mix = add('mixer', { l1: 0.8, l2: 0.5 });
+    const rev = add('reverb', { size: 0.85, damp: 0.25, mix: 0.55, mod: 0.5 }, { p1: ['freeze'], att: [1, 1] });
+    wire(main, 'pitch', s, 'pitch'); wire(main, 'pitch', s2, 'pitch'); wire(main, 'gate', s, 'gate'); wire(main, 'gate', s2, 'gate');
+    wire(s, 'out', mix, 'in1'); wire(s2, 'out', mix, 'in2'); wire(mix, 'out', rev, 'in');
+    wire(main, 'fx', rev, 'p1'); wire(main, 'sustain', rev, 'p1');
+    wire(rev, 'out', out, 'l'); wire(rev, 'out', out, 'r');
   })],
 ];
 

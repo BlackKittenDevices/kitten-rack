@@ -1,0 +1,653 @@
+{
+ "version": 2,
+ "name": "polirritmo",
+ "modules": [
+  {
+   "id": 1,
+   "type": "fm1",
+   "x": 40,
+   "y": 0,
+   "params": {
+    "morph": 0,
+    "tempo": 120
+   },
+   "panel": {
+    "kinds": {
+     "fx": "nothing",
+     "lfo": "nothing",
+     "edit": "nothing",
+     "arp": "nothing"
+    }
+   }
+  },
+  {
+   "id": 2,
+   "type": "output",
+   "x": 520,
+   "y": 828,
+   "params": {
+    "level": 0.25
+   }
+  },
+  {
+   "id": 3,
+   "type": "lfo",
+   "x": 240,
+   "y": 0,
+   "params": {
+    "wave": 3,
+    "rate": 10,
+    "depth": 1,
+    "sync": 0,
+    "div": 6,
+    "bpm": 120,
+    "phase": 0,
+    "range": 0,
+    "dir": 0,
+    "mult": 3,
+    "wide": 4
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "rate"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "rate"
+    ],
+    "k3": [
+     "depth"
+    ],
+    "k4": [
+     "sync"
+    ]
+   }
+  },
+  {
+   "id": 4,
+   "type": "clkdiv",
+   "x": 480,
+   "y": 0,
+   "params": {
+    "div": 3
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "div"
+    ],
+    "p2": [],
+    "k1": [
+     "div"
+    ],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 5,
+   "type": "clkdiv",
+   "x": 600,
+   "y": 0,
+   "params": {
+    "div": 5
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "div"
+    ],
+    "p2": [],
+    "k1": [
+     "div"
+    ],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 6,
+   "type": "noise",
+   "x": 720,
+   "y": 0,
+   "params": {
+    "level": 0.7,
+    "color": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "level"
+    ],
+    "p2": [
+     "color"
+    ],
+    "k1": [
+     "level"
+    ],
+    "k2": [
+     "color"
+    ],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 7,
+   "type": "mixer",
+   "x": 40,
+   "y": 414,
+   "params": {
+    "l1": 0.9,
+    "l2": 0.8,
+    "l3": 0.7,
+    "l4": 0.7
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "l1"
+    ],
+    "p2": [
+     "l2"
+    ],
+    "k1": [
+     "l1"
+    ],
+    "k2": [
+     "l2"
+    ],
+    "k3": [
+     "l3"
+    ],
+    "k4": [
+     "l4"
+    ]
+   }
+  },
+  {
+   "id": 8,
+   "type": "reverb",
+   "x": 200,
+   "y": 414,
+   "params": {
+    "size": 0.6,
+    "damp": 0.3,
+    "mix": 0.3,
+    "pre": 0,
+    "mod": 0.3,
+    "freeze": 0,
+    "spring": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "size"
+    ],
+    "p2": [
+     "damp"
+    ],
+    "k1": [
+     "size"
+    ],
+    "k2": [
+     "damp"
+    ],
+    "k3": [
+     "mix"
+    ],
+    "k4": [
+     "pre"
+    ]
+   }
+  },
+  {
+   "id": 9,
+   "type": "lpg",
+   "x": 400,
+   "y": 414,
+   "params": {
+    "mode": 2,
+    "decay": 0.015,
+    "offset": 0,
+    "level": 0.7
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "mode"
+    ],
+    "p2": [
+     "decay"
+    ],
+    "k1": [
+     "mode"
+    ],
+    "k2": [
+     "decay"
+    ],
+    "k3": [
+     "offset"
+    ],
+    "k4": [
+     "level"
+    ]
+   }
+  },
+  {
+   "id": 10,
+   "type": "modal",
+   "x": 560,
+   "y": 414,
+   "params": {
+    "coarse": -12,
+    "decay": 1.4,
+    "struct": 0.7,
+    "bright": 0.55,
+    "damp": 0.35
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "coarse"
+    ],
+    "p2": [
+     "decay"
+    ],
+    "k1": [
+     "coarse"
+    ],
+    "k2": [
+     "decay"
+    ],
+    "k3": [
+     "struct"
+    ],
+    "k4": [
+     "bright"
+    ]
+   }
+  },
+  {
+   "id": 11,
+   "type": "lpg",
+   "x": 720,
+   "y": 414,
+   "params": {
+    "mode": 2,
+    "decay": 0.015,
+    "offset": 0,
+    "level": 0.7
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "mode"
+    ],
+    "p2": [
+     "decay"
+    ],
+    "k1": [
+     "mode"
+    ],
+    "k2": [
+     "decay"
+    ],
+    "k3": [
+     "offset"
+    ],
+    "k4": [
+     "level"
+    ]
+   }
+  },
+  {
+   "id": 12,
+   "type": "modal",
+   "x": 40,
+   "y": 828,
+   "params": {
+    "coarse": 3,
+    "decay": 0.9,
+    "struct": 0.7,
+    "bright": 0.55,
+    "damp": 0.35
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "coarse"
+    ],
+    "p2": [
+     "decay"
+    ],
+    "k1": [
+     "coarse"
+    ],
+    "k2": [
+     "decay"
+    ],
+    "k3": [
+     "struct"
+    ],
+    "k4": [
+     "bright"
+    ]
+   }
+  },
+  {
+   "id": 13,
+   "type": "lpg",
+   "x": 200,
+   "y": 828,
+   "params": {
+    "mode": 2,
+    "decay": 0.015,
+    "offset": 0,
+    "level": 0.7
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "mode"
+    ],
+    "p2": [
+     "decay"
+    ],
+    "k1": [
+     "mode"
+    ],
+    "k2": [
+     "decay"
+    ],
+    "k3": [
+     "offset"
+    ],
+    "k4": [
+     "level"
+    ]
+   }
+  },
+  {
+   "id": 14,
+   "type": "modal",
+   "x": 360,
+   "y": 828,
+   "params": {
+    "coarse": 10,
+    "decay": 0.6,
+    "struct": 0.7,
+    "bright": 0.55,
+    "damp": 0.35
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "coarse"
+    ],
+    "p2": [
+     "decay"
+    ],
+    "k1": [
+     "coarse"
+    ],
+    "k2": [
+     "decay"
+    ],
+    "k3": [
+     "struct"
+    ],
+    "k4": [
+     "bright"
+    ]
+   }
+  }
+ ],
+ "cables": [
+  {
+   "from": {
+    "module": 6,
+    "port": "out"
+   },
+   "to": {
+    "module": 9,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "out"
+   },
+   "to": {
+    "module": 9,
+    "port": "strike"
+   }
+  },
+  {
+   "from": {
+    "module": 9,
+    "port": "out"
+   },
+   "to": {
+    "module": 10,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 10,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 10,
+    "port": "out"
+   },
+   "to": {
+    "module": 7,
+    "port": "in1"
+   }
+  },
+  {
+   "from": {
+    "module": 6,
+    "port": "out"
+   },
+   "to": {
+    "module": 11,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "d4"
+   },
+   "to": {
+    "module": 11,
+    "port": "strike"
+   }
+  },
+  {
+   "from": {
+    "module": 11,
+    "port": "out"
+   },
+   "to": {
+    "module": 12,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 12,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 12,
+    "port": "out"
+   },
+   "to": {
+    "module": 7,
+    "port": "in2"
+   }
+  },
+  {
+   "from": {
+    "module": 6,
+    "port": "out"
+   },
+   "to": {
+    "module": 13,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 5,
+    "port": "out"
+   },
+   "to": {
+    "module": 13,
+    "port": "strike"
+   }
+  },
+  {
+   "from": {
+    "module": 13,
+    "port": "out"
+   },
+   "to": {
+    "module": 14,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 14,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 14,
+    "port": "out"
+   },
+   "to": {
+    "module": 7,
+    "port": "in3"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "out"
+   },
+   "to": {
+    "module": 4,
+    "port": "clock"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "out"
+   },
+   "to": {
+    "module": 5,
+    "port": "clock"
+   }
+  },
+  {
+   "from": {
+    "module": 7,
+    "port": "out"
+   },
+   "to": {
+    "module": 8,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 8,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "l"
+   }
+  },
+  {
+   "from": {
+    "module": 8,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "r"
+   }
+  }
+ ],
+ "notes": "Tres relojes divididos (3, 4 y 5) golpean tres barras afinadas: nunca coinciden igual. Suena solo; una tecla transpone."
+}

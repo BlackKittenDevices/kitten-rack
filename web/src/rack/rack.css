@@ -159,3 +159,4 @@ dialog textarea { width: 100%; background: #000; color: var(--bone); border: 1px
   #catalog { width: auto; max-height: 30vh; border-right: 0; border-bottom: 3px solid #000; }
   #logo { font-size: 26px; }
 }
+#midi a { color: var(--orange); }

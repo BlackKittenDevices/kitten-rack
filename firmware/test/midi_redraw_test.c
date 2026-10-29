@@ -108,6 +108,31 @@ int main(void)
             }
         }
     }
+    {   /* KITTEN RACK: the sustain pedal holds a released note until it comes up; CC 120 / 123 end everything */
+        cfg.ch = 0;
+        eng_all_notes_off();
+        midi_enqueue(9u | 0x90u << 8 | 60u << 16 | 100u << 24, 1);
+        midi_enqueue(0xBu | 0xB0u << 8 | 64u << 16 | 127u << 24, 1);
+        midi_enqueue(8u | 0x80u << 8 | 60u << 16, 1);
+        midi_yield();
+        check("sustain down: the released note still sounds", E.grp[0].nheld == 1 && midi_sus_held[60] == 1);
+        midi_enqueue(9u | 0x90u << 8 | 60u << 16 | 90u << 24, 1);
+        midi_yield();
+        check("  the same key again: one note, not held any more", E.grp[0].nheld == 1 && !midi_sus_held[60]);
+        midi_enqueue(8u | 0x80u << 8 | 60u << 16, 1);
+        midi_enqueue(0xBu | 0xB0u << 8 | 64u << 16, 1);
+        midi_yield();
+        check("  pedal up: released", E.grp[0].nheld == 0 && !midi_sus_on);
+        midi_enqueue(9u | 0x90u << 8 | 62u << 16 | 100u << 24, 1);
+        midi_enqueue(0xBu | 0xB0u << 8 | 64u << 16 | 127u << 24, 1);
+        midi_enqueue(8u | 0x80u << 8 | 62u << 16, 1);
+        midi_enqueue(0xBu | 0xB0u << 8 | 120u << 16, 1);
+        midi_yield();
+        check("  CC 120 with the pedal down: silence, nothing held", E.grp[0].nheld == 0 && !midi_sus_held[62]);
+        midi_enqueue(0xBu | 0xB0u << 8 | 64u << 16, 1);
+        midi_yield();
+        check("knob CC banks: 16, 21 and 70 are K1; 74 is not a knob", midi_knob_row(16) == 0 && midi_knob_row(24) == 3 && midi_knob_row(70) == 0 && midi_knob_row(73) == 3 && midi_knob_row(74) < 0 && midi_knob_row(20) < 0);
+    }
     cfg.ch = 0;
     for (uint32_t kind = 0; kind < 3; kind++) {
         uint32_t st = kind == 2 ? 0xC0u : 0xB0u, n = kind == 0 ? 16u : kind == 1 ? 80u : 0u;

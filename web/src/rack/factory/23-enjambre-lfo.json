@@ -1,0 +1,592 @@
+{
+ "version": 2,
+ "name": "enjambre lfo",
+ "modules": [
+  {
+   "id": 1,
+   "type": "fm1",
+   "x": 40,
+   "y": 0,
+   "params": {
+    "morph": 0,
+    "tempo": 120
+   },
+   "panel": {
+    "kinds": {
+     "fx": "nothing",
+     "lfo": "nothing",
+     "edit": "nothing",
+     "arp": "nothing"
+    }
+   }
+  },
+  {
+   "id": 2,
+   "type": "output",
+   "x": 440,
+   "y": 1242,
+   "params": {
+    "level": 0.6
+   }
+  },
+  {
+   "id": 3,
+   "type": "osc",
+   "x": 240,
+   "y": 0,
+   "params": {
+    "wave": 1,
+    "pw": 0.5,
+    "coarse": -12,
+    "fine": 0,
+    "pm": 0,
+    "level": 0.6,
+    "fb": 0,
+    "unison": 1,
+    "detune": 10,
+    "blend": 0.5,
+    "stack": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "pw"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "pw"
+    ],
+    "k3": [
+     "coarse"
+    ],
+    "k4": [
+     "fine"
+    ]
+   }
+  },
+  {
+   "id": 4,
+   "type": "osc",
+   "x": 480,
+   "y": 0,
+   "params": {
+    "wave": 0,
+    "pw": 0.5,
+    "coarse": -5,
+    "fine": 0,
+    "pm": 0,
+    "level": 0.5,
+    "fb": 0,
+    "unison": 1,
+    "detune": 10,
+    "blend": 0.5,
+    "stack": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "pw"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "pw"
+    ],
+    "k3": [
+     "coarse"
+    ],
+    "k4": [
+     "fine"
+    ]
+   }
+  },
+  {
+   "id": 5,
+   "type": "osc",
+   "x": 40,
+   "y": 414,
+   "params": {
+    "wave": 2,
+    "pw": 0.5,
+    "coarse": 4,
+    "fine": 6,
+    "pm": 0,
+    "level": 0.3,
+    "fb": 0,
+    "unison": 1,
+    "detune": 10,
+    "blend": 0.5,
+    "stack": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "pw"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "pw"
+    ],
+    "k3": [
+     "coarse"
+    ],
+    "k4": [
+     "fine"
+    ]
+   }
+  },
+  {
+   "id": 6,
+   "type": "mixer",
+   "x": 280,
+   "y": 414,
+   "params": {
+    "l1": 0.7,
+    "l2": 0.6,
+    "l3": 0.4,
+    "l4": 0.7
+   },
+   "att": [
+    0.4,
+    0.3
+   ],
+   "map": {
+    "p1": [
+     "l3"
+    ],
+    "p2": [
+     "l2"
+    ],
+    "k1": [],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 7,
+   "type": "lfo",
+   "x": 440,
+   "y": 414,
+   "params": {
+    "wave": 0,
+    "rate": 0.03,
+    "depth": 1,
+    "sync": 0,
+    "div": 6,
+    "bpm": 120,
+    "phase": 0,
+    "range": 0,
+    "dir": 0,
+    "mult": 3,
+    "wide": 4
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "rate"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "rate"
+    ],
+    "k3": [
+     "depth"
+    ],
+    "k4": [
+     "sync"
+    ]
+   }
+  },
+  {
+   "id": 8,
+   "type": "lfo",
+   "x": 40,
+   "y": 828,
+   "params": {
+    "wave": 1,
+    "rate": 0.11,
+    "depth": 0.012,
+    "sync": 0,
+    "div": 6,
+    "bpm": 120,
+    "phase": 0,
+    "range": 0,
+    "dir": 0,
+    "mult": 3,
+    "wide": 4
+   },
+   "att": [
+    0.5,
+    1
+   ],
+   "map": {
+    "p1": [
+     "rate"
+    ],
+    "p2": [],
+    "k1": [],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 9,
+   "type": "lfo",
+   "x": 280,
+   "y": 828,
+   "params": {
+    "wave": 0,
+    "rate": 0.07,
+    "depth": 1,
+    "sync": 0,
+    "div": 6,
+    "bpm": 120,
+    "phase": 0,
+    "range": 0,
+    "dir": 0,
+    "mult": 3,
+    "wide": 4
+   },
+   "att": [
+    0.5,
+    1
+   ],
+   "map": {
+    "p1": [
+     "depth"
+    ],
+    "p2": [],
+    "k1": [],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 10,
+   "type": "lfo",
+   "x": 520,
+   "y": 828,
+   "params": {
+    "wave": 0,
+    "rate": 0.19,
+    "depth": 1,
+    "sync": 0,
+    "div": 6,
+    "bpm": 120,
+    "phase": 0,
+    "range": 0,
+    "dir": 0,
+    "mult": 3,
+    "wide": 4
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "rate"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "rate"
+    ],
+    "k3": [
+     "depth"
+    ],
+    "k4": [
+     "sync"
+    ]
+   }
+  },
+  {
+   "id": 11,
+   "type": "filter",
+   "x": 40,
+   "y": 1242,
+   "params": {
+    "cutoff": 900,
+    "res": 0.45,
+    "cvamt": 1.6,
+    "track": 0,
+    "morph": 0,
+    "osc": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "cutoff"
+    ],
+    "p2": [
+     "res"
+    ],
+    "k1": [
+     "cutoff"
+    ],
+    "k2": [
+     "res"
+    ],
+    "k3": [
+     "cvamt"
+    ],
+    "k4": [
+     "track"
+    ]
+   }
+  },
+  {
+   "id": 12,
+   "type": "reverb",
+   "x": 240,
+   "y": 1242,
+   "params": {
+    "size": 0.9,
+    "damp": 0.4,
+    "mix": 0.5,
+    "pre": 0,
+    "mod": 0.3,
+    "freeze": 0,
+    "spring": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "size"
+    ],
+    "p2": [
+     "damp"
+    ],
+    "k1": [
+     "size"
+    ],
+    "k2": [
+     "damp"
+    ],
+    "k3": [
+     "mix"
+    ],
+    "k4": [
+     "pre"
+    ]
+   }
+  }
+ ],
+ "cables": [
+  {
+   "from": {
+    "module": 1,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 3,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 4,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 5,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 7,
+    "port": "out"
+   },
+   "to": {
+    "module": 8,
+    "port": "p1"
+   }
+  },
+  {
+   "from": {
+    "module": 7,
+    "port": "out"
+   },
+   "to": {
+    "module": 9,
+    "port": "p1"
+   }
+  },
+  {
+   "from": {
+    "module": 8,
+    "port": "out"
+   },
+   "to": {
+    "module": 5,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 8,
+    "port": "out"
+   },
+   "to": {
+    "module": 4,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 9,
+    "port": "out"
+   },
+   "to": {
+    "module": 11,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 10,
+    "port": "out"
+   },
+   "to": {
+    "module": 6,
+    "port": "p1"
+   }
+  },
+  {
+   "from": {
+    "module": 7,
+    "port": "out"
+   },
+   "to": {
+    "module": 6,
+    "port": "p2"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "out"
+   },
+   "to": {
+    "module": 6,
+    "port": "in1"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "out"
+   },
+   "to": {
+    "module": 6,
+    "port": "in2"
+   }
+  },
+  {
+   "from": {
+    "module": 5,
+    "port": "out"
+   },
+   "to": {
+    "module": 6,
+    "port": "in3"
+   }
+  },
+  {
+   "from": {
+    "module": 6,
+    "port": "out"
+   },
+   "to": {
+    "module": 11,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 11,
+    "port": "lp12"
+   },
+   "to": {
+    "module": 12,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 12,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "l"
+   }
+  },
+  {
+   "from": {
+    "module": 12,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "r"
+   }
+  }
+ ],
+ "notes": "Ambient que cambia solo: un acorde de tres osciladores y LFO lentos que se modulan entre ellos (afinación, filtro, mezcla). Suena solo; el teclado cambia la raíz."
+}

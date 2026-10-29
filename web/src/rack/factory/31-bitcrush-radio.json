@@ -1,0 +1,478 @@
+{
+ "version": 2,
+ "name": "bitcrush radio",
+ "modules": [
+  {
+   "id": 1,
+   "type": "fm1",
+   "x": 40,
+   "y": 0,
+   "params": {
+    "morph": 0,
+    "tempo": 120
+   },
+   "panel": {
+    "kinds": {
+     "fx": "nothing",
+     "lfo": "nothing",
+     "edit": "nothing",
+     "arp": "nothing"
+    }
+   }
+  },
+  {
+   "id": 2,
+   "type": "output",
+   "x": 240,
+   "y": 828,
+   "params": {
+    "level": 0.95
+   }
+  },
+  {
+   "id": 3,
+   "type": "random",
+   "x": 240,
+   "y": 0,
+   "params": {
+    "mode": 1,
+    "rate": 0.6
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "mode"
+    ],
+    "p2": [
+     "rate"
+    ],
+    "k1": [
+     "mode"
+    ],
+    "k2": [
+     "rate"
+    ],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 4,
+   "type": "osc",
+   "x": 360,
+   "y": 0,
+   "params": {
+    "wave": 0,
+    "pw": 0.5,
+    "coarse": 12,
+    "fine": 0,
+    "pm": 0,
+    "level": 0.8,
+    "fb": 0,
+    "unison": 1,
+    "detune": 10,
+    "blend": 0.5,
+    "stack": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "pw"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "pw"
+    ],
+    "k3": [
+     "coarse"
+    ],
+    "k4": [
+     "fine"
+    ]
+   }
+  },
+  {
+   "id": 5,
+   "type": "osc",
+   "x": 600,
+   "y": 0,
+   "params": {
+    "wave": 3,
+    "pw": 0.5,
+    "coarse": -24,
+    "fine": 0,
+    "pm": 0,
+    "level": 0.9,
+    "fb": 0,
+    "unison": 1,
+    "detune": 10,
+    "blend": 0.5,
+    "stack": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "pw"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "pw"
+    ],
+    "k3": [
+     "coarse"
+    ],
+    "k4": [
+     "fine"
+    ]
+   }
+  },
+  {
+   "id": 6,
+   "type": "ring",
+   "x": 40,
+   "y": 414,
+   "params": {
+    "mode": 1,
+    "level": 1
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "mode"
+    ],
+    "p2": [
+     "level"
+    ],
+    "k1": [
+     "mode"
+    ],
+    "k2": [
+     "level"
+    ],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 7,
+   "type": "noise",
+   "x": 160,
+   "y": 414,
+   "params": {
+    "level": 0.35,
+    "color": 0.1
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "level"
+    ],
+    "p2": [
+     "color"
+    ],
+    "k1": [
+     "level"
+    ],
+    "k2": [
+     "color"
+    ],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 8,
+   "type": "mixer",
+   "x": 240,
+   "y": 414,
+   "params": {
+    "l1": 0.7,
+    "l2": 0.6,
+    "l3": 0.7,
+    "l4": 0.7
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "l1"
+    ],
+    "p2": [
+     "l2"
+    ],
+    "k1": [
+     "l1"
+    ],
+    "k2": [
+     "l2"
+    ],
+    "k3": [
+     "l3"
+    ],
+    "k4": [
+     "l4"
+    ]
+   }
+  },
+  {
+   "id": 9,
+   "type": "filter",
+   "x": 400,
+   "y": 414,
+   "params": {
+    "cutoff": 1500,
+    "res": 0.6,
+    "cvamt": 2,
+    "track": 0,
+    "morph": 0,
+    "osc": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "cutoff"
+    ],
+    "p2": [
+     "res"
+    ],
+    "k1": [
+     "cutoff"
+    ],
+    "k2": [
+     "res"
+    ],
+    "k3": [
+     "cvamt"
+    ],
+    "k4": [
+     "track"
+    ]
+   }
+  },
+  {
+   "id": 10,
+   "type": "crush",
+   "x": 600,
+   "y": 414,
+   "params": {
+    "bits": 6,
+    "rate": 4,
+    "os": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "bits"
+    ],
+    "p2": [
+     "rate"
+    ],
+    "k1": [
+     "bits"
+    ],
+    "k2": [
+     "rate"
+    ],
+    "k3": [
+     "os"
+    ],
+    "k4": []
+   }
+  },
+  {
+   "id": 11,
+   "type": "reverb",
+   "x": 40,
+   "y": 828,
+   "params": {
+    "size": 0.4,
+    "damp": 0.4,
+    "mix": 0.3,
+    "pre": 0,
+    "mod": 0.3,
+    "freeze": 0,
+    "spring": 1
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "size"
+    ],
+    "p2": [
+     "damp"
+    ],
+    "k1": [
+     "size"
+    ],
+    "k2": [
+     "damp"
+    ],
+    "k3": [
+     "mix"
+    ],
+    "k4": [
+     "pre"
+    ]
+   }
+  }
+ ],
+ "cables": [
+  {
+   "from": {
+    "module": 3,
+    "port": "out"
+   },
+   "to": {
+    "module": 4,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "out"
+   },
+   "to": {
+    "module": 5,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "out"
+   },
+   "to": {
+    "module": 6,
+    "port": "a"
+   }
+  },
+  {
+   "from": {
+    "module": 5,
+    "port": "out"
+   },
+   "to": {
+    "module": 6,
+    "port": "b"
+   }
+  },
+  {
+   "from": {
+    "module": 6,
+    "port": "out"
+   },
+   "to": {
+    "module": 8,
+    "port": "in1"
+   }
+  },
+  {
+   "from": {
+    "module": 7,
+    "port": "out"
+   },
+   "to": {
+    "module": 8,
+    "port": "in2"
+   }
+  },
+  {
+   "from": {
+    "module": 8,
+    "port": "out"
+   },
+   "to": {
+    "module": 9,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "out"
+   },
+   "to": {
+    "module": 9,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 9,
+    "port": "bp"
+   },
+   "to": {
+    "module": 10,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 10,
+    "port": "out"
+   },
+   "to": {
+    "module": 11,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 11,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "l"
+   }
+  },
+  {
+   "from": {
+    "module": 11,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "r"
+   }
+  }
+ ],
+ "notes": "Onda corta: estática, una portadora que busca sintonía al azar, modulada en amplitud, recortada en bits y pasada por un resorte. Suena solo."
+}
