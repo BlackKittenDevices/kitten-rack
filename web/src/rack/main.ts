@@ -15,6 +15,10 @@ import { deviceView } from '../poly';
 import { crc16 } from '../protocol';
 import { encodePatch } from '../patchbin';
 import { decodeDevicePatch } from './devicebin';
+import { DEVICE_COMPILE } from '../device-compile';
+
+// the rack shows every module it holds on the FM-1 too, played or not (the compile pass would leave out the silent ones)
+DEVICE_COMPILE.on = false;
 
 const NAME = 'KITTEN RACK';
 const STORE = 'kittenrack.patches';
