@@ -8,7 +8,7 @@ import {
   addModule, connect, removeModule, validatePatch, paramUnit, paramValue, newPatch, NEW_PANEL,
   type Endpoint, type ModuleInst, type ParamDef, type Patch,
 } from '../patch';
-import { FAMILIES, cableColor, labelOf, paramLabel, portLabel } from './catalog';
+import { FAMILIES, cableColor, familyOf, labelOf, paramLabel, portLabel } from './catalog';
 import { HP_PX, ROW_H, ROW_HP, ROW_PITCH, RAIL_X, fits, freeSpot, geoOf, onGrid, pack, panelGeo, placeOf, setPlace, type Spot } from './layout';
 
 const NAME = 'KITTEN RACK';
@@ -138,7 +138,7 @@ function panel(m: ModuleInst): HTMLElement {
   const geo = geoOf(patch, DEFS, m);
   const at = placeOf(m);
   const el = document.createElement('div');
-  el.className = `panel t-${m.type}${m.type === 'fm1' || m.type === 'output' ? ' fixed' : ''}`;
+  el.className = `panel t-${m.type} fam-${familyOf(m.type)}${m.type === 'fm1' || m.type === 'output' ? ' fixed' : ''}`;
   el.style.left = `${RAIL_X + at.hp * HP_PX}px`;
   el.style.top = `${at.row * ROW_PITCH}px`;
   el.style.width = `${geo.hp * HP_PX}px`;
@@ -146,7 +146,7 @@ function panel(m: ModuleInst): HTMLElement {
   el.dataset.id = String(m.id);
   const head = document.createElement('div');
   head.className = 'head';
-  head.innerHTML = `<span class="screw"></span><b>${labelOf(m.type)}</b><span class="hp">${geo.hp}HP</span><span class="screw"></span>`;
+  head.innerHTML = `<span class="screw l"></span><span class="screw r"></span><b>${labelOf(m.type)}</b><span class="hp">${geo.hp}HP</span>`;
   if (!el.classList.contains('fixed')) {
     const x = document.createElement('button');
     x.className = 'kill';
@@ -176,7 +176,7 @@ function panel(m: ModuleInst): HTMLElement {
   for (const j of geo.outputs) el.append(jack(m, j.name, j.at, true));
   const foot = document.createElement('div');
   foot.className = 'foot';
-  foot.innerHTML = '<span class="screw"></span><span class="screw"></span>';
+  foot.innerHTML = '<span class="screw l"></span><span class="screw r"></span>';
   el.append(foot);
   return el;
 }
@@ -326,13 +326,11 @@ function jack(m: ModuleInst, port: string, at: Spot, out: boolean): HTMLElement 
   el.dataset.port = port;
   el.dataset.out = out ? '1' : '0';
   const isPin = port === 'p1' || port === 'p2';
-  let label = portLabel(port);
-  if (isPin && m.map) {
-    const dest = m.map[port as 'p1' | 'p2'];
-    if (dest?.length) label = `${label}→${paramLabel(dest[0]).slice(0, 4)}`;
-  }
-  el.innerHTML = `<span class="hole"></span><span class="j-name">${label}</span>`;
-  el.title = `${out ? 'Salida' : 'Entrada'} ${portLabel(port)} (${kind})${isPin ? '\nClic: elegir qué parámetro modula y cuánto' : ''}`;
+  const dest = isPin ? m.map?.[port as 'p1' | 'p2'] : undefined;
+  // a pin's parameter in pumpkin over its hole (four letters, the FM-1's 5x7 cells), the whole list in the tooltip
+  const pin = dest?.length ? `<span class="j-pin">${paramLabel(dest[0]).slice(0, 4)}</span>` : '';
+  el.innerHTML = `${pin}<span class="hole"></span><span class="j-name">${portLabel(port)}</span>`;
+  el.title = `${out ? 'Salida' : 'Entrada'} ${portLabel(port)} (${kind})${dest?.length ? ` → ${dest.map(paramLabel).join(', ')}` : ''}${isPin ? '\nClic: elegir qué parámetro modula y cuánto' : ''}`;
   el.onpointerdown = (e) => startCable(e, { end: { module: m.id, port }, out }, el, isPin ? () => pinMenu(m, port as 'p1' | 'p2', el) : undefined);
   return el;
 }
@@ -544,13 +542,13 @@ function dragPanel(e: PointerEvent, m: ModuleInst, el: HTMLElement): void {
 
 function fillCatalog(): void {
   const box = $('#catalog');
-  for (const f of FAMILIES) {
+  FAMILIES.forEach((f, fi) => {
     const h = document.createElement('h3');
     h.textContent = f.name;
     box.append(h);
     for (const t of f.types) {
       const b = document.createElement('button');
-      b.className = 'add';
+      b.className = `add fam-${fi}`;
       if (t.soon || !DEFS[t.type]) {
         b.disabled = true;
         b.innerHTML = `${t.label} <i>pronto</i>`;
@@ -560,7 +558,7 @@ function fillCatalog(): void {
       }
       box.append(b);
     }
-  }
+  });
 }
 
 function addToRack(type: string): void {

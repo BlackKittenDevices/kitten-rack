@@ -105,6 +105,11 @@ for (const f of FAMILIES) for (const t of f.types) LABELS[t.type] = t.label;
 
 export const labelOf = (type: string): string => LABELS[type] ?? type.toUpperCase();
 
+const FAMILY_OF: Record<string, number> = {};
+FAMILIES.forEach((f, i) => { for (const t of f.types) FAMILY_OF[t.type] = i; });
+/** a module type's family (its index in FAMILIES), -1 for MIDI-CV, OUT and the engine's own modules */
+export const familyOf = (type: string): number => FAMILY_OF[type] ?? -1;
+
 /** the Main module's outputs a MIDI-CV panel shows (the FM-1's button gates stay off the panel) */
 export const MAIN_OUTPUTS = ['pitch', 'gate', 'vel', 'clock', 'run', 'bend', 'mod', 'at', 'keys'];
 
