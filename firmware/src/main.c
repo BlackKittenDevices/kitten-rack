@@ -614,9 +614,9 @@ static int rack_apply(const uint8_t *bin, uint32_t len)
     uint32_t i;
     int rc;
     if (len > M1_PATCH_MAX)
-        return -100;                            /* (rack_ui.c says which: too long, malformed, or the engine's own code) */
-    if (!m1_valid(bin, len))
-        return -101;
+        return -100;                            /* (rack_ui.c says which: too long, malformed (-100 - the check), or the engine's own code) */
+    if ((rc = m1_check(bin, len)) != 0)
+        return -100 - rc;
     eng_run = 0;                                /* the ISR renders silence while the patch is replaced */
     __asm__ volatile("" ::: "memory");
     rc = eng_load(bin, len);

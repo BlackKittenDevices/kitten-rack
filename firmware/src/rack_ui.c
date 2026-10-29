@@ -492,10 +492,10 @@ static int rk_finish(uint8_t *b, uint32_t len, int rc, const char *done)
         if (rc == -4)
             ui_msg("EL FM-1 TIENE UNO SOLO", 2000);
         else {                                          /* the reason as a code, for a report (main.c rack_apply, eng_load) */
-            char m[32], *q = put(m, rc == -101 ? "PATCH INVALIDO" : rc == -100 ? "PATCH MUY LARGO" : "EL MOTOR NO LO TOMA ");
-            if (rc > -100) {
+            char m[32], *q = put(m, rc < -100 ? "PATCH INVALIDO " : rc == -100 ? "PATCH MUY LARGO" : "EL MOTOR NO LO TOMA ");
+            if (rc != -100) {
                 *q++ = 'E';
-                fmt_int(q, -rc);
+                fmt_int(q, rc < -100 ? -rc - 100 : -rc);
             }
             ui_msg(m, 2500);
         }
