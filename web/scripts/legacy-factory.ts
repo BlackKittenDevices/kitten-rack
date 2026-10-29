@@ -3,9 +3,9 @@
 // history, every branch), as fingerprints: web/scripts/legacy-factory.json, which export-defs turns into presets.h's
 // LEGACY_FACTORY. After an update the FM-1 rewrites a slot that is byte for byte one of them (untouched since the factory
 // bank or FACTORY RESET wrote it) with today's patch of that name, in today's format (main.c bank_upgrade). Run after a
-// patch format bump, before export-defs:  npx vite-node scripts/legacy-factory.ts
+// patch format bump or a change of the factory bank, before export-defs:  npx vite-node scripts/legacy-factory.ts
 import { execFileSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { VERSION } from '../src/patchbin';
 
 const ROOT = new URL('../../', import.meta.url).pathname;
@@ -19,6 +19,13 @@ function fnv32(b: Uint8Array | number[]): number {
 }
 
 const seen = new Map<string, { name: string; len: number; fnv: string; version: number }>();
+// (KITTEN RACK: the history before the fork is not in this repository: the rows found then are kept)
+try {
+  const kept = JSON.parse(readFileSync(new URL('./legacy-factory.json', import.meta.url), 'utf8')) as { patches: { name: string; len: number; fnv: string; version: number }[] };
+  for (const x of kept.patches) seen.set(`${x.fnv}/${x.len}`, x);
+} catch {
+  // (none yet)
+}
 const commits = git('log', '--all', '--format=%H', '--', 'firmware/src/presets.h').split('\n').filter(Boolean);
 for (const c of commits) {
   let src: string;
@@ -31,7 +38,7 @@ for (const c of commits) {
   for (const m of src.matchAll(/static const uint8_t (PRESET_\d+)\[\d+\] = \{([^}]*)\}/g)) data.set(m[1], m[2].split(',').map(Number));
   for (const m of src.matchAll(/\{"([^"]*)", (PRESET_\d+),/g)) {
     const bytes = data.get(m[2]);
-    if (!bytes || bytes.length < 8 || bytes[0] !== 0xa1 || bytes[1] >= VERSION) continue; // (today's format needs no rewrite)
+    if (!bytes || bytes.length < 8 || bytes[0] !== 0xa1 || bytes[1] > VERSION) continue; // (KITTEN RACK: today's format too, an older bank)
     const fnv = fnv32(bytes).toString(16).padStart(8, '0');
     const key = `${fnv}/${bytes.length}`;
     if (!seen.has(key)) seen.set(key, { name: m[1], len: bytes.length, fnv, version: bytes[1] });

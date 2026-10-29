@@ -111,6 +111,27 @@ static int kr_step(uint32_t cat)
     ui_msg(NONE[cat == KR_FX_IDX ? 0 : cat == KR_LFO_IDX ? 3 : 2], 1200);
     return 1;
 }
+/* ARP switched on: the device page of the arpeggiator it sets free, on K1..K4 (mode, rate, octaves, gate) */
+#define KR_ARP_IDX 6u
+static void kr_arp_page(void)
+{
+    const uint8_t *t;
+    uint32_t k, d, n = eng_button_targets(KR_ARP_IDX, &t);
+    pages_ensure();
+    for (k = 0; k < n; k++) {
+        if (eng_type(t[k]) != T_ARP || eng_bypass(t[k]))
+            continue;
+        for (d = 0; d < pg_ndev; d++)
+            if (pg_dev[d].module == (int)t[k]) {
+                (void)pages_focus(d, 0);
+                if (page != 0)
+                    page_set(0);
+                m1_focus_now(pg_cur_dev, pg_cur_page);
+                ui_dirty = 2;
+                return;
+            }
+    }
+}
 static void kr_patching(void)
 {
     if (page == PAGE_RACK && rack_editing()) {
@@ -186,6 +207,8 @@ static void panel_button_set(uint32_t b, int down)
     }
     if (tog >> b & 1u)
         m1_panel_on(mask & tog);
+    if (down && b == KR_ARP_IDX && eng_button_kind(b) == ENG_BTN_TOGGLE)
+        kr_arp_page();                              /* KITTEN RACK: ARP on shows its arpeggiator's page */
     leds_panel();
     if (down && !(FIXED_BTNS >> b & 1u)) {          /* (GLO, SEL, ENV say what they do themselves: no "SEL ON") */
         button_touched = (uint8_t)(b + 1u);

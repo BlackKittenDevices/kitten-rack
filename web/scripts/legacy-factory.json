@@ -1016,6 +1016,54 @@
    "version": 46
   },
   {
+   "name": "ARPEGIO MARBLES",
+   "len": 745,
+   "fnv": "0c1fa4f8",
+   "version": 49
+  },
+  {
+   "name": "ARPEGIO MARBLES",
+   "len": 571,
+   "fnv": "80e3eecd",
+   "version": 49
+  },
+  {
+   "name": "BERLIN SEQ",
+   "len": 1098,
+   "fnv": "e0b8ebe8",
+   "version": 49
+  },
+  {
+   "name": "BERLIN SEQ",
+   "len": 919,
+   "fnv": "e8fb1a47",
+   "version": 49
+  },
+  {
+   "name": "BITCRUSH RADIO",
+   "len": 720,
+   "fnv": "2a1df0c8",
+   "version": 49
+  },
+  {
+   "name": "BITCRUSH RADIO",
+   "len": 655,
+   "fnv": "8354a24f",
+   "version": 49
+  },
+  {
+   "name": "BONK WEST COAST",
+   "len": 648,
+   "fnv": "75965466",
+   "version": 49
+  },
+  {
+   "name": "BONK WEST COAST",
+   "len": 583,
+   "fnv": "b7f1906f",
+   "version": 49
+  },
+  {
    "name": "BRASS",
    "len": 291,
    "fnv": "ae93c99c",
@@ -1334,6 +1382,42 @@
    "version": 8
   },
   {
+   "name": "BRONCES 1971",
+   "len": 615,
+   "fnv": "3ee19568",
+   "version": 49
+  },
+  {
+   "name": "BRONCES 1971",
+   "len": 790,
+   "fnv": "4407ff81",
+   "version": 49
+  },
+  {
+   "name": "BUCHLA TIMBRE",
+   "len": 615,
+   "fnv": "9d46898d",
+   "version": 49
+  },
+  {
+   "name": "BUCHLA TIMBRE",
+   "len": 790,
+   "fnv": "bb8983b0",
+   "version": 49
+  },
+  {
+   "name": "CAMPANAS RING",
+   "len": 503,
+   "fnv": "3bbf943e",
+   "version": 49
+  },
+  {
+   "name": "CAMPANAS RING",
+   "len": 676,
+   "fnv": "ab654925",
+   "version": 49
+  },
+  {
    "name": "CANVAS",
    "len": 550,
    "fnv": "6fa74354",
@@ -1520,6 +1604,18 @@
    "version": 46
   },
   {
+   "name": "CAOS MELODICO",
+   "len": 643,
+   "fnv": "363dac60",
+   "version": 49
+  },
+  {
+   "name": "CAOS MELODICO",
+   "len": 819,
+   "fnv": "88e14937",
+   "version": 49
+  },
+  {
    "name": "CASSIA 1",
    "len": 1627,
    "fnv": "55aec3e4",
@@ -1620,6 +1716,42 @@
    "len": 272,
    "fnv": "fb345c62",
    "version": 8
+  },
+  {
+   "name": "COMPUTADORA S&H",
+   "len": 547,
+   "fnv": "495ee09c",
+   "version": 49
+  },
+  {
+   "name": "COMPUTADORA S&H",
+   "len": 721,
+   "fnv": "a62e4659",
+   "version": 49
+  },
+  {
+   "name": "CUERDA INFINITA",
+   "len": 379,
+   "fnv": "b7343a7a",
+   "version": 46
+  },
+  {
+   "name": "CUERDA INFINITA",
+   "len": 550,
+   "fnv": "d8b52485",
+   "version": 46
+  },
+  {
+   "name": "CUERDAS AZAR",
+   "len": 815,
+   "fnv": "b7d48c17",
+   "version": 49
+  },
+  {
+   "name": "CUERDAS AZAR",
+   "len": 639,
+   "fnv": "f9a3a805",
+   "version": 49
   },
   {
    "name": "DRONE",
@@ -1740,6 +1872,18 @@
    "len": 376,
    "fnv": "7188102e",
    "version": 21
+  },
+  {
+   "name": "DRONE MUUG",
+   "len": 664,
+   "fnv": "0d5eb2c4",
+   "version": 49
+  },
+  {
+   "name": "DRONE MUUG",
+   "len": 483,
+   "fnv": "2f465751",
+   "version": 49
   },
   {
    "name": "DUB STAB",
@@ -2234,6 +2378,30 @@
    "version": 46
   },
   {
+   "name": "ENJAMBRE LFO",
+   "len": 883,
+   "fnv": "43531f22",
+   "version": 46
+  },
+  {
+   "name": "ENJAMBRE LFO",
+   "len": 1060,
+   "fnv": "467ec71d",
+   "version": 46
+  },
+  {
+   "name": "EUCLIDES",
+   "len": 884,
+   "fnv": "2d8a25c2",
+   "version": 49
+  },
+  {
+   "name": "EUCLIDES",
+   "len": 707,
+   "fnv": "ae7e3ad5",
+   "version": 49
+  },
+  {
    "name": "EXPANDER S",
    "len": 642,
    "fnv": "68723401",
@@ -2540,6 +2708,18 @@
    "version": 8
   },
   {
+   "name": "FEEDBACK COMB",
+   "len": 656,
+   "fnv": "10bb8a0d",
+   "version": 46
+  },
+  {
+   "name": "FEEDBACK COMB",
+   "len": 483,
+   "fnv": "a10c5ba4",
+   "version": 46
+  },
+  {
    "name": "FM BELL",
    "len": 279,
    "fnv": "adf0f255",
@@ -2664,6 +2844,18 @@
    "len": 434,
    "fnv": "b9f3de62",
    "version": 21
+  },
+  {
+   "name": "FM CHOWNING",
+   "len": 599,
+   "fnv": "74a3da20",
+   "version": 46
+  },
+  {
+   "name": "FM CHOWNING",
+   "len": 774,
+   "fnv": "d171a341",
+   "version": 46
   },
   {
    "name": "FM-1 PANEL SYNTH",
@@ -2934,6 +3126,18 @@
    "len": 397,
    "fnv": "1a575aed",
    "version": 8
+  },
+  {
+   "name": "GOTAS RESONADOR",
+   "len": 790,
+   "fnv": "5ed17056",
+   "version": 49
+  },
+  {
+   "name": "GOTAS RESONADOR",
+   "len": 615,
+   "fnv": "747c6ed3",
+   "version": 49
   },
   {
    "name": "HERA 6",
@@ -3434,6 +3638,18 @@
    "version": 46
   },
   {
+   "name": "INIT",
+   "len": 615,
+   "fnv": "53f39909",
+   "version": 49
+  },
+  {
+   "name": "INIT",
+   "len": 615,
+   "fnv": "6f238220",
+   "version": 49
+  },
+  {
    "name": "IO 4",
    "len": 546,
    "fnv": "2660bff9",
@@ -3860,16 +4076,76 @@
    "version": 21
   },
   {
+   "name": "LEAD 1969",
+   "len": 767,
+   "fnv": "368068f8",
+   "version": 49
+  },
+  {
+   "name": "LEAD 1969",
+   "len": 944,
+   "fnv": "64a380c1",
+   "version": 49
+  },
+  {
    "name": "LIRE+ELVIRA",
    "len": 3802,
    "fnv": "a55299d6",
    "version": 34
   },
   {
+   "name": "LORENZ DRONE",
+   "len": 611,
+   "fnv": "4e2403af",
+   "version": 49
+  },
+  {
+   "name": "LORENZ DRONE",
+   "len": 786,
+   "fnv": "94e74b8e",
+   "version": 49
+  },
+  {
    "name": "MALLET",
    "len": 354,
    "fnv": "59374d3d",
    "version": 8
+  },
+  {
+   "name": "MAQUINA RUIDO",
+   "len": 647,
+   "fnv": "94308ff4",
+   "version": 49
+  },
+  {
+   "name": "MAQUINA RUIDO",
+   "len": 712,
+   "fnv": "b523e2d5",
+   "version": 49
+  },
+  {
+   "name": "MARBLES PLUCK",
+   "len": 628,
+   "fnv": "9b08da4b",
+   "version": 49
+  },
+  {
+   "name": "MARBLES PLUCK",
+   "len": 563,
+   "fnv": "c2db4bf2",
+   "version": 49
+  },
+  {
+   "name": "MAREA DE RUIDO",
+   "len": 487,
+   "fnv": "5a2b0267",
+   "version": 49
+  },
+  {
+   "name": "MAREA DE RUIDO",
+   "len": 552,
+   "fnv": "aabe6a1f",
+   "version": 49
   },
   {
    "name": "MERIDIAN 8",
@@ -4310,6 +4586,30 @@
    "version": 46
   },
   {
+   "name": "MUUG BAJO",
+   "len": 786,
+   "fnv": "4deb07f2",
+   "version": 49
+  },
+  {
+   "name": "MUUG BAJO",
+   "len": 611,
+   "fnv": "c54efc7b",
+   "version": 49
+  },
+  {
+   "name": "MUUG TAPE",
+   "len": 699,
+   "fnv": "9f24bc0c",
+   "version": 49
+  },
+  {
+   "name": "MUUG TAPE",
+   "len": 875,
+   "fnv": "a6a26840",
+   "version": 49
+  },
+  {
    "name": "NES ARP LEAD",
    "len": 163,
    "fnv": "2762afb6",
@@ -4326,6 +4626,18 @@
    "len": 163,
    "fnv": "9cfd586c",
    "version": 8
+  },
+  {
+   "name": "NIEBLA GRANULAR",
+   "len": 535,
+   "fnv": "b14b6cec",
+   "version": 46
+  },
+  {
+   "name": "NIEBLA GRANULAR",
+   "len": 708,
+   "fnv": "eab41e99",
+   "version": 46
   },
   {
    "name": "NOISE SWEEP",
@@ -4772,6 +5084,18 @@
    "version": 21
   },
   {
+   "name": "PERCUSION MOD",
+   "len": 1048,
+   "fnv": "e976e6a9",
+   "version": 49
+  },
+  {
+   "name": "PERCUSION MOD",
+   "len": 983,
+   "fnv": "f7f1d2ae",
+   "version": 49
+  },
+  {
    "name": "PERUN 4",
    "len": 2556,
    "fnv": "1c70c76e",
@@ -5184,6 +5508,18 @@
    "len": 453,
    "fnv": "1d5b8e89",
    "version": 46
+  },
+  {
+   "name": "POLIRRITMO",
+   "len": 803,
+   "fnv": "1ab5f045",
+   "version": 49
+  },
+  {
+   "name": "POLIRRITMO",
+   "len": 982,
+   "fnv": "2d68953a",
+   "version": 49
   },
   {
    "name": "PULSE LEAD",
@@ -5768,6 +6104,18 @@
    "version": 46
   },
   {
+   "name": "SHIFT ESPACIAL",
+   "len": 789,
+   "fnv": "91b156aa",
+   "version": 49
+  },
+  {
+   "name": "SHIFT ESPACIAL",
+   "len": 615,
+   "fnv": "b06a00b0",
+   "version": 49
+  },
+  {
    "name": "SILVER BOX",
    "len": 452,
    "fnv": "ba8e9ca7",
@@ -6048,6 +6396,12 @@
    "len": 1062,
    "fnv": "be3c1336",
    "version": 46
+  },
+  {
+   "name": "SILVER BOX",
+   "len": 1234,
+   "fnv": "8203557a",
+   "version": 48
   },
   {
    "name": "SIMPLE FM",
@@ -7052,6 +7406,30 @@
    "version": 21
   },
   {
+   "name": "SYNC LEAD",
+   "len": 627,
+   "fnv": "b1678247",
+   "version": 49
+  },
+  {
+   "name": "SYNC LEAD",
+   "len": 802,
+   "fnv": "caaadfbc",
+   "version": 49
+  },
+  {
+   "name": "THEREMIN",
+   "len": 639,
+   "fnv": "0c72cad1",
+   "version": 46
+  },
+  {
+   "name": "THEREMIN",
+   "len": 814,
+   "fnv": "eba688a2",
+   "version": 46
+  },
+  {
    "name": "TREMOLO KEYS",
    "len": 220,
    "fnv": "8c3c2538",
@@ -7164,6 +7542,18 @@
    "len": 308,
    "fnv": "2b2ffcf5",
    "version": 21
+  },
+  {
+   "name": "TURING MAQUINA",
+   "len": 795,
+   "fnv": "223c7bbb",
+   "version": 49
+  },
+  {
+   "name": "TURING MAQUINA",
+   "len": 972,
+   "fnv": "dd718956",
+   "version": 49
   },
   {
    "name": "TWO-OPERATOR FM",
@@ -7602,6 +7992,18 @@
    "len": 324,
    "fnv": "08894aac",
    "version": 21
+  },
+  {
+   "name": "VOCES FORMANTE",
+   "len": 929,
+   "fnv": "c96d33fc",
+   "version": 46
+  },
+  {
+   "name": "VOCES FORMANTE",
+   "len": 751,
+   "fnv": "e3849c0d",
+   "version": 46
   },
   {
    "name": "WANDERER",

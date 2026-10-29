@@ -529,8 +529,8 @@
    "params": {
     "mode": 0,
     "rate": 4,
-    "octaves": 1,
-    "gate": 0.5,
+    "octaves": 2,
+    "gate": 0.4,
     "latch": 0
    },
    "bypass": true

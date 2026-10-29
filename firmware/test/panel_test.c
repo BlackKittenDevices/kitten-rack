@@ -1187,6 +1187,11 @@ int main(void)
         check("FX: its tape echo's device page", page == 0 && eng_type((uint32_t)pg_dev[pg_cur_dev].module) == T_DELAY);
         tap(5);
         check("LFO with no modulators: says so, the page stays", page == 0 && eng_type((uint32_t)pg_dev[pg_cur_dev].module) == T_DELAY);
+        tap(10);
+        check("ARP on: the arpeggiator plays (no longer bypassed) and its page is on K1..K4",
+              page == 0 && eng_type((uint32_t)pg_dev[pg_cur_dev].module) == T_ARP && !eng_bypass((uint32_t)pg_dev[pg_cur_dev].module));
+        tap(10);
+        check("ARP off: bypassed again", eng_bypass((uint32_t)pg_dev[pg_cur_dev].module) == 1);
         tap(BTN_SEL);
         check("SEL on a plain module: its panel on the rack", page == PAGE_RACK);
         tap(BTN_HOME);

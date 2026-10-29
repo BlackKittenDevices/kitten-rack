@@ -191,10 +191,13 @@ static int slot_used(uint32_t s) { return s < M1_SLOTS && (bank_mask >> s & 1u);
 /* the settings record: version, slot, octave + 8, LED mode, knob accel, CPU in the bar, clock in, program change,
  * MIDI channel, MIDI out, the bank's format, the selected module */
 #define SET_VERSION 1u
-#define SET_LEN 12u
+#define SET_LEN 16u
+#define SET_MIN 12u                                 /* (a record from before KITTEN RACK's bank id: 12 bytes) */
 /* the patch format the bank's untouched factory slots were brought to (settings byte 10; 0 in a record from before):
  * below ENG_PATCH_VERSION, the boot rewrites them once (bank_upgrade) */
 static uint8_t bank_fmt;
+static uint32_t bank_id;                        /* KITTEN RACK: the factory bank (presets.h FACTORY_BANK_ID) the slots were last
+                                                 * brought to (settings bytes 12..15); another one: bank_upgrade at boot */
 static void settings_pack(uint8_t *d)
 {
     d[0] = SET_VERSION;
@@ -209,11 +212,16 @@ static void settings_pack(uint8_t *d)
     d[9] = cfg.midi_out;                        /* (was the mixer's level before #60: values over 1 read as on) */
     d[10] = bank_fmt;
     d[11] = (uint8_t)sel;
+    d[12] = (uint8_t)bank_id;
+    d[13] = (uint8_t)(bank_id >> 8);
+    d[14] = (uint8_t)(bank_id >> 16);
+    d[15] = (uint8_t)(bank_id >> 24);
 }
 static int settings_unpack(const uint8_t *d, uint32_t len, uint32_t *slot, uint32_t *module)
 {
-    if (len < SET_LEN || d[0] != SET_VERSION)
+    if (len < SET_MIN || d[0] != SET_VERSION)
         return -1;
+    bank_id = len >= 16u ? (uint32_t)d[12] | (uint32_t)d[13] << 8 | (uint32_t)d[14] << 16 | (uint32_t)d[15] << 24 : 0u;
     *slot = d[1];
     octave = clampi((int32_t)d[2] - 8, -3, 3);
     cfg.leds = d[3] > 2u ? 2u : d[3];
@@ -439,6 +447,7 @@ static void factory_bank(void)
     cur_preset = 0;
     sel = 0;
     bank_fmt = ENG_PATCH_VERSION;
+    bank_id = FACTORY_BANK_ID;
     settings_pack(set);
     (void)store_write(SL_SETTINGS, 0, set, SET_LEN);
 }
@@ -467,7 +476,7 @@ static uint32_t bank_upgrade(void)
         fm1_wdt_feed();
         for (k = 0; k <= M1_NAME; k++)
             name[k] = 0;
-        if (sl_read(s, m1_up, &len, name) || len < 8u || m1_up[0] != 0xA1u || m1_up[1] >= ENG_PATCH_VERSION)
+        if (sl_read(s, m1_up, &len, name) || len < 8u || m1_up[0] != 0xA1u || m1_up[1] > ENG_PATCH_VERSION)
             continue;
         h = fnv32(m1_up, len);
         for (k = 0; k < N_LEGACY_FACTORY; k++)
@@ -477,6 +486,7 @@ static uint32_t bank_upgrade(void)
             n++;
     }
     bank_fmt = ENG_PATCH_VERSION;
+    bank_id = FACTORY_BANK_ID;
     return n;
 }
 
@@ -515,7 +525,8 @@ static void patch_boot(void)                    /* the slot the settings record 
         boot_msg = "FACTORY BANK WRITTEN";
         boot_msg_ms = 2000;
     } else if (sl_read(SL_SETTINGS, set, &len, 0) == 0 && settings_unpack(set, len, &slot, &module) == 0) {
-        if (bank_fmt < ENG_PATCH_VERSION) {           /* the first boot after an update that changed the format */
+        if (bank_fmt < ENG_PATCH_VERSION || bank_id != FACTORY_BANK_ID) {   /* the first boot after an update that changed
+                                                     * the format or (KITTEN RACK) the factory bank */
             uint32_t n = bank_upgrade();
             cur_preset = slot;
             sel = module;

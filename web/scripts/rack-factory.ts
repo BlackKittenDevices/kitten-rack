@@ -62,7 +62,7 @@ function withSequencer(p: Patch, main: ModuleInst): void {
   steps.att = [1, 1];
   steps.map = { p1: ['len'], p2: ['rate'], k1: ['len'], k2: ['rate'], k3: ['swing'], k4: ['gate'] };
   const arp = addModule(p, DEFS.arp, 0, 0);
-  Object.assign(arp.params, { mode: 0, rate: 4, octaves: 1, gate: 0.5, latch: 0 });
+  Object.assign(arp.params, { mode: 0, rate: 4, octaves: 2, gate: 0.4, latch: 0 });
   arp.bypass = true;
   const voice = addModule(p, DEFS.alloc, 0, 0);
   Object.assign(voice.params, { voices: 1, assign: 0, legato: 0, priority: 0, unison: 0, channel: 0, low: 0, high: 127, steal: 1, stack: 0 });
@@ -84,6 +84,7 @@ function init(): Built {
   Object.assign(d.params, { time: 320, fb: 0.35, mix: 0.25, tape: 0.5 });
   for (const [a, ap, b, bp] of [[vca, 'out', d, 'in'], [d, 'out', out, 'l'], [d, 'out', out, 'r']] as const)
     if (!connect(p, DEFS, { module: a.id, port: ap }, { module: b.id, port: bp })) throw new Error('init');
+  for (const a of p.modules.filter((x) => x.type === 'arp')) Object.assign(a.params, { octaves: 2, gate: 0.4 });   // (ARP heard with one key)
   const m = p.modules.find((x) => x.type === 'fm1')!;   // the free buttons KITTEN RACK's (FX, LFO, EDIT: panel.c kr_button)
   m.panel = { ...(m.panel ?? {}), kinds: { ...NEW_PANEL().kinds, ...(m.panel?.kinds ?? {}) } } as typeof m.panel;
   p.notes = 'El punto de partida: un oscilador, un filtro, una envolvente y un eco de cinta. Se toca con el teclado.';
