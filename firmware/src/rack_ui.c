@@ -707,7 +707,7 @@ static void rk_edit_draw(void)
     char t[48], *q;
     switch (rk_mode) {
     case RK_MENU:
-        rk_list("PATCHEO  (REC SALE)", RK_NMENU, rk_sel, rk_row_menu, 0);
+        rk_list("PATCHEO  (EDIT SALE)", RK_NMENU, rk_sel, rk_row_menu, 0);
         break;
     case RK_LIST:
         rk_list(rk_armed ? "CABLES  SEL DE NUEVO: AFUERA" : "CABLES  SEL MARCA", (uint32_t)eng_ncables(), rk_sel, rk_row_cable, rk_armed);
