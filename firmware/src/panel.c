@@ -531,9 +531,13 @@ static void panel_encoders(int32_t *st)
             seq_chance(st[0]);
             st[0] = 0;
         }
-        if (st[4] && seq_held >= 0 && roll) {
-            seq_chance(st[4]);
+        if (st[4] && seq_held >= 0 && roll) {       /* KITTEN RACK: on the roll K3 the note's length, K4 its chance */
+            seq_length(st[4]);
             st[4] = 0;
+        }
+        if (st[5] && seq_held >= 0 && roll) {
+            seq_chance(st[5]);
+            st[5] = 0;
         }
         if (st[0] && seq_module() >= 0) {           /* no step held: SELECT moves the row (REC on or off; the roll scrolls) */
             seq_row_step(st[0]);

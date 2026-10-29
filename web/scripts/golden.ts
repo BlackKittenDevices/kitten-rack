@@ -2191,6 +2191,28 @@ tests['steps-notes'] = make('steps-notes', (add, wire) => {
 events['steps-notes'] = [[128 * 5, 'run', 0]];
 ends['steps-notes'] = 128 * 400;
 
+// KITTEN RACK: held notes (StepNote.hold, engine.c NW_HOLD): the same voices, notes of one to three steps, some held (their
+// last step whole) and some cut to the gate (a quarter), side by side
+tests['steps-hold'] = make('steps-hold', (add, wire) => {
+  add('fm1', 0, 0, { tempo: 140 });
+  const out = add('output', 2000, 0, { level: 0.6 });
+  const st = add('steps', 200, 0, { len: 16, rate: 4, gate: 0.25 });
+  const o = add('osc', 300, 0, { wave: 1 });
+  const env = add('adsr', 300, 200, { a: 0.002, d: 0.05, s: 0.8, r: 0.02 });
+  const v1 = add('vca', 400, 0);
+  wire(st, 'pitch', o, 'pitch');
+  wire(st, 'trig', env, 'gate');
+  wire(o, 'out', v1, 'in');
+  wire(env, 'env', v1, 'cv');
+  wire(v1, 'out', out, 'l');
+});
+tests['steps-hold'].modules.find((m) => m.type === 'steps')!.notes = [
+  { at: 0, len: 1, note: 60, vel: 100 }, { at: 2, len: 1, note: 62, vel: 100, hold: true }, { at: 4, len: 3, note: 64, vel: 100 },
+  { at: 8, len: 3, note: 65, vel: 100, hold: true }, { at: 12, len: 2, note: 67, vel: 127, hold: true }, { at: 14, len: 1, note: 69, vel: 100 },
+];
+events['steps-hold'] = [[128 * 5, 'run', 0]];
+ends['steps-hold'] = 128 * 500;
+
 // ties (#128), now longer notes (#133): the steps-notes voices with notes held through tied steps (migrated: a held note
 // through two ties, a tie after an off step plays nothing, a tie on the first step is dropped), swing on; the second
 // track on an external clock

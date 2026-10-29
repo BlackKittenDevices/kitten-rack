@@ -110,7 +110,11 @@ describe('the FM-1 UI as WebAssembly', () => {
     expect(ui.takeDirty()).toBe(true);
     ui.tick(12_000);
     const tap = (id: number, at: number): void => { ui.tick(at); ui.button(id, true); ui.tick(at + 50); ui.button(id, false); ui.tick(at + 100); };
-    tap(BUTTONS.home, 12_000);                 // nothing to go back to: the page stays
+    tap(BUTTONS.home, 12_000);                 // nothing to go back to: the visuals (KITTEN RACK), the scope, then the VJ
+    expect(ui.page).toBe(14);
+    tap(BUTTONS.home, 12_300);
+    expect(ui.page).toBe(15);
+    tap(BUTTONS.home, 12_600);                 // and back to the device page
     expect([ui.page, ui.focusDevice, ui.focusPage]).toEqual([0, 2, 1]);
     tap(BUTTONS.seq, 13_000);                  // the SEQ page, HOME back
     expect(ui.page).toBe(8);

@@ -35,6 +35,9 @@ export interface StepNote {
   vel: number;
   /** percent, 5..100 in steps of 5 (each time round the pattern a hash decides; modules.ts notePlays); absent = 100 */
   chance?: number;
+  /** KITTEN RACK: the note plays its last step whole, as long as it was held (recorded live, or its length set on the
+   * FM-1), not cut to the track's gate; bit 31 of its word (engine.c NW_HOLD) */
+  hold?: boolean;
 }
 
 const int = (v: unknown, lo: number, hi: number): number | null => {
@@ -65,6 +68,7 @@ export function fixNotes(raw: unknown): StepNote[] | undefined {
     const n: StepNote = { at, len: int(o.len, 1, STEPS_MAX) ?? 1, note, vel: int(o.vel, 1, 127) ?? STEP_VEL };
     const chance = fixChance(o.chance);
     if (chance !== undefined) n.chance = chance;
+    if (o.hold === true) n.hold = true;
     out.push(n);
   }
   out.sort(order);
@@ -100,11 +104,12 @@ export function migrateSteps(steps: unknown, notes?: unknown, vels?: unknown): S
 /** a note in the binary (patchbin.ts, engine.c): u32 LE, bits 0..5 the start, 6..11 the length - 1, 12..18 the note,
  * 19..25 the velocity, 26..30 the chance code (100 - chance) / 5 */
 export const noteWord = (n: StepNote): number =>
-  (n.at | ((n.len - 1) << 6) | (n.note << 12) | (n.vel << 19) | (((100 - (n.chance ?? 100)) / 5) << 26)) >>> 0;
+  (n.at | ((n.len - 1) << 6) | (n.note << 12) | (n.vel << 19) | (((100 - (n.chance ?? 100)) / 5) << 26) | (n.hold ? 0x80000000 : 0)) >>> 0;
 export function wordNote(w: number): StepNote {
   const n: StepNote = { at: w & 63, len: ((w >>> 6) & 63) + 1, note: (w >>> 12) & 127, vel: (w >>> 19) & 127 };
   const code = Math.min(19, (w >>> 26) & 31);
   if (code) n.chance = 100 - 5 * code;
+  if (w & 0x80000000) n.hold = true;
   return n;
 }
 
@@ -296,6 +301,6 @@ export function patternOf(m: { notes?: StepNote[]; patterns?: (Pattern | null)[]
 
 /** a short note word (format 48's patterns section, 16 bits): bits 0..3 the start, 4..7 the length - 1, 8..14 the note,
  * 15 the accent (full velocity, else the default velocity); for a pattern whose every note fits it (isShortNote) */
-export const isShortNote = (n: StepNote): boolean => n.at < 16 && n.len <= 16 && (n.vel === STEP_VEL || n.vel === ACCENT_VEL) && (n.chance ?? 100) === 100;
+export const isShortNote = (n: StepNote): boolean => n.at < 16 && n.len <= 16 && (n.vel === STEP_VEL || n.vel === ACCENT_VEL) && (n.chance ?? 100) === 100 && !n.hold;
 export const shortWord = (n: StepNote): number => n.at | ((n.len - 1) << 4) | (n.note << 8) | (n.vel === ACCENT_VEL ? 0x8000 : 0);
 export const wordShort = (w: number): StepNote => ({ at: w & 15, len: ((w >> 4) & 15) + 1, note: (w >> 8) & 127, vel: w & 0x8000 ? ACCENT_VEL : STEP_VEL });

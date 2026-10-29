@@ -457,7 +457,7 @@ typedef struct {
 
 /* a note a Steps track sounds (modules.ts StepsSound): the key it sent, steps to go after the one it is on, samples left;
  * thru: a key played into the track (#134, #139: the note played + 1, 0 = one of its own), sounding until it is let go */
-typedef struct { uint8_t key, left, thru; int32_t cnt; } snd_t;
+typedef struct { uint8_t key, left, thru, hold; int32_t cnt; } snd_t;   /* hold: its last step whole (NW_HOLD) */
 
 /* keys in (#139; engine.ts arm / thru): the keys played into a track (the armed one, or one a cable from Main's keys
  * feeds) wait in a ring the main loop fills and the audio side empties at the start of a block (eng_note_on runs
@@ -480,6 +480,8 @@ static volatile uint8_t took_head, took_tail;
 #define NW_NOTE(w) (((w) >> 12) & 127u)
 #define NW_VEL(w) (((w) >> 19) & 127u)
 #define NW_CODE(w) (((w) >> 26) & 31u)
+#define NW_HOLD 0x80000000u     /* KITTEN RACK: bit 31, the note plays its last step whole (recorded live, or its length set
+                                 * on the FM-1): as long as it was held, not cut to the track's gate (modules.ts noteWord) */
 #define NW(at, len, note, vel, code) ((uint32_t)(at) | ((uint32_t)(len) - 1u) << 6 | (uint32_t)(note) << 12 | (uint32_t)(vel) << 19 | (uint32_t)(code) << 26)
 
 /* an Arpeggiator module as it runs (web/src/arpeggiator.ts, the same steps): its keys in press order, the step counter, the
@@ -2848,7 +2850,7 @@ int eng_steps_set_notes(uint32_t module, const uint32_t *notes, uint32_t n)
         return 0;
     for (i = 0; i < n; i++)
         if (NW_VEL(notes[i]))
-            w[m++] = notes[i] & 0x7FFFFFFFu;
+            w[m++] = notes[i];
     return trk_put(E.node[module].trk, w, m);
 }
 /* ------------------------------------------------------------------ patterns and songs (format 48) */
@@ -2907,7 +2909,7 @@ int eng_pattern_set_notes(uint32_t module, uint32_t p, const uint32_t *notes, ui
         return 0;
     for (i = 0; i < n; i++)
         if (NW_VEL(notes[i]))
-            w[m++] = notes[i] & 0x7FFFFFFFu;
+            w[m++] = notes[i];
     return trk_put_at(E.node[module].trk, p, w, m);
 }
 void eng_song_set(uint32_t n)
@@ -2994,7 +2996,7 @@ int eng_patterns_record(uint8_t *out, uint32_t cap)
             }
             for (j = 0; j < E.pat_n[t][k]; j++) {   /* short words when every note fits one (track.ts isShortNote) */
                 uint32_t w = E.trk_note[first + j];
-                sh &= NW_AT(w) < 16u && NW_LEN(w) <= 16u && (NW_VEL(w) == STEP_VEL || NW_VEL(w) == ACCENT_VEL) && !NW_CODE(w);
+                sh &= NW_AT(w) < 16u && NW_LEN(w) <= 16u && (NW_VEL(w) == STEP_VEL || NW_VEL(w) == ACCENT_VEL) && !NW_CODE(w) && !(w & NW_HOLD);
             }
             PUT(E.pat_n[t][k]);
             PUT(E.pat_len[t][k] | (sh ? 0x80u : 0u));
@@ -5536,6 +5538,7 @@ static void steps_start(uint32_t t, uint32_t node, uint32_t key, uint32_t vel, u
     E.trk_snd[t][j].key = (uint8_t)key;
     E.trk_snd[t][j].left = (uint8_t)left;
     E.trk_snd[t][j].thru = 0;
+    E.trk_snd[t][j].hold = 0;
     E.trk_snd[t][j].cnt = cnt;
     steps_key(node, key | 0x80u, vel);
 }
@@ -5590,7 +5593,7 @@ static void steps_thru_off(uint32_t t, uint32_t node, const inst_t *it, uint32_t
             E.nrin--;
             if ((uint8_t)(h - took_tail) < ENG_TOOK) {
                 took_ring[h % ENG_TOOK][0] = node;
-                took_ring[h % ENG_TOOK][1] = NW(x.at, (uint32_t)len, note, x.vel, 0u);
+                took_ring[h % ENG_TOOK][1] = NW(x.at, (uint32_t)len, note, x.vel, 0u) | NW_HOLD;   /* (as long as it was held) */
                 took_head = (uint8_t)(h + 1u);
             }
             break;
@@ -5665,7 +5668,7 @@ static void steps_fire(const node_t *nd, inst_t *it, int32_t k, int32_t len, int
         snd_t *x = &E.trk_snd[t][i];
         if (x->left > 0 && x->cnt > 0 && !it->s.stp.mute) {
             x->left--;
-            x->cnt = steps_hold(x->left, gate, sl);
+            x->cnt = steps_hold(x->left, x->hold ? ENG_ONE : gate, sl);
         }
     }
     if (it->s.stp.mute)
@@ -5694,7 +5697,8 @@ static void steps_fire(const node_t *nd, inst_t *it, int32_t k, int32_t len, int
             uint32_t remaining = (uint32_t)clampi(steps_cycle(len, dir) - it->s.stp.visit, 1, 126);
             left = (NW_LEN(w) < remaining ? NW_LEN(w) : remaining) - 1u;
         }
-        steps_start(t, node, (uint32_t)key, NW_VEL(w), left, steps_hold(left, gate, sl));
+        steps_start(t, node, (uint32_t)key, NW_VEL(w), left, steps_hold(left, (w & NW_HOLD) ? ENG_ONE : gate, sl));
+        E.trk_snd[t][E.trk_nsnd[t] - 1u].hold = (uint8_t)((w & NW_HOLD) != 0u);
         it->s.stp.pitch = steps_pitch((uint32_t)note);
         it->s.stp.vel = (int32_t)((NW_VEL(w) << 16) / 127u);
         E.trk_last[t] = (uint8_t)NW_NOTE(w);

@@ -340,8 +340,8 @@ describe('the Steps module (#83, #133)', () => {
     e.noteOff(67);
     run(128);
     expect(e.takeRecorded()).toEqual([
-      { id: st.id, loop: 1, note: { at: 2, len: 3, note: 64, vel: 90 } },
-      { id: st.id, loop: 1, note: { at: 7, len: 1, note: 67, vel: 127 } },
+      { id: st.id, loop: 1, note: { at: 2, len: 3, note: 64, vel: 90, hold: true } },
+      { id: st.id, loop: 1, note: { at: 7, len: 1, note: 67, vel: 127, hold: true } },
     ]);
     expect(e.takeRecorded()).toEqual([]);
     e.transport(false);

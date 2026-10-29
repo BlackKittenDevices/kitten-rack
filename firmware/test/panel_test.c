@@ -1643,10 +1643,17 @@ int main(void)
         panel_keys(0);
         panel_keys(1u << 0);                                /* step 1 held again */
         loop();
-        enc(4, -2);                                         /* + K3: its chance (the owner, 2026-10-24: not SELECT on the roll) */
+        enc(5, -2);                                         /* + K4: its chance (KITTEN RACK: K3 is its length now) */
         hw = eng_steps_note((uint32_t)pat, 0u, 46u);
-        check("+ K3: its chance (90 %), the row stays", hw && ((hw >> 26) & 31u) == 2u && seq_grid_note(-1, seq_row) == 46u
+        check("+ K4: its chance (90 %), the row stays", hw && ((hw >> 26) & 31u) == 2u && seq_grid_note(-1, seq_row) == 46u
               && !strcmp(msg_text, "CHANCE 90%"));
+        enc(4, 2);                                          /* + K3: its length, held whole */
+        hw = eng_steps_note((uint32_t)pat, 0u, 46u);
+        check("+ K3: its length (3 steps), its last step whole, the chance stays", hw && ((hw >> 6) & 63u) == 2u && (hw & NW_HOLD)
+              && ((hw >> 26) & 31u) == 2u && !strcmp(msg_text, "LARGO 3 PASOS"));
+        enc(4, -2);
+        hw = eng_steps_note((uint32_t)pat, 0u, 46u);
+        check("  K3 back: one step", hw && ((hw >> 6) & 63u) == 0u);
         enc(0, 1);                                          /* + SELECT: the row moves, the chance stays */
         hw = eng_steps_note((uint32_t)pat, 0u, 46u);
         check("+ SELECT with a step held on the roll: the row moves (A2), the chance stays", seq_grid_note(-1, seq_row) == 45u

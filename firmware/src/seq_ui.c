@@ -612,6 +612,26 @@ static void seq_chance(int32_t clicks)
     ui_dirty = ui_dirty ? ui_dirty : 1;
 }
 
+/* KITTEN RACK (the user, 2026-10-29): K3 turned with a step held on the roll: the selected row's note's length, a step a
+ * click, from one step to the end of the track (it runs on through the steps after it, as a tie) */
+static void seq_length(int32_t clicks)
+{
+    int mod = seq_module(), map = seq_map();
+    uint32_t w;
+    int32_t len, room;
+    char m[24], num[8];
+    if (mod < 0 || seq_held < 0 || map >= 0 || !(w = seq_grid_held(map, mod)))
+        return;
+    room = seq_len(mod) - (int32_t)(w & 63u);
+    len = clampi((int32_t)((w >> 6) & 63u) + 1 + clicks, 1, room < 1 ? 1 : room > 64 ? 64 : room);
+    eng_steps_overdub((uint32_t)mod, (w & ~(63u << 6)) | (uint32_t)(len - 1) << 6 | NW_HOLD);   /* (whole: the length set) */
+    seq_sync(mod);
+    fmt_int(num, len);
+    put(put(put(m, "LARGO "), num), len == 1 ? " PASO" : " PASOS")[0] = 0;
+    ui_msg(m, 1000);
+    ui_dirty = ui_dirty ? ui_dirty : 1;
+}
+
 /* a note number as the LCD writes it: C4, F#2 (60 = C4) */
 static char *seq_note_name(char *p, uint32_t n)
 {

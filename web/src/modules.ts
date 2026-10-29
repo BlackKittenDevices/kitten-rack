@@ -2531,7 +2531,7 @@ const arp: ModuleImpl<null> = {
 /** a note a Steps track is sounding: the key it sent (its note + the transpose), steps still to go after the one it is
  * on, samples until it ends (TRACK_POLY at most; engine.c trk_snd); `thru`: a key played into the armed track (#134,
  * the note played), sounding until it is let go */
-export interface StepsSound { key: number; left: number; cnt: number; thru?: number }
+export interface StepsSound { key: number; left: number; cnt: number; thru?: number; hold?: boolean }
 /** how many notes a Steps track sounds at once (a further note ends the oldest) */
 export const TRACK_POLY = 8;
 
@@ -2716,9 +2716,10 @@ const steps: ModuleImpl<StepsState> = {
     const fire = (k: number, i: number): void => {
       const sl = ext && s.period > 0 ? s.period : ext ? 6 * v.tickLen : step;
       // a note's samples from here: through to the next step while more follow (two steps at most), else gate of a step
-      const hold = (left: number): number => (left > 0 ? 2 * sl : Math.max(1, Math.floor((gate * sl) / 65536)));
+      // (KITTEN RACK: a held note, StepNote.hold, plays its last step whole)
+      const hold = (left: number, whole = false): number => (left > 0 ? 2 * sl : Math.max(1, Math.floor(((whole ? 65536 : gate) * sl) / 65536)));
       for (const x of s.snd)
-        if (x.left > 0 && x.cnt > 0 && !s.mute) x.cnt = hold(--x.left);
+        if (x.left > 0 && x.cnt > 0 && !s.mute) x.cnt = hold(--x.left, x.hold);
       if (s.mute) return;
       const was = s.snd.some((x) => x.cnt > 0);
       const semis = Math.floor((q16(transpose[i]) * 12 + 32768) / 65536);
@@ -2732,7 +2733,7 @@ const steps: ModuleImpl<StepsState> = {
           if (same >= 0) end(same);
           if (s.snd.length >= TRACK_POLY) end(0);
           const left = Math.min(n.len, Math.max(1, stepCycle(len, dir) - s.visit)) - 1;
-          s.snd.push({ key, left, cnt: hold(left) });
+          s.snd.push({ key, left, cnt: hold(left, n.hold), ...(n.hold ? { hold: true } : {}) });
           s.ev.push(key | 0x80, n.vel);
           s.pitch = stepPitch(note);
           s.vel = n.vel / 127;
@@ -2755,7 +2756,7 @@ const steps: ModuleImpl<StepsState> = {
         const r = s.rin.findIndex((x) => x.note === note);
         if (r >= 0) {
           const x = s.rin.splice(r, 1)[0];
-          s.took.push({ note: { at: x.at, len: Math.min(STEPS_MAX, Math.max(1, Math.round(x.t / s.sl))), note, vel: x.vel }, loop: x.loop });
+          s.took.push({ note: { at: x.at, len: Math.min(STEPS_MAX, Math.max(1, Math.round(x.t / s.sl))), note, vel: x.vel, hold: true }, loop: x.loop });
         }
         if (!(s.thru[e] & 0x80)) continue;
         if (starting) {
