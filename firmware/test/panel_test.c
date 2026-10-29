@@ -357,6 +357,7 @@ int main(void)
     static uint16_t before[240 * 240];
     uint32_t mod, par;
     int32_t v0;
+    cfg.lang = 1;                                       /* KITTEN RACK: these tests read the Spanish texts (GLO K4: ESPANOL) */
     {
         char num[24], unit[8];
         value_parts(&DEFS[T_LFO], LFO_P_WIDE, DEFS[T_LFO].pmin[LFO_P_WIDE], num, unit);
@@ -1222,7 +1223,29 @@ int main(void)
         check("K1 on GLO: the MIDI channel one step a turn, not the patch's tempo", cfg.ch == (ch < 16u ? ch + 1u : 16u) && eng_get_param((uint32_t)main, FM1_P_TEMPO) == bpm);
         enc(2, -4);
         later(1500);
-        check("the rows: MIDI channel, clock in, MIDI out, LEDs", pages_now()->nrows == 4u && pages_now()->mod[0] == SETTING_ROW && cfg.ch == ch);
+        check("the rows: MIDI channel, clock in, MIDI out, the language", pages_now()->nrows == 4u && pages_now()->mod[0] == SETTING_ROW && cfg.ch == ch
+              && pages_now()->par[3] == MR_LANG);
+        {                                               /* KITTEN RACK: K4 the language, kept at once */
+            int st0 = host_settings_stored;
+            char v[40];
+            enc(5, -1);
+            menu_value(MR_LANG, v);
+            check("K4 on GLO: ENGLISH, stored at once", cfg.lang == 0 && host_settings_stored == st0 + 1 && !strcmp(v, "ENGLISH"));
+            rk_row_menu(0, v);
+            check("  the rack's patching menu in English", !strcmp(v, "NEW CABLE"));
+            rk_row_menu(2, v);
+            check("  ADD MODULE", !strcmp(v, "ADD MODULE"));
+            rk_row_cat(3, v);
+            check("  the catalog in English (NOISE  SOURCES)", !strcmp(v, "NOISE  SOURCES"));
+            check("  a Spanish jack name in English (STRIKE)", !strcmp(rk_port_word("GOLPE"), "STRIKE") && !strcmp(rk_port_word("IN"), "IN"));
+            enc(5, 1);
+            menu_value(MR_LANG, v);
+            rk_row_menu(0, v + 20);
+            check("K4 again: ESPANOL, CABLE NUEVO", cfg.lang == 1 && host_settings_stored == st0 + 2 && !strcmp(v, "ESPANOL")
+                  && !strcmp(v + 20, "CABLE NUEVO"));
+            enc(5, 1);
+            check("  past the end: no change, nothing stored", cfg.lang == 1 && host_settings_stored == st0 + 2);
+        }
         if (getenv("PANEL_SNAP_GLO")) {
             const char *keep = getenv("PANEL_SNAP");
             setenv("PANEL_SNAP", getenv("PANEL_SNAP_GLO"), 1);

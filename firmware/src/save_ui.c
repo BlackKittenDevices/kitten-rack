@@ -19,7 +19,7 @@ static int save_load(void)
 {
     char name[M1_NAME + 1];
     if (!save_slot_name(sv_sel, name)) {
-        ui_msg("LUGAR VACIO", 1200);
+        ui_msg(LG("EMPTY SLOT", "LUGAR VACIO"), 1200);
         return 0;
     }
     preset_goto(sv_sel);
@@ -61,7 +61,7 @@ static void save_draw(int full)
     if (first + SV_ROWS > M1_SLOTS)
         first = M1_SLOTS - SV_ROWS;
     lcd_fill(0, 0, 240, BAR_H, P_CORAL);
-    text5x7(6, 6, "GUARDAR O CARGAR", 1, P_NIGHT, P_CORAL);
+    text5x7(6, 6, LG("SAVE OR LOAD", "GUARDAR O CARGAR"), 1, P_NIGHT, P_CORAL);
     for (k = 0; k < SV_ROWS; k++) {
         uint32_t s = first + k, on = s == sv_sel, used = (uint32_t)save_slot_name(s, name);
         uint16_t bg = on ? (sv_armed == s + 1u ? 0xF800u : P_PANEL) : P_NIGHT;
@@ -71,12 +71,13 @@ static void save_draw(int full)
         q = put(t, s < 9u ? "0" : "");
         q = put(q, num);
         q = put(q, s == cur_preset ? " * " : "   ");
-        q = put(q, used ? name : "-- VACIO --");
+        q = put(q, used ? name : LG("-- EMPTY --", "-- VACIO --"));
         *q = 0;
         t[36] = 0;
         text5x7(8, y + 4u, t, 1, on ? P_INK : used ? P_DIM : P_FAINT, bg);
     }
     y = BAR_H + 2u + SV_ROWS * SV_ROW_H;
     lcd_fill(0, y, 240, 240u - y, P_NIGHT);
-    text5x7(8, y + 3u, sv_armed ? "OTRO PATCH: SAVE DE NUEVO LO PISA" : "SAVE GUARDA  SEL CARGA  HOME SALE", 1, sv_armed ? 0xF800u : P_FAINT, P_NIGHT);
+    text5x7(8, y + 3u, sv_armed ? LG("A PATCH IS THERE: SAVE AGAIN", "OTRO PATCH: SAVE DE NUEVO LO PISA")
+             : LG("SAVE SAVES  SEL LOADS  HOME EXITS", "SAVE GUARDA  SEL CARGA  HOME SALE"), 1, sv_armed ? 0xF800u : P_FAINT, P_NIGHT);
 }

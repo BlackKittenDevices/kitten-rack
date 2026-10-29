@@ -191,7 +191,7 @@ static int slot_used(uint32_t s) { return s < M1_SLOTS && (bank_mask >> s & 1u);
 /* the settings record: version, slot, octave + 8, LED mode, knob accel, CPU in the bar, clock in, program change,
  * MIDI channel, MIDI out, the bank's format, the selected module */
 #define SET_VERSION 1u
-#define SET_LEN 16u
+#define SET_LEN 17u                                 /* KITTEN RACK: byte 16 the language */
 #define SET_MIN 12u                                 /* (a record from before KITTEN RACK's bank id: 12 bytes) */
 /* the patch format the bank's untouched factory slots were brought to (settings byte 10; 0 in a record from before):
  * below ENG_PATCH_VERSION, the boot rewrites them once (bank_upgrade) */
@@ -216,6 +216,7 @@ static void settings_pack(uint8_t *d)
     d[13] = (uint8_t)(bank_id >> 8);
     d[14] = (uint8_t)(bank_id >> 16);
     d[15] = (uint8_t)(bank_id >> 24);
+    d[16] = cfg.lang;
 }
 static int settings_unpack(const uint8_t *d, uint32_t len, uint32_t *slot, uint32_t *module)
 {
@@ -229,6 +230,7 @@ static int settings_unpack(const uint8_t *d, uint32_t len, uint32_t *slot, uint3
     cfg.clock_in = d[6] & 1u;                   /* (bytes 5 and 7, CPU in the bar and program change, are no longer settings) */
     cfg.ch = d[8] > 16u ? 0u : d[8];
     cfg.midi_out = d[9] == 0u ? 0u : 1u;
+    cfg.lang = len >= 17u ? d[16] & 1u : 0u;      /* (KITTEN RACK: a record from before: English) */
     bank_fmt = d[10];
     *module = d[11];
     return 0;
@@ -244,6 +246,16 @@ static int store_write(uint32_t id, const char *name, const uint8_t *p, uint32_t
     rc = sl_write(id, name, p, len);
     eng_resume();
     return rc;
+}
+
+/* KITTEN RACK: the settings record now (the language: kept as it is chosen, no SAVE needed) */
+static void settings_store(void)
+{
+    uint8_t set[SET_LEN];
+    if (!flash_ok)
+        return;
+    settings_pack(set);
+    (void)store_write(SL_SETTINGS, 0, set, SET_LEN);
 }
 
 static char label_buf[M1_NAME + 1];              /* the running patch's name (its slot's) */

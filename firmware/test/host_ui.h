@@ -226,6 +226,8 @@ static void leds_octave(void);
 static int host_updates, host_defaults;    /* UPDATE MODE / FACTORY RESET reached (panel_test.c) */
 static void update_only(const char *why) { (void)why; host_updates++; }
 static void defaults_now(void) { host_defaults++; }
+static int host_settings_stored;           /* KITTEN RACK: the language kept at once (menu.c settings_store) */
+static void settings_store(void) { host_settings_stored++; }
 #include "../src/menu.c"
 /* what seq_ui.c reaches in proto.c and the HAL, for the preview */
 static struct { uint32_t buttons; } fm1_in;

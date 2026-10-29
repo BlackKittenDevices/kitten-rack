@@ -627,7 +627,7 @@ static void seq_length(int32_t clicks)
     eng_steps_overdub((uint32_t)mod, (w & ~(63u << 6)) | (uint32_t)(len - 1) << 6 | NW_HOLD);   /* (whole: the length set) */
     seq_sync(mod);
     fmt_int(num, len);
-    put(put(put(m, "LARGO "), num), len == 1 ? " PASO" : " PASOS")[0] = 0;
+    put(put(put(m, LG("LENGTH ", "LARGO ")), num), len == 1 ? LG(" STEP", " PASO") : LG(" STEPS", " PASOS"))[0] = 0;
     ui_msg(m, 1000);
     ui_dirty = ui_dirty ? ui_dirty : 1;
 }
@@ -798,7 +798,7 @@ static void kr_rec_press(void)
         return;
     }
     if (t < 0) {
-        ui_msg("SIN SECUENCIADOR", 1200);
+        ui_msg(LG("NO SEQUENCER", "SIN SECUENCIADOR"), 1200);
         return;
     }
     if (!seq_melodic(t)) {
@@ -824,7 +824,7 @@ static void kr_rec_press(void)
         put(put(m, "REC "), name)[0] = 0;
     else {
         seq_rec_wait = 1;
-        put(m, "REC: TOCA UNA NOTA")[0] = 0;
+        put(m, LG("REC: PLAY A NOTE", "REC: TOCA UNA NOTA"))[0] = 0;
     }
     ui_msg(m, 1500);
     ui_dirty = 2;
@@ -941,7 +941,7 @@ static void seq_pattern_clear(void)
     (void)eng_steps_set_notes((uint32_t)mod, none, 0);
     seq_held = -1;
     seq_sync(mod);
-    seq_msg_due = "PATRON BORRADO";
+    seq_msg_due = LG("PATTERN CLEARED", "PATRON BORRADO");
     seq_msg_ms = 1500;
     ui_dirty = ui_dirty ? ui_dirty : 1;
 }
@@ -964,14 +964,14 @@ static void seq_knobs(const int32_t *st, int fast)
     if (st[2]) {
         int32_t v = clampi(((eng_get_param((uint32_t)mod, STEPS_P_LEN) + 32768) >> 16) + st[2] * (fast ? 4 : 1), 1, DEF_TOP(d, STEPS_P_LEN) >> 16);
         seq_knob_set((uint32_t)mod, STEPS_P_LEN, v << 16);
-        fmt_int(put(m, "PASOS "), v);
+        fmt_int(put(m, LG("STEPS ", "PASOS ")), v);
         seq_clamp();
         ui_msg(m, 900);
     }
     if (st[3]) {
         int32_t v = clampi(((eng_get_param((uint32_t)mod, STEPS_P_RATE) + 32768) >> 16) + st[3], d->pmin[STEPS_P_RATE] >> 16, DEF_TOP(d, STEPS_P_RATE) >> 16);
         seq_knob_set((uint32_t)mod, STEPS_P_RATE, v << 16);
-        *put_param(put(m, "RITMO "), d, STEPS_P_RATE, v << 16) = 0;
+        *put_param(put(m, LG("RATE ", "RITMO ")), d, STEPS_P_RATE, v << 16) = 0;
         ui_msg(m, 900);
     }
     if (st[4]) {
@@ -1315,9 +1315,9 @@ static void seq_grid_draw(int full, int mod, int map, const char *info)
     if (eng_steps_muted((uint32_t)mod))
         p = put(p, "  MUTED");
     if (seq_armed_trk() != (int)seq_trk && !eng_steps_muted((uint32_t)mod)) {
-        *put(p, "  K1 PASOS K2 RITMO K3 SW K4 BPM") = 0;   /* (KITTEN RACK: the knobs with no step held, seq_knobs) */
+        *put(p, LG("  K1 STEPS K2 RATE K3 SW K4 BPM", "  K1 PASOS K2 RITMO K3 SW K4 BPM")) = 0;   /* (KITTEN RACK: the knobs with no step held, seq_knobs) */
         if (text_w(&FONT_S, line, -1) > 224u)
-            *put(line, "K1 PASOS  K2 RITMO  K3 SWING  K4 BPM") = 0;
+            *put(line, LG("K1 STEPS  K2 RATE  K3 SWING  K4 BPM", "K1 PASOS  K2 RITMO  K3 SWING  K4 BPM")) = 0;
     } else
         *p = 0;
     seq_grid_line(1, 202, line, C_DIM, 224);
@@ -1327,7 +1327,7 @@ static void seq_grid_draw(int full, int mod, int map, const char *info)
         hint = "KEYS record  SEL row  OCT octave";
     else
         hint = seq_rec == 2u ? "BLACK hear  SEL+KEY pen  WHITE step" : seq_rec ? "BLACK hit  SEL+KEY pen  WHITE step"
-             : "ALGO PASO  SELECT NOTA  SEL PONE  OCT PAG";
+             : LG("ALGO STEP  SELECT NOTE  SEL SETS  OCT PAGE", "ALGO PASO  SELECT NOTA  SEL PONE  OCT PAG");
     seq_grid_line(2, 222, hint, C_HINT, 228);
     seq_grid_ok = 1;
 }
@@ -1358,10 +1358,10 @@ static void seq_draw(int full)
     *p++ = '-';
     fmt_int(num, seq_pg * 16 + 16 < len ? seq_pg * 16 + 16 : len);
     p = put(p, num);
-    p = put(p, " DE ");
+    p = put(p, LG(" OF ", " DE "));
     fmt_int(num, len);
     p = put(p, num);
-    p = put(p, "  RITMO ");
+    p = put(p, LG("  RATE ", "  RITMO "));
     {                                            /* (the pattern's own rate, else the track's) */
         int rt = eng_pattern_rate((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod));
         p = put_param(p, &DEFS[T_STEPS], STEPS_P_RATE, rt >= 0 && eng_pattern_has((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod)) ? rt << 16 : eng_get_param((uint32_t)mod, STEPS_P_RATE));

@@ -33,7 +33,7 @@ static void sandbox_draw(int full);
 static void sandbox_bar(void);
 
 /* the settings' rows (menu.c; GLO shows some of them: pages_ui.c glo_page) */
-enum { MR_LEDS, MR_ACCEL, MR_CH, MR_CLOCK, MR_MOUT, MR_VERSION, MR_CPU, MR_PEAK, MR_SLOTS, MR_BATT, MR_UPDATE, MR_DEFAULTS, MR_COUNT };
+enum { MR_LEDS, MR_ACCEL, MR_CH, MR_CLOCK, MR_MOUT, MR_VERSION, MR_CPU, MR_PEAK, MR_SLOTS, MR_BATT, MR_UPDATE, MR_DEFAULTS, MR_LANG, MR_COUNT };
 /* the settings of the menu (menu.c); saved with the state (SAVE) */
 static struct {
     uint8_t leds;                       /* the idle buttons glow: 0 off, 1 dim low, 2 dim higher */
@@ -43,7 +43,11 @@ static struct {
     uint8_t clock_in;                   /* MIDI clock drives the clock output */
     uint8_t prog_chg;                   /* MIDI program change loads a preset */
     uint8_t midi_out;                   /* the keys, knobs and patch buttons go out over USB MIDI */
-} cfg = {2, 1, 1, 0, 1, 1, 1};
+    uint8_t lang;                       /* KITTEN RACK: the screen's language, 0 English, 1 Spanish (GLO K4, MENU > PANEL) */
+} cfg = {2, 1, 1, 0, 1, 1, 1, 0};
+/* KITTEN RACK: a text in the language set (cfg.lang): LG("ENGLISH", "SPANISH"). Only the texts KITTEN RACK wrote in Spanish
+ * have both; the rest of the screen is English either way, and patch names stay as they were saved */
+#define LG(en, es) (cfg.lang ? (es) : (en))
 static void cfg_defaults(void)
 {
     cfg.cpu_bar = cfg.accel = cfg.clock_in = cfg.prog_chg = cfg.midi_out = 1;

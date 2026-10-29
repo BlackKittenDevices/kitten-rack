@@ -16,14 +16,15 @@ static void leds_avail(void);
 static void leds_octave(void);
 static void update_only(const char *why);
 static void defaults_now(void);
+static void settings_store(void);               /* main.c: the settings record now (KITTEN RACK: the language) */
 
 /* ---- settings menu */
 
 enum { MT_PANEL, MT_MIDI, MT_SYSTEM, MT_MANUAL, MT_COUNT };   /* (MANUAL has no rows: a text) */
 static const char *const ROW_NAME[MR_COUNT] = {"LEDS", "KNOB ACCEL", "MIDI CHANNEL", "CLOCK IN", "MIDI OUT",
-                                              "VERSION", "CPU", "CPU PEAK", "BANK SLOTS", "BATTERY", "UPDATE MODE", "FACTORY RESET"};
+                                              "VERSION", "CPU", "CPU PEAK", "BANK SLOTS", "BATTERY", "UPDATE MODE", "FACTORY RESET", "LANGUAGE"};
 static const uint8_t ROW_TAB[MR_COUNT] = {MT_PANEL, MT_PANEL, MT_MIDI, MT_MIDI, MT_MIDI, MT_SYSTEM, MT_SYSTEM, MT_SYSTEM, MT_SYSTEM, MT_SYSTEM, MT_SYSTEM,
-                                          MT_SYSTEM};
+                                          MT_SYSTEM, MT_PANEL};
 static const char *const TAB_NAME[MT_COUNT] = {"PANEL", "MIDI", "SYSTEM", "MANUAL"};
 
 static uint8_t menu_tab, menu_sel = MR_LEDS;     /* the tab and the selected row (a row number) */
@@ -71,6 +72,7 @@ static void menu_value(uint32_t row, char *out)
     switch (row) {
     case MR_LEDS: p = put(p, cfg.leds == 0 ? "OFF" : cfg.leds == 1 ? "DIM LOW" : "DIM HIGH"); break;
     case MR_ACCEL: p = put(p, ONOFF[cfg.accel]); break;
+    case MR_LANG: p = put(p, cfg.lang ? "ESPANOL" : "ENGLISH"); break;
     case MR_CPU:
         fmt_int(p, (int32_t)cpu_pct);
         p += str_len(p);
@@ -253,6 +255,13 @@ static void setting_step(uint32_t row, int32_t s)       /* a setting's next / pr
         break;
     }
     case MR_ACCEL: cfg.accel = (uint8_t)up; break;
+    case MR_LANG:                                   /* KITTEN RACK: the language; the whole screen again */
+        if (cfg.lang != (uint8_t)up) {
+            cfg.lang = (uint8_t)up;
+            settings_store();                       /* (kept at once: no SAVE needed) */
+        }
+        ui_dirty = 2;
+        return;
     case MR_CH: {
         int32_t v = (int32_t)cfg.ch + d;
         cfg.ch = (uint8_t)(v < 0 ? 0 : v > 16 ? 16 : v);

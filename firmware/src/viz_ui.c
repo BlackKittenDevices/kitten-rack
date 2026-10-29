@@ -46,7 +46,7 @@ static void viz_scope(int full)
     uint32_t i, start = 0, peak = 0, x;
     int32_t prev;
     if (full || !viz_ok) {
-        viz_ground("OSCILOSCOPIO");
+        viz_ground(LG("OSCILLOSCOPE", "OSCILOSCOPIO"));
         for (x = 0; x < 240u; x++) {
             viz_lo[x] = 1;
             viz_hi[x] = 0;

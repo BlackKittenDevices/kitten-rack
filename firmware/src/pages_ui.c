@@ -488,8 +488,9 @@ static void menu_value(uint32_t row, char *out);
 static ppage_t pg_glo;
 static const ppage_t *glo_page(void)
 {
-    static const char *const LAB[4] = {"MIDI CHANNEL", "CLOCK IN", "MIDI OUT", "LEDS"};
-    static const uint8_t ROW[4] = {MR_CH, MR_CLOCK, MR_MOUT, MR_LEDS};
+    static const char *const LAB[4] = {"MIDI CHANNEL", "CLOCK IN", "MIDI OUT", "LANGUAGE"};   /* KITTEN RACK: K4 the language
+                                                     * (the LEDs stay in MENU > PANEL) */
+    static const uint8_t ROW[4] = {MR_CH, MR_CLOCK, MR_MOUT, MR_LANG};
     uint32_t k;
     pg_glo.name = "GLOBAL";
     pg_glo.nlen = 6;
@@ -509,7 +510,7 @@ static const ppage_t *glo_page(void)
 /* a setting's place in its range, 0..width (its bar) */
 static uint32_t setting_bar(uint32_t row, uint32_t width)
 {
-    return row == MR_CH ? cfg.ch * width / 16u : row == MR_LEDS ? cfg.leds * width / 2u
+    return row == MR_CH ? cfg.ch * width / 16u : row == MR_LEDS ? cfg.leds * width / 2u : row == MR_LANG ? cfg.lang * width
          : (row == MR_CLOCK ? cfg.clock_in : row == MR_MOUT ? cfg.midi_out : cfg.accel) ? width : 0u;
 }
 

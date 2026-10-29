@@ -99,6 +99,7 @@ static int kr_in(int t, uint32_t cat)
 static int kr_step(uint32_t cat)
 {
     static const char *const NONE[] = {"SIN EFECTOS", "", "SIN ENVOLVENTES NI FILTROS", "SIN FUENTES NI MODULADORES"};
+    static const char *const NONE_EN[] = {"NO EFFECTS", "", "NO ENVELOPES OR FILTERS", "NO SOURCES OR MODULATORS"};
     uint32_t k, d;
     pages_ensure();
     for (k = 1; k <= pg_ndev; k++) {
@@ -112,7 +113,8 @@ static int kr_step(uint32_t cat)
             return 1;
         }
     }
-    ui_msg(NONE[cat == KR_FX_IDX ? 0 : cat == KR_LFO_IDX ? 3 : 2], 1200);
+    k = cat == KR_FX_IDX ? 0u : cat == KR_LFO_IDX ? 3u : 2u;
+    ui_msg(LG(NONE_EN[k], NONE[k]), 1200);
     return 1;
 }
 /* ARP switched on: the device page of the arpeggiator it sets free, on K1..K4 (mode, rate, octaves, gate) */
@@ -396,7 +398,7 @@ static void rec_hold_poll(void)
         char m[24];
         rec_count_shown = (uint8_t)(t / 1000u);
         rec_hold_used = 1;
-        fmt_int(put(m, "BORRAR PATRON: "), (int32_t)(REC_CLEAR_MS / 1000u - t / 1000u));
+        fmt_int(put(m, LG("CLEAR PATTERN: ", "BORRAR PATRON: ")), (int32_t)(REC_CLEAR_MS / 1000u - t / 1000u));
         ui_msg(m, 1100);
     }
 }

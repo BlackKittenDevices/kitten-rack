@@ -389,6 +389,7 @@ static void rack_open(void)
 /* ------------------------------------------------------------------ patching (KITTEN RACK) */
 
 static const char *const RK_MENU_ITEMS[] = {"CABLE NUEVO", "CABLES", "AGREGAR MODULO", "QUITAR MODULO"};
+static const char *const RK_MENU_EN[] = {"NEW CABLE", "CABLES", "ADD MODULE", "REMOVE MODULE"};
 #define RK_NMENU 4u
 static uint32_t rk_sel;                                 /* the menu's row, the cable list's, the catalog's */
 static uint32_t rk_mi, rk_jack;                         /* RK_OUT / RK_IN: the module (rk_mods index), its jack */
@@ -417,12 +418,22 @@ static uint32_t rk_jacks(uint32_t m, int out)
     int t = eng_type(m);
     return t < 0 ? 0u : out ? DEFS[t].nout : DEFS[t].nin;
 }
+/* KITTEN RACK: a jack's name in the language set (the few the catalog names in Spanish: defs.h RK_PORT_ES / _EN) */
+static const char *rk_port_word(const char *w)
+{
+    uint32_t k;
+    if (!cfg.lang)
+        for (k = 0; k < RK_NPORT_EN; k++)
+            if (str_eq(w, RK_PORT_ES[k]))
+                return RK_PORT_EN[k];
+    return w;
+}
 static const char *rk_jack_name(uint32_t m, uint32_t j, int out)
 {
     int t = eng_type(m);
     if (t < 0 || j >= rk_jacks(m, out))
         return "";
-    return out ? RK_OUTNAMES[t][j] : RK_INNAMES[t][j];
+    return rk_port_word(out ? RK_OUTNAMES[t][j] : RK_INNAMES[t][j]);
 }
 
 /* the module in focus follows the rack's device focus (and the other way round) */
@@ -477,13 +488,13 @@ static uint8_t *rk_begin(uint32_t *len, uint32_t *cap)
     uint8_t *b = rack_scratch(cap);
     uint32_t i;
     if (!src || !b || *len > *cap) {
-        ui_msg("NO SE PUEDE AHORA", 1500);
+        ui_msg(LG("NOT NOW", "NO SE PUEDE AHORA"), 1500);
         return 0;
     }
     for (i = 0; i < *len; i++)
         b[i] = src[i];
     if (eng_upgrade(b, len, *cap)) {                    /* (the running patch is today's format on the FM-1: proto.c) */
-        ui_msg("PATCH LLENO", 1500);
+        ui_msg(LG("PATCH FULL", "PATCH LLENO"), 1500);
         return 0;
     }
     return b;
@@ -504,9 +515,9 @@ static int rk_finish(uint8_t *b, const uint32_t *lenp, int rc, const char *done)
         (void)sl_write(63, "DBG EDIT", b, len);
 #endif
         if (rc == -4)
-            ui_msg("EL FM-1 TIENE UNO SOLO", 2000);
+            ui_msg(LG("THE FM-1 HAS ONLY ONE", "EL FM-1 TIENE UNO SOLO"), 2000);
         else {                                          /* the reason as a code, for a report (main.c rack_apply, eng_load) */
-            char m[32], *q = put(m, rc < -100 ? "PATCH INVALIDO " : rc == -100 ? "PATCH MUY LARGO" : "EL MOTOR NO LO TOMA ");
+            char m[32], *q = put(m, rc < -100 ? LG("PATCH INVALID ", "PATCH INVALIDO ") : rc == -100 ? LG("PATCH TOO LONG", "PATCH MUY LARGO") : LG("ENGINE REFUSED IT ", "EL MOTOR NO LO TOMA "));
             if (rc != -100) {
                 *q++ = 'E';
                 fmt_int(q, rc < -100 ? -rc - 100 : -rc);
@@ -516,7 +527,8 @@ static int rk_finish(uint8_t *b, const uint32_t *lenp, int rc, const char *done)
         return rc;
     }
     if (rc)
-        ui_msg(rc == -2 ? "PATCH LLENO" : rc == -3 ? "LIMITE DEL FM-1" : rc == -4 ? "YA ESTA" : "NO SE PUEDE AQUI", 1500);
+        ui_msg(rc == -2 ? LG("PATCH FULL", "PATCH LLENO") : rc == -3 ? LG("FM-1 LIMIT", "LIMITE DEL FM-1") : rc == -4 ? LG("ALREADY THERE", "YA ESTA")
+               : LG("NOT POSSIBLE HERE", "NO SE PUEDE AQUI"), 1500);
     else {
         ui_msg(done, 1200);
         rk_added_gen = pages_gen();                     /* (our own edit: what was added here still counts) */
@@ -556,7 +568,7 @@ static void rk_sel_press(void)
         uint32_t mod = rk_cur_mod();
         int t = mod < ENG_MAX_MODULES ? eng_type(mod) : -1;
         if (t < 0 || t == T_FM1 || t == T_OUTPUT) {
-            ui_msg("ESE NO SE QUITA", 1200);
+            ui_msg(LG("CANNOT REMOVE THAT", "ESE NO SE QUITA"), 1200);
             return;
         }
         if (rk_armed != mod + 1u) {
@@ -568,8 +580,8 @@ static void rk_sel_press(void)
         if ((b = rk_begin(&len, &cap)) != 0) {
             int rc = pe_module_del(b, &len, mod);
             if (rc == -4)
-                ui_msg("ESE NO SE QUITA (UNA VOZ)", 1500);
-            else if (rk_finish(b, &len, rc, "QUITADO") == 0) {
+                ui_msg(LG("CANNOT REMOVE (A VOICE)", "ESE NO SE QUITA (UNA VOZ)"), 1500);
+            else if (rk_finish(b, &len, rc, LG("REMOVED", "QUITADO")) == 0) {
                 rk_added = 0;
                 rk_added_gen = pages_gen();
                 rk_layout();
@@ -583,7 +595,7 @@ static void rk_sel_press(void)
     }
     if (rk_mode == RK_OUT) {
         if (!rk_jacks(rk_cur_mod(), 1)) {
-            ui_msg("SIN SALIDAS", 1200);
+            ui_msg(LG("NO OUTPUTS", "SIN SALIDAS"), 1200);
             return;
         }
         rk_src = rk_cur_mod();
@@ -595,10 +607,10 @@ static void rk_sel_press(void)
     }
     if (rk_mode == RK_IN) {
         if (!rk_jacks(rk_cur_mod(), 0)) {
-            ui_msg("SIN ENTRADAS", 1200);
+            ui_msg(LG("NO INPUTS", "SIN ENTRADAS"), 1200);
             return;
         }
-        if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, &len, pe_cable_add(b, &len, cap, rk_src, rk_src_jack, rk_cur_mod(), rk_jack), "CABLE LISTO") == 0) {
+        if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, &len, pe_cable_add(b, &len, cap, rk_src, rk_src_jack, rk_cur_mod(), rk_jack), LG("CABLE PLUGGED", "CABLE LISTO")) == 0) {
             rk_mode = RK_OUT;                           /* another cable from the same module, or SELECT on */
             rk_focus_mod();
         }
@@ -614,13 +626,13 @@ static void rk_sel_press(void)
             return;
         }
         rk_armed = 0;
-        if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, &len, pe_cable_del(b, &len, rk_sel), "CABLE AFUERA") == 0 && rk_sel && rk_sel >= (uint32_t)eng_ncables())
+        if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, &len, pe_cable_del(b, &len, rk_sel), LG("CABLE PULLED", "CABLE AFUERA")) == 0 && rk_sel && rk_sel >= (uint32_t)eng_ncables())
             rk_sel--;
         return;
     }
     if (rk_mode == RK_ADD) {
         uint32_t before = (uint32_t)eng_nmodules();
-        if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, &len, pe_module_add(b, &len, cap, RK_CAT_TYPE[rk_sel]), "AGREGADO") == 0) {
+        if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, &len, pe_module_add(b, &len, cap, RK_CAT_TYPE[rk_sel]), LG("ADDED", "AGREGADO")) == 0) {
             rk_added++;
             rk_added_gen = pages_gen();
             rk_layout();
@@ -690,10 +702,10 @@ static void rk_list(const char *title, uint32_t n, uint32_t cur, void (*row)(uin
         text5x7(RK_X0, y, t, 1, on ? P_INK : P_DIM, on ? (mark == i + 1u ? 0xF800u : P_PANEL) : P_NIGHT);
     }
     if (!n)
-        text5x7(RK_X0, RK_INFO_Y + 11u, "  (NADA)", 1, P_FAINT, P_NIGHT);
+        text5x7(RK_X0, RK_INFO_Y + 11u, LG("  (NOTHING)", "  (NADA)"), 1, P_FAINT, P_NIGHT);
 }
 
-static void rk_row_menu(uint32_t i, char *out) { put(out, RK_MENU_ITEMS[i])[0] = 0; }
+static void rk_row_menu(uint32_t i, char *out) { put(out, LG(RK_MENU_EN[i], RK_MENU_ITEMS[i]))[0] = 0; }
 static void rk_row_cable(uint32_t i, char *out)
 {
     uint32_t from = 0, fp = 0, to = 0, tp = 0;
@@ -710,9 +722,9 @@ static void rk_row_cable(uint32_t i, char *out)
 }
 static void rk_row_cat(uint32_t i, char *out)
 {
-    char *q = put(out, RK_CAT_LABEL[i]);
+    char *q = put(out, LG(RK_CAT_LABEL_EN[i], RK_CAT_LABEL[i]));
     q = put(q, "  ");
-    q = put(q, RK_FAMNAME[RK_CAT_FAM[i]]);
+    q = put(q, LG(RK_FAMNAME_EN[RK_CAT_FAM[i]], RK_FAMNAME[RK_CAT_FAM[i]]));
     *q = 0;
 }
 static int rk_jack_out;
@@ -736,28 +748,29 @@ static void rk_edit_draw(void)
     char t[48], *q;
     switch (rk_mode) {
     case RK_MENU:
-        rk_list("PATCHEO  (EDIT SALE)", RK_NMENU, rk_sel, rk_row_menu, 0);
+        rk_list(LG("PATCHING  (EDIT EXITS)", "PATCHEO  (EDIT SALE)"), RK_NMENU, rk_sel, rk_row_menu, 0);
         break;
     case RK_LIST:
-        rk_list(rk_armed ? "CABLES  SEL DE NUEVO: AFUERA" : "CABLES  SEL MARCA", (uint32_t)eng_ncables(), rk_sel, rk_row_cable, rk_armed);
+        rk_list(rk_armed ? LG("CABLES  SEL AGAIN: PULL", "CABLES  SEL DE NUEVO: AFUERA") : LG("CABLES  SEL MARKS", "CABLES  SEL MARCA"), (uint32_t)eng_ncables(), rk_sel, rk_row_cable, rk_armed);
         break;
     case RK_ADD:
-        rk_list("AGREGAR  SEL PONE", RK_NCAT, rk_sel, rk_row_cat, 0);
+        rk_list(LG("ADD  SEL PUTS IT", "AGREGAR  SEL PONE"), RK_NCAT, rk_sel, rk_row_cat, 0);
         break;
     case RK_DEL:
-        q = put(put(t, "QUITAR "), rk_mod_name(rk_cur_mod()));
+        q = put(put(t, LG("REMOVE ", "QUITAR ")), rk_mod_name(rk_cur_mod()));
         *q = 0;
         t[38] = 0;
         lcd_fill(0, RK_INFO_Y, 240, 240u - RK_INFO_Y, P_NIGHT);
         text5x7(RK_X0, RK_INFO_Y, t, 1, P_CORAL, P_NIGHT);
-        text5x7(RK_X0, RK_INFO_Y + 14u, rk_armed == rk_cur_mod() + 1u ? "SEL DE NUEVO LO QUITA (Y SUS CABLES)" : "SELECT ELIGE   SEL MARCA", 1,
+        text5x7(RK_X0, RK_INFO_Y + 14u, rk_armed == rk_cur_mod() + 1u ? LG("SEL AGAIN REMOVES IT (AND CABLES)", "SEL DE NUEVO LO QUITA (Y SUS CABLES)")
+                                                   : LG("SELECT PICKS   SEL MARKS", "SELECT ELIGE   SEL MARCA"), 1,
                 rk_armed == rk_cur_mod() + 1u ? 0xF800u : P_FAINT, P_NIGHT);
         break;
     case RK_OUT:
     case RK_IN:
         rk_jack_out = rk_mode == RK_OUT;
         if (rk_mode == RK_OUT)
-            q = put(put(t, "SALIDA DE "), rk_mod_name(rk_cur_mod()));
+            q = put(put(t, LG("OUTPUT OF ", "SALIDA DE ")), rk_mod_name(rk_cur_mod()));
         else
             q = put(put(put(put(put(t, rk_mod_name(rk_src)), " "), rk_jack_name(rk_src, rk_src_jack, 1)), " > "), rk_mod_name(rk_cur_mod()));
         *q = 0;

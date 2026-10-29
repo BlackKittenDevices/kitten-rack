@@ -12,7 +12,7 @@ import { MAX_POLY } from '../src/poly';
 import { FM1_PRESETS } from '../src/presets';
 import { FALLBACK_NAME, fallbackPatch } from '../src/fallback';
 import { factoryPresets } from '../src/factory-presets';
-import { FAMILIES, portLabel } from '../src/rack/catalog';
+import { FAMILIES, FAMILY_EN, LABEL_EN, PORT_EN, portLabel } from '../src/rack/catalog';
 const FACTORY_PRESETS = factoryPresets();
 
 const up = (s: string): string => s.toUpperCase().replace(/[^A-Z0-9]/g, '_');
@@ -194,6 +194,13 @@ w();
   w(`static const uint8_t RK_CAT_FAM[RK_NCAT] = {${cat.map((c) => c.fi).join(', ')}};`);
   w(`static const uint8_t RK_CAT_TYPE[RK_NCAT] = {${cat.map((c) => TYPE_ORDER.indexOf(c.type)).join(', ')}};`);
   w(`static const char *const RK_CAT_LABEL[RK_NCAT] = {${cat.map((c) => `"${plain(c.label)}"`).join(', ')}};`);
+  // KITTEN RACK: the same in English (the FM-1's language, GLO K4: rack_ui.c)
+  if (FAMILY_EN.length !== FAMILIES.length) throw new Error('catalog.ts FAMILY_EN: one per family');
+  w(`static const char *const RK_FAMNAME_EN[RK_NFAM] = {${FAMILY_EN.map((f) => `"${f}"`).join(', ')}};`);
+  w(`static const char *const RK_CAT_LABEL_EN[RK_NCAT] = {${cat.map((c) => `"${LABEL_EN[c.type] ?? plain(c.label)}"`).join(', ')}};`);
+  w(`#define RK_NPORT_EN ${Object.keys(PORT_EN).length}`);
+  w(`static const char *const RK_PORT_ES[RK_NPORT_EN] = {${Object.keys(PORT_EN).map((k) => `"${k}"`).join(', ')}};`);
+  w(`static const char *const RK_PORT_EN[RK_NPORT_EN] = {${Object.values(PORT_EN).map((k) => `"${k}"`).join(', ')}};`);
   w();
 }
 writeFileSync(new URL('../../firmware/src/defs.h', import.meta.url), L.join('\n'));

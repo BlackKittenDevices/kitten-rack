@@ -103,6 +103,17 @@ export const FAMILIES: Family[] = [
 const LABELS: Record<string, string> = { fm1: 'MIDI-CV', output: 'OUT', alloc: 'Voces', part: 'Parte', esp: 'Seguidor' };
 for (const f of FAMILIES) for (const t of f.types) LABELS[t.type] = t.label;
 
+/** KITTEN RACK: the English names the FM-1 shows with its language set to ENGLISH (GLO, K4): the families, and the
+ *  catalog labels that are Spanish (the rest are the same in both) */
+export const FAMILY_EN = ['SOURCES', 'GENERATIVE', 'FILTERS', 'VCA AND MIX', 'MODULATORS', 'LOGIC AND UTILITIES', 'EFFECTS'];
+export const LABEL_EN: Record<string, string> = {
+  noise: 'NOISE', string: 'STRING', modal: 'RESONATOR', euclid: 'EUCLIDEAN', chaos: 'CHAOS', vowel: 'FORMANT',
+  dyn: 'COMPRESSOR', func: 'FUNCTION', pulse: 'PULSE', clkdiv: 'CLOCK/DIV', quant: 'QUANTIZER', math: 'MATH',
+  logic: 'LOGIC', scale: 'ATTENUVERTER', arp: 'ARPEGGIATOR', select: 'SELECTOR',
+};
+/** the jack names that are Spanish (catalog PORT_NAMES), in English */
+export const PORT_EN: Record<string, string> = { ARRIBA: 'UP', ABAJO: 'DOWN', GOLPE: 'STRIKE', PULSO: 'PULSE', VOCAL: 'VOWEL', FORMA: 'SHAPE' };
+
 export const labelOf = (type: string): string => LABELS[type] ?? type.toUpperCase();
 
 const FAMILY_OF: Record<string, number> = {};
