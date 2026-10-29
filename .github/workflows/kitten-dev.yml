@@ -32,10 +32,14 @@ jobs:
           git -C ~/.jieli/ac79-sdk sparse-checkout set cpu/wl82/tools
           git -C ~/.jieli/ac79-sdk checkout
       - name: build
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           export JIELI_TOOLCHAIN="$HOME/.jieli/toolchain" AC79_SDK="$HOME/.jieli/ac79-sdk"
           mkdir -p build
-          KR_DEV=1 python3 tools/build.py
+          KR_DEV=1 python3 tools/build.py 2>&1 | tee build/dev-build.log || true
+          gh release view dev >/dev/null 2>&1 && gh release upload dev build/dev-build.log --clobber || true
+          test -f build/matryoshka.bin && ! grep -q "checks failed" build/dev-build.log
           cp build/matryoshka.bin build/dev-app.bin
           cp build/matryoshka.elf build/dev-matryoshka.elf
           M1_EMU_MIDI=1 KR_DEV=1 python3 tools/build.py   # (the editor link through the emulator: m1emu serve)
