@@ -1361,16 +1361,34 @@ int main(void)
         tap(BTN_HOME);
         enc(0, 3);
         check("  (the Muug still in)", eng_nmodules() == (int)nm + 1);
+        tap(BTN_SEL);                                       /* QUITAR MODULO (pe_module_del): the module in focus */
+        check("  QUITAR MODULO: SELECT picks a module", rk_mode == RK_DEL);
+        for (i = 0; i < 64u && rk_cur_mod() != last; i++)
+            enc(0, 1);
+        tap(BTN_SEL);
+        check("  SEL on the Muug: marked, still there", rk_armed == last + 1u && eng_nmodules() == (int)nm + 1);
         tap(BTN_SEL);
         {
             uint32_t ul = olen;
             (void)eng_upgrade(orig, &ul, sizeof orig);
             for (i = 0; i < ul && i < pv_len && orig[i] == pv_bin[i]; i++)
                 ;
-            check("  QUITAR ULTIMO AGREGADO: the Muug out, the patch's bytes as they were (today's format)", eng_nmodules() == (int)nm && ul == pv_len && i == ul);
+            check("  SEL again: the Muug out, the patch's bytes as they were (today's format)", eng_nmodules() == (int)nm && ul == pv_len && i == ul);
         }
+        for (i = 0; i < 64u && eng_type(rk_cur_mod()) != T_FM1; i++)
+            enc(0, 1);
         tap(BTN_SEL);
-        check("  again: nothing more of ours to take out", eng_nmodules() == (int)nm);
+        check("  MIDI-CV: not taken out", eng_nmodules() == (int)nm && rk_armed == 0u);
+        for (i = 0; i < 64u && eng_type(rk_cur_mod()) != T_DELAY; i++)
+            enc(0, 1);
+        {
+            uint32_t dl = rk_cur_mod();
+            tap(BTN_SEL);
+            tap(BTN_SEL);
+            check("  a factory module (its tape echo): out with its cables, the patch plays", eng_nmodules() == (int)nm - 1 && eng_find(T_DELAY) < 0
+                  && m1_check(pv_bin, pv_len) == 0 && dl < (uint32_t)nm);
+        }
+        tap(BTN_HOME);
         tap(6);
         check("EDIT again: the rack", !rack_editing() && page == PAGE_RACK);
         tap(BTN_HOME);

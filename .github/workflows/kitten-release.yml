@@ -64,6 +64,7 @@ jobs:
           tools/panel_test.sh
           tools/preset_test.sh
           tools/patch_edit_test.sh
+          tools/patch_del_test.sh
           tools/bank_test.sh
       - name: the offline editor (the rack page, relative paths, served by the installer on localhost)
         working-directory: web

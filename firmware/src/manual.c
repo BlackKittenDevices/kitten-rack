@@ -66,6 +66,7 @@ static const char *const MANUAL[] = {
     "   THEN AN INPUT, SEL PLUGS IT",
     "   CABLES: SEL TWICE PULLS ONE",
     "   AGREGAR: SEL ADDS A MODULE",
+    "   QUITAR: SELECT ONE, SEL TWICE",
     "   HOME BACK, EDIT LEAVES",
     " FX: NEXT EFFECT",
     " LFO: NEXT SOURCE OR MODULATOR",

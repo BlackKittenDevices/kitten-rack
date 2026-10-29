@@ -133,6 +133,7 @@ jobs:
           tools/panel_test.sh
           tools/preset_test.sh
           tools/patch_edit_test.sh
+          tools/patch_del_test.sh
           tools/bank_test.sh
           tools/ui_preview.sh build/ui-preview.png 0 1
       - uses: actions/upload-artifact@v4

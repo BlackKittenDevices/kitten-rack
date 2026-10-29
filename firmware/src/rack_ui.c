@@ -8,7 +8,7 @@
  *
  * Patching (EDIT opens its menu, from any page, when the patch leaves EDIT free: panel.c kr_button): CABLE NUEVO (SELECT a module, ALGO an output, SEL grabs it; SELECT another
  * module, ALGO an input, SEL plugs it in), CABLES (every cable; SEL twice pulls the one marked), AGREGAR (the catalog
- * by family; SEL puts the module at the end of the rack), QUITAR ULTIMO (the last module added here, with its cables).
+ * by family; SEL puts the module at the end of the rack), QUITAR MODULO (any module but MIDI-CV and OUT, SEL twice, with its cables: patch_edit.h pe_module_del).
  * HOME steps back, EDIT leaves. Each change is an edit of the running binary (patch_edit.h), loaded again as a whole: the
  * notes sounding stop. SAVE keeps it as any edit. */
 
@@ -332,6 +332,7 @@ static uint8_t rk_mode;                                 /* RK_VIEW, or patching:
 #define RK_IN 3u                                        /* .. its input */
 #define RK_LIST 4u                                      /* the cables */
 #define RK_ADD 5u                                       /* the catalog */
+#define RK_DEL 6u                                       /* KITTEN RACK: QUITAR MODULO, SELECT the module, SEL twice */
 static void rk_edit_draw(void);
 static void rk_edit_cable(void);
 
@@ -387,7 +388,7 @@ static void rack_open(void)
 
 /* ------------------------------------------------------------------ patching (KITTEN RACK) */
 
-static const char *const RK_MENU_ITEMS[] = {"CABLE NUEVO", "CABLES", "AGREGAR MODULO", "QUITAR ULTIMO AGREGADO"};
+static const char *const RK_MENU_ITEMS[] = {"CABLE NUEVO", "CABLES", "AGREGAR MODULO", "QUITAR MODULO"};
 #define RK_NMENU 4u
 static uint32_t rk_sel;                                 /* the menu's row, the cable list's, the catalog's */
 static uint32_t rk_mi, rk_jack;                         /* RK_OUT / RK_IN: the module (rk_mods index), its jack */
@@ -452,7 +453,9 @@ static void rk_turn(int32_t sel, int32_t algo)
         }
         return;
     }
-    if ((rk_mode == RK_OUT || rk_mode == RK_IN) && rk_nmods) {
+    if ((rk_mode == RK_OUT || rk_mode == RK_IN || rk_mode == RK_DEL) && rk_nmods) {
+        if (sel && rk_mode == RK_DEL)
+            rk_armed = 0;
         if (sel) {
             rk_mi = (uint32_t)(((int32_t)rk_mi + sel % (int32_t)rk_nmods + (int32_t)rk_nmods) % (int32_t)rk_nmods);
             rk_jack = 0;
@@ -541,13 +544,39 @@ static void rk_sel_press(void)
         } else if (rk_sel == 2u) {
             rk_mode = RK_ADD;
             rk_sel = 0;
-        } else if (!rk_added) {
-            ui_msg("NADA AGREGADO AQUI", 1500);
-        } else if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, &len, pe_module_pop(b, &len), "QUITADO") == 0) {
-            rk_added--;
-            rk_added_gen = pages_gen();
-            if (pg_cur_dev >= pg_ndev && pg_ndev)
-                (void)pages_focus(pg_ndev - 1u, 0);
+        } else {
+            rk_mode = RK_DEL;                           /* KITTEN RACK: any module (pe_module_del) */
+            rk_focus_mod();
+            rk_armed = 0;
+        }
+        rk_redraw();
+        return;
+    }
+    if (rk_mode == RK_DEL) {                            /* SEL marks the module in focus; SEL again takes it out */
+        uint32_t mod = rk_cur_mod();
+        int t = mod < ENG_MAX_MODULES ? eng_type(mod) : -1;
+        if (t < 0 || t == T_FM1 || t == T_OUTPUT) {
+            ui_msg("ESE NO SE QUITA", 1200);
+            return;
+        }
+        if (rk_armed != mod + 1u) {
+            rk_armed = mod + 1u;
+            ui_dirty = ui_dirty ? ui_dirty : 1;
+            return;
+        }
+        rk_armed = 0;
+        if ((b = rk_begin(&len, &cap)) != 0) {
+            int rc = pe_module_del(b, &len, mod);
+            if (rc == -4)
+                ui_msg("ESE NO SE QUITA (UNA VOZ)", 1500);
+            else if (rk_finish(b, &len, rc, "QUITADO") == 0) {
+                rk_added = 0;
+                rk_added_gen = pages_gen();
+                rk_layout();
+                if (pg_cur_dev >= pg_ndev && pg_ndev)
+                    (void)pages_focus(pg_ndev - 1u, 0);
+                rk_focus_mod();
+            }
         }
         rk_redraw();
         return;
@@ -714,6 +743,15 @@ static void rk_edit_draw(void)
         break;
     case RK_ADD:
         rk_list("AGREGAR  SEL PONE", RK_NCAT, rk_sel, rk_row_cat, 0);
+        break;
+    case RK_DEL:
+        q = put(put(t, "QUITAR "), rk_mod_name(rk_cur_mod()));
+        *q = 0;
+        t[38] = 0;
+        lcd_fill(0, RK_INFO_Y, 240, 240u - RK_INFO_Y, P_NIGHT);
+        text5x7(RK_X0, RK_INFO_Y, t, 1, P_CORAL, P_NIGHT);
+        text5x7(RK_X0, RK_INFO_Y + 14u, rk_armed == rk_cur_mod() + 1u ? "SEL DE NUEVO LO QUITA (Y SUS CABLES)" : "SELECT ELIGE   SEL MARCA", 1,
+                rk_armed == rk_cur_mod() + 1u ? 0xF800u : P_FAINT, P_NIGHT);
         break;
     case RK_OUT:
     case RK_IN:
