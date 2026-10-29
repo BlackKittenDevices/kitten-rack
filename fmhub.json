@@ -1,0 +1,8 @@
+{
+  "what": "A Eurorack-style modular synth: over 50 modules (VCOs, a Moog-style ladder, a low pass gate, Turing, Marbles, chaos, effects) patched with cables on the FM-1 itself, a 64-step sequencer with live recording, 33 factory patches, visuals, USB audio and MIDI.",
+  "kinds": [
+    "synth"
+  ],
+  "play": "https://blackkittendevices.github.io/kitten-rack/play.html",
+  "editor": "https://blackkittendevices.github.io/kitten-rack/"
+}

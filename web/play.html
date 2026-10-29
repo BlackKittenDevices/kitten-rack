@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KITTEN RACK · PLAY</title>
+  <meta name="description" content="KITTEN RACK for the M-VAVE FM-1, running in the browser: its real screens and its sound, no FM-1 needed." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 28V12L3 3l8 6h10l8-6-3 9v16z' fill='%23111'/%3E%3Cellipse cx='12' cy='17' rx='2.5' ry='3' fill='%23ff7a1a'/%3E%3Cellipse cx='20' cy='17' rx='2.5' ry='3' fill='%23ff7a1a'/%3E%3C/svg%3E" />
+  <style>
+    @font-face { font-family: 'Barlow Condensed'; src: url('./fonts/BarlowCondensed-SemiBold.ttf') format('truetype'); font-weight: 600; font-display: swap; }
+    @font-face { font-family: 'FM1 5x7'; src: url('./fonts/FM1-5x7.ttf') format('truetype'); font-display: swap; }
+    :root { --bg: #070707; --body: #141414; --edge: #2a2a2a; --orange: #ff7a1a; --dim: #8a3c08; --bone: #e8dcc8; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--bone); font-family: 'Barlow Condensed', sans-serif; }
+    header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 16px; background: var(--orange); color: #000; }
+    header h1 { margin: 0; font-size: 26px; letter-spacing: 1px; }
+    header .sp { flex: 1; }
+    header a, header button, header select { font: 600 15px 'Barlow Condensed', sans-serif; text-transform: uppercase; color: var(--orange);
+      background: #000; border: 0; padding: 6px 12px; text-decoration: none; cursor: pointer; }
+    main { max-width: 1180px; margin: 0 auto; padding: 16px; }
+    #fm1 { background: var(--body); border: 2px solid var(--edge); border-radius: 18px; padding: 18px; display: grid; gap: 16px;
+      grid-template-columns: minmax(150px, 1fr) minmax(240px, 480px) minmax(220px, 1.4fr); align-items: start; user-select: none; touch-action: none; }
+    .col { display: grid; gap: 12px; justify-items: center; }
+    .encs { display: grid; grid-template-columns: repeat(2, 72px); gap: 12px 16px; justify-content: center; }
+    .encs.k { grid-template-columns: repeat(4, 64px); }
+    .enc { display: grid; justify-items: center; gap: 4px; font-size: 13px; letter-spacing: .5px; }
+    .knob { width: 56px; height: 56px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #3a3a3a, #111 70%); border: 2px solid #000;
+      position: relative; cursor: ns-resize; box-shadow: 0 2px 0 #000; }
+    .knob::after { content: ''; position: absolute; left: 50%; top: 5px; width: 3px; height: 16px; margin-left: -1.5px; background: var(--orange);
+      border-radius: 2px; transform-origin: 50% 23px; transform: rotate(var(--a, 0deg)); }
+    #lcdbox { background: #000; border: 3px solid #000; border-radius: 6px; box-shadow: 0 0 0 2px var(--edge); }
+    #lcd { width: 100%; aspect-ratio: 1; display: block; image-rendering: pixelated; }
+    .btns { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; width: 100%; }
+    .btn { aspect-ratio: 5 / 6; border-radius: 6px; background: #1f1f1f; border: 2px solid #000; color: var(--bone); font: 600 13px 'Barlow Condensed';
+      display: grid; place-items: end center; padding-bottom: 6px; cursor: pointer; position: relative; box-shadow: 0 2px 0 #000; }
+    .btn::before { content: ''; position: absolute; top: 8px; left: 50%; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: #2c1404; }
+    .btn.dim::before { background: #5a2706; } .btn.lit::before, .btn.breath::before { background: var(--orange); box-shadow: 0 0 8px var(--orange); }
+    .btn.down { transform: translateY(2px); box-shadow: none; background: #2a2a2a; } .btn.latched { outline: 2px solid var(--orange); }
+    .octs { display: flex; gap: 8px; }
+    .octs .btn { width: 64px; aspect-ratio: 3 / 2; }
+    #keys { position: relative; height: 150px; margin-top: 18px; }
+    .key { position: absolute; border: 2px solid #000; border-radius: 0 0 6px 6px; cursor: pointer; }
+    .key.w { background: #d9cdb8; top: 0; height: 150px; z-index: 1; } .key.b { background: #1b1b1b; top: 0; height: 92px; z-index: 2; }
+    .key.on.w { background: var(--orange); } .key.on.b { background: var(--orange); }
+    .key.lit.w { box-shadow: inset 0 -10px 0 var(--orange); } .key.lit.b { box-shadow: inset 0 -8px 0 var(--orange); }
+    .key.mid.w { box-shadow: inset 0 -10px 0 var(--dim); } .key.mid.b { box-shadow: inset 0 -8px 0 var(--dim); }
+    #help { margin-top: 18px; display: grid; gap: 6px; font-size: 16px; line-height: 1.4; color: #cbbfa9; }
+    #help b { color: var(--orange); }
+    #start { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0,0,0,.82); z-index: 5; }
+    #start button { font: 600 26px 'Barlow Condensed'; color: #000; background: var(--orange); border: 0; padding: 14px 34px; cursor: pointer; }
+    #start p { color: var(--bone); text-align: center; font-size: 17px; max-width: 520px; padding: 0 16px; }
+    @media (max-width: 860px) { #fm1 { grid-template-columns: 1fr; } .col { order: 2; } #center { order: 1; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>KITTEN RACK</h1>
+    <span>FM-1 in the browser</span>
+    <span class="sp"></span>
+    <select id="patch" title="Factory patch (PRESET does the same)"></select>
+    <button id="midi" title="Play it from a MIDI keyboard">MIDI</button>
+    <a href="./rack.html" target="_blank" rel="noopener">EDITOR</a>
+    <a href="https://github.com/BlackKittenDevices/kitten-rack" target="_blank" rel="noopener">GITHUB</a>
+  </header>
+  <main>
+    <div id="fm1">
+      <div class="col">
+        <div class="encs" id="encs-l"></div>
+        <div class="octs" id="octs"></div>
+      </div>
+      <div id="center"><div id="lcdbox"><canvas id="lcd" width="240" height="240" aria-label="FM-1 screen"></canvas></div></div>
+      <div class="col">
+        <div class="encs k" id="encs-r"></div>
+        <div class="btns" id="btns"></div>
+      </div>
+    </div>
+    <div id="keys"></div>
+    <div id="help">
+      <div><b>Knobs:</b> drag up / down, the mouse wheel, or click the left / right half. <b>Buttons:</b> click (Shift-click holds one down, e.g. PLAY + PRESET for the tempo). <b>Keys:</b> click, or the computer keyboard A W S E D F T G Y H U J K (Z / X: octave).</div>
+      <div><b>Try:</b> PRESET for the 33 factory patches · SEQ for the sequencer, PLAY to run it · SEL for the rack · HOME (on the module page) for the oscilloscope and the visuals · GLO, GLO, then K4: <b>ENGLISH / ESPAÑOL</b>.</div>
+      <div>This is the real FM-1 firmware's screens and controls compiled for the browser, with the editor's engine making the sound (the same engine, sample for sample). Patching on the rack page (EDIT) and saving work on the FM-1 itself; here, use the <a href="./rack.html" style="color:var(--orange)">editor</a>.</div>
+    </div>
+  </main>
+  <div id="start"><div style="text-align:center">
+    <p>KITTEN RACK, a modular Eurorack-style firmware for the M-VAVE FM-1, running in your browser. Nothing is installed and nothing touches your FM-1.</p>
+    <button id="go">▶ PLAY</button>
+  </div></div>
+  <script type="module" src="./src/play/main.ts"></script>
+</body>
+</html>
