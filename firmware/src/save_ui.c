@@ -7,6 +7,7 @@
 #ifndef M1_NAME
 #define M1_NAME 20u                                    /* (proto.c's: a slot name's length) */
 #endif
+static void save_state(void);                          /* main.c: the running patch into cur_preset */
 static int save_slot_name(uint32_t slot, char *name);  /* main.c (the bank's header), host_ui.h: 1 + its name, 0 empty */
 #define SV_ROWS 13u
 #define SV_ROW_H 15u

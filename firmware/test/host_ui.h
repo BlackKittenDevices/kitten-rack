@@ -275,7 +275,7 @@ static int rack_apply(const uint8_t *bin, uint32_t len)
     return 0;
 }
 #include "../src/rack_ui.c"
-static void save_state(void);
+/* (save_state: declared in save_ui.c) */
 #ifndef M1_NAME
 #define M1_NAME 20u
 #endif
