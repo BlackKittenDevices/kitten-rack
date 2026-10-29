@@ -54,7 +54,7 @@ static const char *const MANUAL[] = {
     "   (OVER YOURS, A FACTORY ONE: NEW)",
     " K1-K4: THE FOUR ROWS OF THE PAGE",
     " HOME ON THE DEVICE PAGE: THE",
-    "   OSCILLOSCOPE, AGAIN: SPECTRUM,",
+    "   OSCILLOSCOPE, AGAIN: VISUALS,",
     "   AGAIN: BACK",
     " HOME: BACK ONE STEP (OUT OF SEQ,",
     "   OF THIS MENU), HELD: THIS MENU",

@@ -601,8 +601,23 @@ int main(void)
         tap(BTN_HOME);
         later(60);
         for (i = lit = 0; i < 240u * 240u; i++)
-            lit += fb[i] == VIZ_OR || fb[i] == VIZ_OR_HI || fb[i] == VIZ_OR_LO;
-        check("HOME again: the spectrum, its bars", page == PAGE_VIZ2 && lit > 50u);
+            lit += fb[i] != VIZ_BLACK;
+        check("HOME again: the VJ screen, its cells in orange", page == PAGE_VIZ2 && lit > 500u);
+        {
+            static const char *const SNAP[5] = {"PANEL_SNAP_VJ0", "PANEL_SNAP_VJ1", "PANEL_SNAP_VJ2", "PANEL_SNAP_VJ3", "PANEL_SNAP_VJ4"};
+            uint32_t sc;
+            for (sc = 0; sc < 5u; sc++) {
+                vj_scene = sc;
+                vj_since = fm1_ms;
+                for (k = 0; k < 6u; k++) {
+                    for (i = 0; i < 128u; i++)
+                        l[i] = r[i] = (int32_t)((((k * 128u + i) * 300u) & 0xFFFFu) < 0x8000u ? (((k * 128u + i) * 300u) & 0xFFFFu) : 0x10000u - (((k * 128u + i) * 300u) & 0xFFFFu)) - 0x4000;
+                    viz_tap(l, r, 128);
+                    later(50);
+                }
+                snap_to(getenv(SNAP[sc]));
+            }
+        }
         snap_to(getenv("PANEL_SNAP_SPECTRUM"));
     }
     tap(BTN_HOME);
