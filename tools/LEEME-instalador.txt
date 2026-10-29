@@ -1,0 +1,31 @@
+KITTEN RACK - instalador para el M-VAVE FM-1
+============================================
+
+Qué hay en esta carpeta
+  instalar_kitten_rack.py   el instalador (doble clic, o: python instalar_kitten_rack.py)
+  fm1_install.py            el método de instalación de Felucca que usa el instalador
+  kitten-rack-*.fwsc        el firmware
+  SHA256SUMS                las huellas para comprobar que el archivo llegó entero
+
+Antes de instalar
+  1. Necesitás Python 3.8 o más nuevo (python.org; en Windows marcá "Add python.exe to PATH").
+     Recomendado: Python 3.12 o 3.13 (python-rtmidi trae instalación lista para esas versiones).
+  2. Respaldá los patches y canciones del firmware que tenés ahora (Kitten Synths: con su editor).
+     KITTEN RACK usa su propio banco de patches y el anterior puede perderse.
+  3. Conectá el FM-1 por USB con un cable de datos y cerrá todo programa que use MIDI
+     (editores web, DAW, el editor de Kitten Synths).
+
+Instalar
+  Doble clic en instalar_kitten_rack.py. Te muestra qué firmware tiene el FM-1, te pregunta,
+  e instala. No desenchufes el FM-1 hasta que diga "Listo" (uno o dos minutos).
+  Si algo se corta, volvé a abrir el instalador: el FM-1 queda esperando y lo termina.
+
+Después
+  En el primer arranque KITTEN RACK escribe sus 33 patches de fábrica. Si no aparecen,
+  MENU > FACTORY RESET.  GLO abre el RACK, REC en el rack abre el patcheo.
+
+Volver a Kitten Synths (o a otro firmware de la familia Felucca)
+  python instalar_kitten_rack.py --paquete C:\ruta\al\archivo-de-kitten-synths.fwsc
+
+Solo ver qué firmware tiene el FM-1
+  python instalar_kitten_rack.py --solo-info

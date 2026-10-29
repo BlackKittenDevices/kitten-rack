@@ -102,6 +102,10 @@ GLO abre el RACK. Ahí, **REC** abre el menú PATCHEO:
 
 HOME vuelve un paso y REC sale. Cada cambio vuelve a cargar el patch entero, así que las notas que suenan se cortan. SAVE lo guarda como cualquier edición. Si el motor no tiene lugar (el FM-1 tiene un solo delay, una sola reverb y un solo chorus), avisa y el patch queda como estaba.
 
+## Instalar en el FM-1
+
+En [Releases](https://github.com/BlackKittenDevices/kitten-rack/releases) bajá `KittenRack-instalador-X.Y.Z.zip`, descomprimilo y abrí `instalar_kitten_rack.py` (doble clic, o `python instalar_kitten_rack.py`). Necesita Python 3.8 o más nuevo; instala solo lo demás. Muestra qué firmware tiene el FM-1, pregunta y recién ahí instala. Los pasos y cómo volver a Kitten Synths están en `LEEME.txt` dentro del zip.
+
 ## Firmware
 
 El workflow `.github/workflows/firmware.yml` compila el firmware en GitHub Actions en cada cambio de `firmware/` (el compilador de JieLi solo corre en Linux x86-64). Antes de instalar algo en un FM-1, leé las advertencias del [README original](README-matryoshka.md): **nunca instales un firmware sin la actualización por USB de Felucca**, porque es la vía de vuelta.
