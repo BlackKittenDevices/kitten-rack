@@ -33,14 +33,19 @@ Después, en el FM-1
   En el primer arranque KITTEN RACK escribe sus 33 patches de fábrica. Al actualizar, los patches de
   fábrica que nunca editaste se reemplazan solos por los nuevos (los tuyos no se tocan).
   SEL      el RACK (los módulos del patch)
-  EDIT     el patcheo: CABLE NUEVO, CABLES (sacar), AGREGAR MODULO, QUITAR ULTIMO. EDIT de nuevo sale
+  EDIT     el patcheo: CABLE NUEVO, CABLES (sacar), AGREGAR MODULO, QUITAR MODULO (SELECT elige,
+           SEL dos veces lo saca con sus cables). EDIT de nuevo sale
   FX       salta entre los efectos
   LFO      salta entre las fuentes de sonido y los moduladores
   ENV      salta entre las envolventes y los filtros
   ARP      prende / apaga el arpegiador y muestra su página (modo, ritmo, octavas, largo)
-  SEQ      el secuenciador: las teclas blancas ponen pasos, SELECT elige la nota, OCT- / OCT+ las
-           páginas (hasta 64 pasos). Sin paso apretado: K1 pasos, K2 ritmo, K3 swing, K4 tempo.
-           REC graba, PLAY corre / para, REC sostenido 4 segundos borra el patrón
+  SEQ      la pantalla del secuenciador (piano roll): SELECT elige la nota, ALGO el paso, SEL tocado
+           pone o saca la nota ahí (SEL sostenido: canciones), las teclas blancas también ponen pasos,
+           OCT- / OCT+ las páginas (hasta 64 pasos). Sin paso apretado: K1 pasos, K2 ritmo, K3 swing,
+           K4 tempo. REC sostenido 4 segundos borra el patrón
+  REC      graba desde cualquier pantalla: corriendo, graba donde va; parado, espera la primera nota
+           y arranca solo. REC de nuevo deja de grabar (sigue sonando)
+  HOME     en la pantalla de los módulos: el osciloscopio, otra vez: los visuales, otra vez: vuelve
   SAVE     elegí un lugar con SELECT: SAVE guarda ahí (si hay otro patch, SAVE de nuevo lo pisa),
            SEL carga el que está ahí, HOME sale. El patch se guarda entero: sonido y secuencias.
 
