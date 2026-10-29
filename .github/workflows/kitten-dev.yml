@@ -1,5 +1,5 @@
 # KITTEN RACK: a development build for the emulator (tools/emu), published as the assets of the "dev" pre-release:
-# dev-app.bin (what m1emu runs) and dev-matryoshka.elf (its symbols). Not a release for the FM-1: nothing to install.
+# dev-app.bin (what m1emu runs), dev-emu-app.bin (M1_EMU_MIDI=1: its USB MIDI for m1emu serve) and dev-matryoshka.elf (its symbols). Not a release for the FM-1: nothing to install.
 # Actions > kitten-dev > Run workflow, or a push to main that touches the firmware.
 name: kitten-dev
 on:
@@ -38,6 +38,8 @@ jobs:
           KR_DEV=1 python3 tools/build.py
           cp build/matryoshka.bin build/dev-app.bin
           cp build/matryoshka.elf build/dev-matryoshka.elf
+          M1_EMU_MIDI=1 KR_DEV=1 python3 tools/build.py   # (the editor link through the emulator: m1emu serve)
+          cp build/matryoshka.bin build/dev-emu-app.bin
           echo "$GITHUB_SHA" > build/dev-commit.txt
       - name: the dev pre-release
         env:
@@ -45,4 +47,4 @@ jobs:
         run: |
           gh release view dev >/dev/null 2>&1 || gh release create dev --target "$GITHUB_SHA" --prerelease \
             --title "dev (para el emulador: no instalar)" --notes "Build de desarrollo para el emulador. No es para instalar en el FM-1."
-          gh release upload dev build/dev-app.bin build/dev-matryoshka.elf build/dev-commit.txt --clobber
+          gh release upload dev build/dev-app.bin build/dev-emu-app.bin build/dev-matryoshka.elf build/dev-commit.txt --clobber

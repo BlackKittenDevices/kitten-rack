@@ -11,6 +11,7 @@
     <h1 id="logo">KITTEN RACK</h1>
     <input id="name" class="tag" aria-label="Nombre del patch" maxlength="24" />
     <button id="power" class="big">ENCENDER</button>
+    <button id="link" class="big" title="Conectar con el FM-1: lo que movés acá lo hace el FM-1, y al revés">FM-1</button>
     <button id="play">▶ PLAY</button>
     <span id="oct" class="tag">OCT +0</span>
     <div class="meter" title="CPU estimada del FM-1 para este patch (modelo de Matryoshka)">
@@ -22,6 +23,7 @@
     <select id="presets"><option value="">Fábrica…</option></select>
     <select id="mine"></select>
     <button id="save">GUARDAR</button>
+    <button id="tofm1" title="Guardar este patch en un lugar del FM-1">AL FM-1</button>
     <button id="export">EXPORTAR</button>
     <button id="import">IMPORTAR</button>
   </header>
@@ -45,6 +47,13 @@
     <span class="credit">motor: Matryoshka (GPL-3.0)</span>
   </footer>
   <div id="toast"></div>
+  <dialog id="slot-box">
+    <b>Guardar en el FM-1</b>
+    <p>Elegí el lugar. Si ya hay un patch ahí, se reemplaza.</p>
+    <select id="slot-list" size="12"></select>
+    <label>Nombre <input id="slot-name" maxlength="20" /></label>
+    <div><button id="slot-ok">GUARDAR</button> <button id="slot-close">CANCELAR</button></div>
+  </dialog>
   <dialog id="export-box">
     <b>Patch en texto</b>
     <p>Copialo y guardalo donde quieras. IMPORTAR acepta este texto en un archivo .json, igual que el editor de Matryoshka.</p>

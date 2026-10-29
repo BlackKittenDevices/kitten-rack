@@ -160,3 +160,9 @@ dialog textarea { width: 100%; background: #000; color: var(--bone); border: 1px
   #logo { font-size: 26px; }
 }
 #midi a { color: var(--orange); }
+
+/* KITTEN RACK: the FM-1 link */
+#link.on { background: var(--orange); color: #000; box-shadow: 0 0 12px var(--orange); }
+dialog select { width: 100%; background: #000; color: var(--bone); border: 1px solid var(--rust); font-family: monospace; font-size: 13px; margin: 6px 0; }
+dialog label { display: block; margin: 6px 0; color: var(--bone-dim); }
+dialog input { background: #000; color: var(--bone); border: 1px solid var(--rust); font-family: monospace; padding: 3px 6px; }

@@ -12,26 +12,18 @@
     "tempo": 120
    },
    "panel": {
-    "toggle": [
-     "arp"
-    ],
     "kinds": {
      "fx": "nothing",
      "lfo": "nothing",
      "edit": "nothing",
-     "arp": "bypass"
-    },
-    "targets": {
-     "arp": {
-      "module": 13
-     }
+     "arp": "nothing"
     }
    }
   },
   {
    "id": 2,
    "type": "output",
-   "x": 800,
+   "x": 240,
    "y": 828,
    "params": {
     "level": 0.95
@@ -358,76 +350,6 @@
      "pre"
     ]
    }
-  },
-  {
-   "id": 12,
-   "type": "steps",
-   "x": 240,
-   "y": 828,
-   "params": {
-    "len": 16,
-    "rate": 4,
-    "swing": 50,
-    "gate": 0.25,
-    "dir": 0
-   },
-   "att": [
-    1,
-    1
-   ],
-   "map": {
-    "p1": [
-     "len"
-    ],
-    "p2": [
-     "rate"
-    ],
-    "k1": [
-     "len"
-    ],
-    "k2": [
-     "rate"
-    ],
-    "k3": [
-     "swing"
-    ],
-    "k4": [
-     "gate"
-    ]
-   },
-   "name": "PATTERN"
-  },
-  {
-   "id": 13,
-   "type": "arp",
-   "x": 400,
-   "y": 828,
-   "params": {
-    "mode": 0,
-    "rate": 4,
-    "octaves": 2,
-    "gate": 0.4,
-    "latch": 0
-   },
-   "bypass": true
-  },
-  {
-   "id": 14,
-   "type": "alloc",
-   "x": 560,
-   "y": 828,
-   "params": {
-    "voices": 1,
-    "assign": 0,
-    "legato": 0,
-    "priority": 0,
-    "unison": 0,
-    "channel": 0,
-    "low": 0,
-    "high": 127,
-    "steal": 1,
-    "stack": 0
-   }
   }
  ],
  "cables": [
@@ -549,36 +471,6 @@
    "to": {
     "module": 2,
     "port": "r"
-   }
-  },
-  {
-   "from": {
-    "module": 1,
-    "port": "keys"
-   },
-   "to": {
-    "module": 12,
-    "port": "keys"
-   }
-  },
-  {
-   "from": {
-    "module": 12,
-    "port": "keys"
-   },
-   "to": {
-    "module": 13,
-    "port": "keys"
-   }
-  },
-  {
-   "from": {
-    "module": 13,
-    "port": "keys"
-   },
-   "to": {
-    "module": 14,
-    "port": "keys"
    }
   }
  ],

@@ -36,7 +36,9 @@
 #define M1_PATCH_MAX 3840u                                   /* a bank slot is one 4 KB sector: 256 B of header, the patch */
 #define M1_VERSION 1
 
-enum { C_HELLO = 0x01, C_CHUNK = 0x10, C_COMMIT = 0x11, C_STORE = 0x12, C_PARAM = 0x20, C_ATT = 0x21, C_BYPASS = 0x22, C_RANGE = 0x23, C_TRANSPORT = 0x25, C_MUTE = 0x27, C_FOCUS = 0x29, C_TRACK = 0x2A, C_DIAG = 0x2B, C_LIVE = 0x2C, C_PRESETS = 0x2D, C_PRESET_GET = 0x2E, C_PRESET_PUT = 0x2F, C_PRESET_DEL = 0x30, C_SANDBOX = 0x31, C_TEST_KEY = 0x32, C_TEST_TURN = 0x33, C_TEST_SCREEN = 0x34, C_TEST_PEAK = 0x35, C_PATTERN = 0x36, C_SONG = 0x37, C_SLOT = 0x13, C_SLOT_ERASE = 0x14, C_SLOT_INFO = 0x15, R_ACK = 0x40, R_INFO = 0x41, R_SLOT = 0x42, R_SLOT_NOW = 0x43, R_MUTE = 0x45, R_PARAM_NOW = 0x47, R_FOCUS_NOW = 0x48, R_TRACK = 0x49, R_DIAG = 0x4B, R_PRESET = 0x4C, R_PRESET_DATA = 0x4D, R_PRESET_STORED = 0x4E, R_SCREEN = 0x50, R_PEAK = 0x51, R_PATTERN_NOW = 0x52, R_SONG_NOW = 0x53 };
+enum { C_HELLO = 0x01, C_CHUNK = 0x10, C_COMMIT = 0x11, C_STORE = 0x12, C_PARAM = 0x20, C_ATT = 0x21, C_BYPASS = 0x22, C_RANGE = 0x23, C_TRANSPORT = 0x25, C_MUTE = 0x27, C_FOCUS = 0x29, C_TRACK = 0x2A, C_DIAG = 0x2B, C_LIVE = 0x2C, C_PRESETS = 0x2D, C_PRESET_GET = 0x2E, C_PRESET_PUT = 0x2F, C_PRESET_DEL = 0x30, C_SANDBOX = 0x31, C_TEST_KEY = 0x32, C_TEST_TURN = 0x33, C_TEST_SCREEN = 0x34, C_TEST_PEAK = 0x35, C_PATTERN = 0x36, C_SONG = 0x37, C_PATCH_GET = 0x38, C_SLOT = 0x13, C_SLOT_ERASE = 0x14, C_SLOT_INFO = 0x15, R_ACK = 0x40, R_INFO = 0x41, R_SLOT = 0x42, R_SLOT_NOW = 0x43, R_MUTE = 0x45, R_PARAM_NOW = 0x47, R_FOCUS_NOW = 0x48, R_TRACK = 0x49, R_DIAG = 0x4B, R_PRESET = 0x4C, R_PRESET_DATA = 0x4D, R_PRESET_STORED = 0x4E, R_SCREEN = 0x50, R_PEAK = 0x51, R_PATTERN_NOW = 0x52, R_SONG_NOW = 0x53, R_PATCH_DATA = 0x54, R_PATCH_NOW = 0x55 };
+#define M1_KR_FEATURES 1u                                    /* INFO byte 9 (KITTEN RACK): bit 0 = PATCH_GET / PATCH_DATA / PATCH_NOW */
+#define M1_PATCH_PIECE 128u                                  /* PATCH_DATA: the running patch's bytes per frame */
 #define M1_FEATURES 246u                                     /* INFO byte 5: bit 1 = the TRANSPORT command, bit 2 = MUTE, bit 4 = FOCUS / PARAM_NOW / FOCUS_NOW, bit 5 = TRACK / TRACK_NOW, bit 6 = LIVE, bit 7 = the presets (#195) (bit 0 ARP, bit 3 STEPVAL and STEP are retired) */
 #define M1_FEATURES2 255u                                     /* INFO byte 6, feature bits 8..15: bit 8 = sandbox mode (LIVE paused mutes the FM-1, SANDBOX, the MIDI OUT flag), bit 9 = the device test mode (TEST_KEY, TEST_TURN, TEST_SCREEN, TEST_PEAK; #291), bit 10 = TEST_PEAK reads before MASTER and flags MASTER down, bit 11 = reads format 35, bit 12 = reads format 36, bit 13 = reads format 37, bit 14 = reads format 38, bit 15 = reads format 39 (legacy editor compatibility; INFO bytes 7..8 report the readable range) */
 #define M1_INFO_MIDI_OUT 4u                                  /* INFO byte 3 (flags) bit 2: MENU > MIDI OUT is on (with feature bit 8) */
@@ -119,10 +121,53 @@ static void m1_slot_now(uint32_t slot, const char *name)
     m1_reply(R_SLOT_NOW, p, sizeof p);
 }
 
+/* KITTEN RACK: the running patch for the editor (PATCH_GET offset u16 -> PATCH_DATA total u16, offset u16, crc16 u16,
+ * slot u8, n u8, n bytes from the offset), so it shows what the FM-1 plays; PATCH_NOW (total u16, crc16 u16, slot u8),
+ * unasked, after the patch changed on the FM-1 in a way no other message tells (the rack page's patching) */
+static uint32_t m1_cur_slot(void);
+static void m1_patch_data(uint32_t off)
+{
+    static uint8_t f[6u + (8u * (8u + M1_PATCH_PIECE) + 6u) / 7u];
+    uint8_t p[8u + M1_PATCH_PIECE];
+    uint32_t n = off < m1_cur_len ? m1_cur_len - off : 0u, i, w = 0;
+    uint16_t crc = m1_crc16(m1_cur, m1_cur_len);
+    if (n > M1_PATCH_PIECE)
+        n = M1_PATCH_PIECE;
+    p[0] = (uint8_t)m1_cur_len;
+    p[1] = (uint8_t)(m1_cur_len >> 8);
+    p[2] = (uint8_t)off;
+    p[3] = (uint8_t)(off >> 8);
+    p[4] = (uint8_t)crc;
+    p[5] = (uint8_t)(crc >> 8);
+    p[6] = (uint8_t)m1_cur_slot();
+    p[7] = (uint8_t)n;
+    for (i = 0; i < n; i++)
+        p[8u + i] = m1_cur[off + i];
+    f[w++] = 0xF0;
+    f[w++] = 0x7D;
+    f[w++] = 0x4D;
+    f[w++] = 0x31;
+    f[w++] = R_PATCH_DATA;
+    w += m1_pack7(p, 8u + n, f + w);
+    f[w++] = 0xF7;
+    m1_send(f, w);
+}
+static void m1_patch_now(void)
+{
+    uint8_t p[5];
+    uint16_t crc = m1_crc16(m1_cur, m1_cur_len);
+    p[0] = (uint8_t)m1_cur_len;
+    p[1] = (uint8_t)(m1_cur_len >> 8);
+    p[2] = (uint8_t)crc;
+    p[3] = (uint8_t)(crc >> 8);
+    p[4] = (uint8_t)m1_cur_slot();
+    m1_reply(R_PATCH_NOW, p, sizeof p);
+}
+
 /* INFO: the answer to HELLO, and unasked when MENU > MIDI OUT changed under the editor's Live (live.c) */
 static void m1_info(void)
 {
-    uint8_t p[9];
+    uint8_t p[10];
     p[0] = M1_VERSION;
     p[1] = ENG_MAX_MODULES;
     p[2] = ENG_MAX_CABLES;
@@ -132,7 +177,8 @@ static void m1_info(void)
     p[6] = M1_FEATURES2;
     p[7] = ENG_PATCH_COMPAT_VERSION;
     p[8] = ENG_PATCH_VERSION;
-    m1_reply(R_INFO, p, 9);
+    p[9] = M1_KR_FEATURES;
+    m1_reply(R_INFO, p, 10);
 }
 
 static void m1_ack(uint32_t cmd, uint32_t seq, uint32_t status, uint32_t aux)
@@ -636,6 +682,9 @@ static int m1_handle(const uint8_t *f, uint32_t n)
     switch (f[3]) {
     case C_HELLO:
         m1_info();
+        break;
+    case C_PATCH_GET:                                        /* KITTEN RACK: offset u16 -> PATCH_DATA */
+        m1_patch_data(len >= 2u ? (uint32_t)d[0] | (uint32_t)d[1] << 8 : 0u);
         break;
     case C_DIAG: {                                           /* bring-up diagnostics (main.c m1_diag): [page, bytes] */
         uint8_t p[33];

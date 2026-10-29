@@ -616,6 +616,7 @@ static uint8_t *rack_scratch(uint32_t *cap)
     *cap = M1_PATCH_MAX;
     return m1_up_total ? 0 : m1_up;
 }
+static uint32_t m1_cur_slot(void) { return cur_preset; }   /* (proto.c PATCH_DATA / PATCH_NOW) */
 static int rack_apply(const uint8_t *bin, uint32_t len)
 {
     uint32_t i;
@@ -642,6 +643,8 @@ static int rack_apply(const uint8_t *bin, uint32_t len)
     m1_gen++;                                   /* the device pages and the rack again */
     leds_avail();
     ui_full = 1;
+    if (patches_up)
+        m1_patch_now();                         /* KITTEN RACK: the editor reads it again */
     return 0;
 }
 

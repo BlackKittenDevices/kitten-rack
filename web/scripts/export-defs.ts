@@ -4,6 +4,7 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { ADSR_LONG, ASSIGN_MODES, CHAOS_BETA_Q16, CHAOS_DT_K, CHAOS_KX, CHAOS_KY, CHAOS_KZ, CHAOS_STEPS, DEFS, LPG_ATTACK, MARBLES_MEMORY, ESP_ATTACK, FILTER_OSC_CLIP, FILTER_OSC_FROM, FILTER_OSC_GAIN, FILTER_OSC_K, FILTER_OSC_SEED, ESP_CLIP, ESP_FLOOR, ESP_GLIDE_SHIFT, ESP_MAX_PERIOD, ESP_MIN_PERIOD, ESP_PEAK_SHIFT, ESP_RELEASE, DELAY_DIVS, DELAY_CLK_PPQN, DELAY_NOTES, DELAY_SWELL_DEN, DELAY_SWELL_NUM, LEGATO_MODES, LFO_MULTS, LFO_RANGE_K, RATIO_OCT, RATIO_DETUNE_OCT, PRIORITIES, TRACK_POLY } from '../src/modules';
 import { encodePatch, TYPE_ORDER, toQ16, VERSION } from '../src/patchbin';
+import { forDevice } from '../src/rack/layout';
 import { validatePatch, type Patch } from '../src/patch';
 import { FLAW_RANGE, MAX_PARTS, STEP_NOTE, STEP_VEL, STEPS_MAX, thruInput, TRACK_NAME_MAX } from '../src/patch';
 import { ACCENT_VEL, TRACK_NOTES_MAX } from '../src/track';
@@ -249,7 +250,7 @@ const KR_DIR = new URL('../src/rack/factory/', import.meta.url);
 const KR_BANK: Record<string, () => Patch> = Object.fromEntries(readdirSync(KR_DIR).filter((f) => f.endsWith('.json')).sort().map((f) => {
   const raw = readFileSync(new URL(f, KR_DIR), 'utf8');
   const p = validatePatch(JSON.parse(raw), DEFS);
-  return [p.name, () => validatePatch(JSON.parse(raw), DEFS)];
+  return [p.name, () => forDevice(validatePatch(JSON.parse(raw), DEFS))];   // (its pages in the rack's reading order)
 }));
 presetsHeader(KR_BANK, 'the KITTEN RACK factory bank (web/src/rack/factory)', new URL('../../firmware/src/presets.h', import.meta.url));
 { // two of them for the host tests (panel_test.c): what KITTEN RACK's buttons do on its own patches

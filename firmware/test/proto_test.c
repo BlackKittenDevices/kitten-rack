@@ -29,6 +29,7 @@ static int m1_store(const uint8_t *p, uint32_t n)
     return 0;
 }
 static int m1_flash_ok(void) { return 1; }
+static uint32_t m1_cur_slot(void) { return 7u; }
 static void m1_ui_changed(void) {}
 static void m1_ui_rows(void) {}
 static int transport_calls;
@@ -559,15 +560,37 @@ int main(int argc, char **argv)
         nreplies = 0;
         CHECK(m1_handle(q, sizeof q) == 1 && nreplies == 1 && replies[0][4] == R_INFO);
         n = m1_unpack7(replies[0] + 5, reply_len[0] - 6u, p, sizeof p);
-        CHECK(n == 9u && p[7] == ENG_PATCH_COMPAT_VERSION && p[8] == ENG_PATCH_VERSION);
+        CHECK(n == 10u && p[7] == ENG_PATCH_COMPAT_VERSION && p[8] == ENG_PATCH_VERSION && p[9] == M1_KR_FEATURES);
         CHECK(p[5] == M1_FEATURES && p[6] == M1_FEATURES2 && (p[3] & M1_INFO_MIDI_OUT));
         midi_out_on = 0;
         nreplies = 0;
         CHECK(m1_handle(q, sizeof q) == 1 && nreplies == 1);
         n = m1_unpack7(replies[0] + 5, reply_len[0] - 6u, p, sizeof p);
-        CHECK(n == 9u && p[7] == ENG_PATCH_COMPAT_VERSION && p[8] == ENG_PATCH_VERSION);
+        CHECK(n == 10u && p[7] == ENG_PATCH_COMPAT_VERSION && p[8] == ENG_PATCH_VERSION);
         CHECK(!(p[3] & M1_INFO_MIDI_OUT));
         midi_out_on = 1;
+    }
+    /* PATCH_GET (KITTEN RACK): the running patch in pieces, each with its total, offset, CRC and slot; put together: m1_cur */
+    if (m1_cur_len) {
+        static uint8_t got[M1_PATCH_MAX];
+        uint32_t off = 0, total = 0, crc = 0, ok = 1, rounds = 0;
+        do {
+            uint8_t a[2] = {(uint8_t)off, (uint8_t)(off >> 8)}, q[16] = {0x7D, 0x4D, 0x31, C_PATCH_GET}, p[200];
+            uint32_t nq = 4u + m1_pack7(a, 2u, q + 4), n, k;
+            nreplies = 0;
+            ok &= m1_handle(q, nq) == 1 && nreplies == 1 && replies[0][4] == R_PATCH_DATA;
+            n = m1_unpack7(replies[0] + 5, reply_len[0] - 6u, p, sizeof p);
+            total = (uint32_t)p[0] | (uint32_t)p[1] << 8;
+            crc = (uint32_t)p[4] | (uint32_t)p[5] << 8;
+            ok &= ((uint32_t)p[2] | (uint32_t)p[3] << 8) == off && p[6] == 7u && n == 8u + p[7];
+            for (k = 0; k < p[7]; k++)
+                got[off + k] = p[8u + k];
+            off += p[7];
+        } while (ok && off < total && ++rounds < 64u);
+        CHECK(ok && total == m1_cur_len && !memcmp(got, m1_cur, total) && crc == m1_crc16(m1_cur, m1_cur_len));
+        nreplies = 0;
+        m1_patch_now();
+        CHECK(nreplies == 1 && replies[0][4] == R_PATCH_NOW);
     }
     /* SANDBOX: the frame web/src/protocol.ts made (golden.ts), parsed field by field; one byte short: not taken, no reply */
     if (argc > 11) {

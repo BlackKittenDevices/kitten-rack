@@ -56,6 +56,8 @@ function build(name: string, play: Play, notes: string, make: (add: Add, wire: W
  * note sound the same.
  */
 function withSequencer(p: Patch, main: ModuleInst): void {
+  // (a patch that plays itself takes nothing from the keys: a sequencer there would play nothing, so it gets none)
+  if (!p.cables.some((c) => c.from.module === main.id && ['pitch', 'gate', 'vel'].includes(c.from.port))) return;
   const steps = addModule(p, DEFS.steps, 0, 0);
   Object.assign(steps.params, { len: 16, rate: 4, swing: 50, gate: 0.25, dir: 0 });
   steps.name = 'PATTERN';

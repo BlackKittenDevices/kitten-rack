@@ -463,15 +463,57 @@ mod midi {
     }
 }
 
+/// Elsewhere (Linux, KITTEN RACK): no virtual MIDI port, a TCP socket on 127.0.0.1 instead (M1EMU_MIDI_TCP, default
+/// 5199) that a test bridges to a browser's Web MIDI: every message both ways as u16 LE length + its bytes (one complete
+/// message each; what the host writes goes in as MIDI bytes, as CoreMIDI would hand them over).
 #[cfg(not(target_os = "macos"))]
 mod midi {
+    use std::io::{Read, Write};
+    use std::net::{TcpListener, TcpStream};
     use std::sync::{Arc, Mutex};
-    pub struct Ports;
-    impl Ports {
-        pub fn send(&self, _msg: &[u8]) {}
+    pub struct Ports {
+        client: Arc<Mutex<Option<TcpStream>>>,
     }
-    pub fn open(_name: &str, _inbox: Arc<Mutex<Vec<u8>>>) -> Result<Ports, String> {
-        Err("the virtual MIDI port needs macOS (CoreMIDI)".into())
+    impl Ports {
+        pub fn send(&self, msg: &[u8]) {
+            let mut c = self.client.lock().unwrap();
+            if let Some(s) = c.as_mut() {
+                let mut f = Vec::with_capacity(msg.len() + 2);
+                f.extend_from_slice(&(msg.len() as u16).to_le_bytes());
+                f.extend_from_slice(msg);
+                if s.write_all(&f).is_err() {
+                    *c = None;
+                }
+            }
+        }
+    }
+    pub fn open(_name: &str, inbox: Arc<Mutex<Vec<u8>>>) -> Result<Ports, String> {
+        let port: u16 = std::env::var("M1EMU_MIDI_TCP").ok().and_then(|v| v.parse().ok()).unwrap_or(5199);
+        let l = TcpListener::bind(("127.0.0.1", port)).map_err(|e| format!("127.0.0.1:{port}: {e}"))?;
+        let client: Arc<Mutex<Option<TcpStream>>> = Arc::new(Mutex::new(None));
+        let keep = client.clone();
+        std::thread::spawn(move || {
+            for s in l.incoming().flatten() {
+                let _ = s.set_nodelay(true);
+                let mut r = match s.try_clone() {
+                    Ok(r) => r,
+                    Err(_) => continue,
+                };
+                *keep.lock().unwrap() = Some(s);
+                let inbox = inbox.clone();
+                std::thread::spawn(move || {
+                    let mut h = [0u8; 2];
+                    while r.read_exact(&mut h).is_ok() {
+                        let mut b = vec![0u8; u16::from_le_bytes(h) as usize];
+                        if r.read_exact(&mut b).is_err() {
+                            break;
+                        }
+                        inbox.lock().unwrap().extend_from_slice(&b);
+                    }
+                });
+            }
+        });
+        Ok(Ports { client })
     }
 }
 

@@ -9,7 +9,7 @@ import { deviceView } from './poly';
 /** a module's index on the FM-1: its place in the patch's device form (poly.ts deviceView: editor-only modules such as
  * the Scope are not there, so the editor's order is not the device's); -1 when the device does not have it */
 export const deviceIndex = (patch: Patch, moduleId: number): number => deviceView(patch, true).patch.modules.findIndex((m) => m.id === moduleId);
-import { RIG_STRUCTURE, sandboxFrame, FEATURE_SANDBOX, type SandboxPage, devicePresetName, parsePresetData, parsePresetEntry, parsePresetStored, presetDelFrame, presetGetFrame, presetPutFrame, presetsFrame, type DevicePresetEntry, muteFrame, trackFrame, parseTrack, patternFrame, songFrame, parsePatternNow, parseSongNow, focusFrame, liveFrame, transportFrame, attFrame, bypassFrame, chunkFrames, CMD, parseSlot, rangeFrame, slotEraseFrame, slotFrame, slotInfoFrame, SLOTS, type SlotInfo, commitFrame, helloFrame, paramFrame, parse, parseAck, parseInfo, STATUS_TEXT, storeFrame, type Ack, type Info } from './protocol';
+import { crc16, parsePatchData, parsePatchNow, patchGetFrame, RIG_STRUCTURE, sandboxFrame, FEATURE_SANDBOX, type SandboxPage, devicePresetName, parsePresetData, parsePresetEntry, parsePresetStored, presetDelFrame, presetGetFrame, presetPutFrame, presetsFrame, type DevicePresetEntry, muteFrame, trackFrame, parseTrack, patternFrame, songFrame, parsePatternNow, parseSongNow, focusFrame, liveFrame, transportFrame, attFrame, bypassFrame, chunkFrames, CMD, parseSlot, rangeFrame, slotEraseFrame, slotFrame, slotInfoFrame, SLOTS, type SlotInfo, commitFrame, helloFrame, paramFrame, parse, parseAck, parseInfo, STATUS_TEXT, storeFrame, type Ack, type Info } from './protocol';
 
 /** what connecting the FM-1 does with Live sync (#171): `sync` turns it on without asking, `ask` offers Sync / Not now,
  *  `off` leaves it off (Not now was chosen in this visit) */
@@ -94,7 +94,7 @@ export const syncLine = (s: ChipState): { text: string; action: 'sync' | 'stop' 
   : s === 'patch too big to sync' ? { text: 'Sandbox patch, not synced: Sync makes the FM-1 its controller', action: 'sync' }
   : { text: 'Not connected', action: null };
 
-const NAME = /felucca|fm-?1|matryoshka|modular/i;
+const NAME = /felucca|fm-?1|matryoshka|modular|kitten/i;
 const ACK_TIMEOUT = 700;
 const FLASH_TIMEOUT = 2500; // a flash sector erase and program
 const TRIES = 3;
@@ -114,7 +114,9 @@ export type DeviceEvent =
   /** a preset stored on the FM-1 (#195, ENV held + SAVE) */
   | { kind: 'presetStored'; structure: string; name: string }
   /** an INFO nobody asked for: MENU > MIDI OUT changed under Live (feature bit 8; `info` has it) */
-  | { kind: 'info' };
+  | { kind: 'info' }
+  /** KITTEN RACK: the patch changed on the FM-1 (its rack page's patching): read it again (readPatch) */
+  | { kind: 'patchNow'; total: number; crc: number; slot: number };
 
 export class DeviceLink {
   private out: MIDIOutput | null = null;
@@ -169,6 +171,8 @@ export class DeviceLink {
         return this.onEvent({ kind: 'param', module: p.payload[0], param: p.payload[1], value: v });
       }
       if (p?.cmd === CMD.focusNow && p.payload.length >= 2) return this.onEvent({ kind: 'focus', device: p.payload[0], page: p.payload[1] });
+      const pc = p ? parsePatchNow(p) : null;
+      if (pc) return this.onEvent({ kind: 'patchNow', ...pc });
       const stored = p ? parsePresetStored(p) : null;
       if (stored) return this.onEvent({ kind: 'presetStored', ...stored });
       const entry = p && this.collecting ? parsePresetEntry(p) : null;
@@ -236,6 +240,31 @@ export class DeviceLink {
       await this.ackFor(commitFrame(bin), CMD.commit);
     };
     return this.serial(run);
+  }
+
+  /** KITTEN RACK: the firmware hands over the patch it plays (INFO byte 9, bit 0) */
+  get canRead(): boolean {
+    return !!(this.info && (this.info.kr ?? 0) & 1);
+  }
+
+  /** KITTEN RACK: the patch the FM-1 plays, its bytes and the slot it came from; checked against its CRC */
+  readPatch(): Promise<{ bin: Uint8Array; slot: number }> {
+    return this.serial(async () => {
+      const out: number[] = [];
+      let total = 1, crc = 0, slot = 0;
+      for (let tries = 0; out.length < total && tries < 64; tries++) {
+        const off = out.length;
+        const p = await this.request(patchGetFrame(off), (x) => x?.cmd === CMD.patchData && (x.payload[2] | (x.payload[3] << 8)) === off);
+        const piece = parsePatchData(p);
+        if (!piece) throw new Error('unexpected answer to PATCH_GET');
+        ({ total, crc, slot } = piece);
+        if (!piece.data.length && out.length < total) throw new Error('the FM-1 sent an empty piece');
+        out.push(...piece.data);
+      }
+      const bin = Uint8Array.from(out.slice(0, total));
+      if (bin.length !== total || crc16(bin) !== crc) throw new Error('the patch came cut short (CRC)');
+      return { bin, slot };
+    });
   }
 
   /** the firmware takes the TRANSPORT command (INFO feature bit 1) */

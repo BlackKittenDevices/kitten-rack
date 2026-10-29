@@ -9,7 +9,12 @@ import {
   type Endpoint, type ModuleInst, type ParamDef, type Patch,
 } from '../patch';
 import { FAMILIES, cableColor, familyOf, labelOf, paramLabel, portLabel } from './catalog';
-import { HP_PX, ROW_H, ROW_HP, ROW_PITCH, RAIL_X, fits, freeSpot, geoOf, onGrid, pack, panelGeo, placeOf, setPlace, type Spot } from './layout';
+import { HP_PX, ROW_H, ROW_HP, ROW_PITCH, RAIL_X, fits, forDevice, freeSpot, geoOf, onGrid, pack, panelGeo, placeOf, setPlace, type Spot } from './layout';
+import { DeviceLink, type DeviceEvent } from '../device';
+import { deviceView } from '../poly';
+import { crc16 } from '../protocol';
+import { encodePatch } from '../patchbin';
+import { decodeDevicePatch } from './devicebin';
 
 const NAME = 'KITTEN RACK';
 const STORE = 'kittenrack.patches';
@@ -19,7 +24,7 @@ const host = new AudioHost();
 let patch: Patch = initPatch();
 let rows = 3;
 let octave = 0;
-const knobEls = new Map<string, { ring: SVGPathElement; mod: SVGPathElement; text: HTMLElement; pd: ParamDef; id: number }>();
+const knobEls = new Map<string, { ring: SVGPathElement; mod: SVGPathElement; text: HTMLElement; pd: ParamDef; id: number; show: () => void }>();
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 const rack = $<HTMLDivElement>('#rack');
@@ -51,7 +56,7 @@ function initPatch(): Patch {
   return p;
 }
 
-function load(raw: unknown): void {
+function load(raw: unknown, fromDevice = false): void {
   try {
     const p = validatePatch(structuredClone(raw), DEFS);
     if (!p.modules.some((m) => m.type === 'fm1')) addModule(p, DEFS.fm1, 0, 0).panel = NEW_PANEL();
@@ -61,17 +66,19 @@ function load(raw: unknown): void {
     patch = p;
     octave = p.octave ?? 0;
     render();
-    sendPatch();
-    toast(`Cargado: ${p.name}`);
+    sendPatch(fromDevice);
+    if (!fromDevice) toast(`Cargado: ${p.name}`);
   } catch (e) {
     toast(`No se pudo abrir el patch: ${(e as Error).message}`);
   }
 }
 
-function sendPatch(): void {
+/** the patch to the browser's engine, and (unless it came from there) to the FM-1 when it is linked */
+function sendPatch(fromDevice = false): void {
   host.setPatch(structuredClone(patch));
   saveCurrent();
   meters();
+  if (!fromDevice) toDevice();
 }
 
 function saveCurrent(): void {
@@ -258,11 +265,12 @@ function knob(m: ModuleInst, pd: ParamDef, at: Spot): HTMLElement {
     val.textContent = valueText(pd, v);
   };
   show();
-  knobEls.set(`${m.id}:${pd.name}`, { ring, mod, text: val, pd, id: m.id });
+  knobEls.set(`${m.id}:${pd.name}`, { ring, mod, text: val, pd, id: m.id, show });
   const set = (v: number): void => {
     m.params[pd.name] = v;
     show();
     host.send({ t: 'param', id: m.id, name: pd.name, value: v });
+    if (linked) link.param(patch, m.id, pd.name, v);
     saveCurrent();
     meters();
   };
@@ -496,6 +504,7 @@ function pinMenu(m: ModuleInst, pin: 'p1' | 'p2', el: HTMLElement): void {
     m.att![idx] = Number(range.value) / 100;
     out.textContent = `${range.value} %`;
     host.send({ t: 'att', id: m.id, index: idx, value: m.att![idx] });
+    if (linked) link.att(patch, m.id, idx, m.att![idx]);
     saveCurrent();
   };
   amt.append('Cantidad ', range, out);
@@ -664,14 +673,178 @@ function importJson(): void {
   input.click();
 }
 
+// ---------- the FM-1, live (device.ts DeviceLink: the same SysEx link as Matryoshka's editor) ----------
+
+const link = new DeviceLink();
+let linked = false;
+let uploadTimer = 0;
+let lastCrc = -1;   // the CRC of the binary the FM-1 holds, as far as the editor knows (sent or read)
+const FM1_PORT = /felucca|fm-?1|matryoshka|modular|kitten/i;
+
+function linkStatus(s: string): void {
+  $('#link').textContent = linked ? 'FM-1 EN VIVO' : 'FM-1';
+  $('#link').classList.toggle('on', linked);
+  document.body.classList.toggle('linked', linked);
+  if (s) $('#midi').textContent = s;
+}
+
+const linkError = (e: unknown): string => (e as Error).message
+  .replace('FM-1 not found. Is it connected and running the Matryoshka firmware?', 'no lo encuentro (¿conectado por USB, con KITTEN RACK, y cerrado el instalador?)')
+  .replace('Web MIDI is not available in this browser (use Chrome or Edge)', 'este navegador no tiene MIDI (usá Chrome o Edge)')
+  .replace('no answer from the FM-1', 'el FM-1 no contesta');
+
+async function linkToggle(): Promise<void> {
+  if (linked) {
+    linked = false;
+    linkStatus('FM-1 desconectado: el editor suena solo');
+    return;
+  }
+  try {
+    linkStatus('FM-1: conectando…');
+    await link.connect();
+    linked = true;
+    if (host.running && !host.muted) await power();   // (the FM-1 makes the sound now: the browser's engine is quiet)
+    if (link.canRead) {
+      await readDevice();
+      linkStatus('FM-1 en vivo: lo que movés acá lo hace el FM-1, y al revés');
+    } else {
+      linkStatus('FM-1 en vivo (su firmware no manda el patch: se le manda el del editor)');
+      toDevice(true);
+    }
+  } catch (e) {
+    linked = false;
+    linkStatus(`FM-1: ${linkError(e)}`);
+  }
+}
+
+/** the patch the FM-1 plays, into the rack (nothing sent back) */
+async function readDevice(): Promise<void> {
+  const { bin, slot } = await link.readPatch();
+  lastCrc = crc16(bin);
+  let name = `FM-1 ${slot + 1}`;
+  try {
+    name = (await link.readSlot(slot)).name || name;
+  } catch { /* (the slot's name is a nicety) */ }
+  try {
+    load(decodeDevicePatch(bin, name.toLowerCase()), true);
+    toast(`Del FM-1: ${name}`);
+  } catch (e) {
+    toast(`El editor no puede mostrar el patch del FM-1 (${(e as Error).message}): mandale uno desde acá`);
+  }
+}
+
+/** the rack's patch to the FM-1 (after a short wait, so a dragged cable or a burst of edits goes once) */
+function toDevice(now = false): void {
+  if (!linked) return;
+  clearTimeout(uploadTimer);
+  uploadTimer = window.setTimeout(async () => {
+    try {
+      const dev = forDevice(patch);
+      const crc = crc16(encodePatch(dev));
+      if (crc === lastCrc) return;
+      await link.upload(dev);
+      lastCrc = crc;
+    } catch (e) {
+      toast(`No pasa al FM-1: ${linkError(e).replace('over the FM-1 budget', 'no entra en el FM-1')}`);
+    }
+  }, now ? 0 : 150);
+}
+
+/** the editor's module for a device module index (the binary's order: poly.ts deviceView) */
+function fromDeviceIndex(mi: number): ModuleInst | undefined {
+  const id = deviceView(patch, true).patch.modules[mi]?.id;
+  return id === undefined ? undefined : patch.modules.find((m) => m.id === id);
+}
+
+link.onEvent = (e: DeviceEvent) => {
+  if (!linked) return;
+  if (e.kind === 'param') {
+    const m = fromDeviceIndex(e.module);
+    const pd = m ? DEFS[m.type].params[e.param] : undefined;
+    if (!m || !pd || m.type === 'alloc') return;
+    m.params[pd.name] = e.value;
+    host.send({ t: 'param', id: m.id, name: pd.name, value: e.value });
+    knobEls.get(`${m.id}:${pd.name}`)?.show();
+    lastCrc = -1;
+    saveCurrent();
+  } else if (e.kind === 'slot' || e.kind === 'patchNow') {
+    if (e.kind === 'patchNow' && e.crc === lastCrc) return;
+    if (link.canRead) void readDevice().catch((x) => toast(`FM-1: ${linkError(x)}`));
+  } else if (e.kind === 'track') {
+    const m = fromDeviceIndex(e.module);
+    if (!m || m.type !== 'steps') return;
+    if (e.pat > 0) {
+      const pats = m.patterns ?? [];
+      while (pats.length < e.pat) pats.push(null);
+      pats[e.pat - 1] = { ...(pats[e.pat - 1] ?? {}), notes: e.notes.length ? e.notes : undefined };
+      m.patterns = pats;
+    } else m.notes = e.notes.length ? e.notes : undefined;
+    lastCrc = -1;
+    sendPatch(true);
+  } else if (e.kind === 'pattern' || e.kind === 'song') {
+    const main = patch.modules.find((m) => m.type === 'fm1');
+    if (!main) return;
+    if (e.kind === 'pattern') main.seq = { ...(main.seq ?? {}), pattern: e.pattern || undefined, song: e.song || undefined };
+    else {
+      const songs = [...(main.seq?.songs ?? [])];
+      songs[e.song] = e.entries;
+      main.seq = { ...(main.seq ?? {}), songs };
+    }
+    lastCrc = -1;
+    saveCurrent();
+  }
+};
+link.onStatus = (s) => {
+  if (/disconnected/i.test(s)) {
+    linked = false;
+    linkStatus('FM-1 desconectado');
+  }
+};
+
+/** the rack's patch into a slot of the FM-1's bank */
+async function saveToDevice(): Promise<void> {
+  if (!linked) return toast('Conectá el FM-1 primero (botón FM-1)');
+  const box = $<HTMLDialogElement>('#slot-box');
+  const list = $<HTMLSelectElement>('#slot-list');
+  const name = $<HTMLInputElement>('#slot-name');
+  list.replaceChildren(new Option('leyendo el banco del FM-1…', ''));
+  name.value = patch.name.toUpperCase().slice(0, 20);
+  box.showModal();
+  $('#slot-close').onclick = () => box.close();
+  $('#slot-ok').onclick = async () => {
+    if (list.value === '') return;
+    const slot = Number(list.value);
+    try {
+      await link.uploadSlot(slot, name.value.trim() || patch.name, forDevice(patch));
+      toast(`Guardado en el FM-1, lugar ${slot + 1}`);
+      box.close();
+    } catch (e) {
+      toast(`No se guardó: ${linkError(e)}`);
+    }
+  };
+  try {
+    const bank = await link.readBank();
+    const free = bank.findIndex((s) => !s.used);
+    list.replaceChildren(...bank.map((s, i) => new Option(`${String(i + 1).padStart(2, '0')}  ${s.used ? s.name : '— vacío —'}`, String(i))));
+    list.value = String(free >= 0 ? free : 0);
+  } catch (e) {
+    list.replaceChildren(new Option(`no pude leer el banco: ${linkError(e)}`, ''));
+  }
+}
+
 // ---------- playing: the computer keyboard and MIDI ----------
 
 const KEYMAP = 'awsedftgyhujkolp;';
 const down = new Set<string>();
 
 function noteOn(note: number, vel: number): void {
+  if (linked) return link.note({ t: 'on', note, vel: vel / 127 });
   if (!host.running) void power();
   host.send({ t: 'on', note, vel });
+}
+function noteOff(note: number): void {
+  if (linked) return link.note({ t: 'off', note });
+  host.send({ t: 'off', note });
 }
 
 window.addEventListener('keydown', (e) => {
@@ -692,7 +865,7 @@ window.addEventListener('keyup', (e) => {
   const i = KEYMAP.indexOf(k);
   if (i < 0 || !down.has(k)) return;
   down.delete(k);
-  host.send({ t: 'off', note: 60 + octave * 12 + i });
+  noteOff(60 + octave * 12 + i);
 });
 
 /** where the editor runs on its own page, so the browser lets it use MIDI (.github/workflows/rack-pages.yml) */
@@ -718,21 +891,26 @@ async function midi(): Promise<void> {
         inp.onmidimessage = (ev) => {
           const d = ev.data;
           if (!d || !d.length) return;
+          if (linked && FM1_PORT.test(inp.name ?? '')) return;   // (linked: the FM-1 plays its own keys)
           const s = d[0] & 0xf0;
           if (s === 0x90 && d[2] > 0) {
-            if (held.delete(d[1])) host.send({ t: 'off', note: d[1] });   // (a held note struck again starts afresh)
+            if (held.delete(d[1])) noteOff(d[1]);   // (a held note struck again starts afresh)
             noteOn(d[1], d[2]);
           } else if (s === 0x80 || (s === 0x90 && d[2] === 0)) {
             if (pedal) held.add(d[1]);
-            else host.send({ t: 'off', note: d[1] });
+            else noteOff(d[1]);
           } else if (s === 0xb0) {
             if (d[1] === 64) {                                            // sustain pedal: holds the notes let go meanwhile
               pedal = d[2] >= 64;
-              if (!pedal) { for (const n of held) host.send({ t: 'off', note: n }); held.clear(); }
+              if (!pedal) { for (const n of held) noteOff(n); held.clear(); }
             }
-            if (d[1] === 120 || d[1] === 123) { held.clear(); host.send({ t: 'panic' }); }
+            if (d[1] === 120 || d[1] === 123) { held.clear(); if (linked) link.note({ t: 'panic' }); else host.send({ t: 'panic' }); }
+            else if (linked) link.cc(d[1], d[2]);
             else host.send({ t: 'cc', n: d[1], v: d[2] });
-          } else if (s === 0xe0) host.send({ t: 'bend', v: ((d[2] << 7) | d[1]) / 8192 - 1 });
+          } else if (s === 0xe0) {
+            if (linked) link.bend(((d[2] << 7) | d[1]) / 8192 - 1);
+            else host.send({ t: 'bend', v: ((d[2] << 7) | d[1]) / 8192 - 1 });
+          }
           else if (s === 0xd0) host.send({ t: 'at', v: d[1] / 127 });
           else if (d[0] === 0xf8) host.send({ t: 'clock' });
           else if (d[0] === 0xfa || d[0] === 0xfb) host.send({ t: 'clockrun', on: true });
@@ -817,6 +995,7 @@ function boot(): void {
   $('#play').onclick = () => {
     playing = !playing;
     host.transport(playing);
+    if (linked) link.transport(playing);
     $('#play').textContent = playing ? '■ STOP' : '▶ PLAY';
   };
   const zoom = $<HTMLInputElement>('#zoom');
@@ -828,6 +1007,8 @@ function boot(): void {
     if (!(e.target as HTMLElement).closest('.menu, .jack')) closeMenus();
   });
   host.onError = (msg) => toast(`Motor: ${msg}`);
+  $('#link').onclick = () => void linkToggle();
+  $('#tofm1').onclick = () => void saveToDevice();
   void midi();
 }
 

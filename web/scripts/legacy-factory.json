@@ -1028,6 +1028,18 @@
    "version": 49
   },
   {
+   "name": "ARPEGIO MARBLES",
+   "len": 745,
+   "fnv": "95988eeb",
+   "version": 49
+  },
+  {
+   "name": "BERLIN SEQ",
+   "len": 1098,
+   "fnv": "48217369",
+   "version": 49
+  },
+  {
    "name": "BERLIN SEQ",
    "len": 1098,
    "fnv": "e0b8ebe8",
@@ -1394,6 +1406,18 @@
    "version": 49
   },
   {
+   "name": "BRONCES 1971",
+   "len": 790,
+   "fnv": "ee1114f8",
+   "version": 49
+  },
+  {
+   "name": "BUCHLA TIMBRE",
+   "len": 790,
+   "fnv": "40144081",
+   "version": 49
+  },
+  {
    "name": "BUCHLA TIMBRE",
    "len": 615,
    "fnv": "9d46898d",
@@ -1403,6 +1427,12 @@
    "name": "BUCHLA TIMBRE",
    "len": 790,
    "fnv": "bb8983b0",
+   "version": 49
+  },
+  {
+   "name": "CAMPANAS RING",
+   "len": 676,
+   "fnv": "18c41b90",
    "version": 49
   },
   {
@@ -1616,6 +1646,12 @@
    "version": 49
   },
   {
+   "name": "CAOS MELODICO",
+   "len": 819,
+   "fnv": "c8eef798",
+   "version": 49
+  },
+  {
    "name": "CASSIA 1",
    "len": 1627,
    "fnv": "55aec3e4",
@@ -1730,6 +1766,12 @@
    "version": 49
   },
   {
+   "name": "COMPUTADORA S&H",
+   "len": 721,
+   "fnv": "f1395872",
+   "version": 49
+  },
+  {
    "name": "CUERDA INFINITA",
    "len": 379,
    "fnv": "b7343a7a",
@@ -1740,6 +1782,18 @@
    "len": 550,
    "fnv": "d8b52485",
    "version": 46
+  },
+  {
+   "name": "CUERDA INFINITA",
+   "len": 550,
+   "fnv": "f019a5dc",
+   "version": 46
+  },
+  {
+   "name": "CUERDAS AZAR",
+   "len": 815,
+   "fnv": "93249d94",
+   "version": 49
   },
   {
    "name": "CUERDAS AZAR",
@@ -1883,6 +1937,12 @@
    "name": "DRONE MUUG",
    "len": 483,
    "fnv": "2f465751",
+   "version": 49
+  },
+  {
+   "name": "DRONE MUUG",
+   "len": 664,
+   "fnv": "f328de8d",
    "version": 49
   },
   {
@@ -2390,6 +2450,18 @@
    "version": 46
   },
   {
+   "name": "ENJAMBRE LFO",
+   "len": 1060,
+   "fnv": "f1be47d8",
+   "version": 46
+  },
+  {
+   "name": "EUCLIDES",
+   "len": 884,
+   "fnv": "296b53ff",
+   "version": 49
+  },
+  {
    "name": "EUCLIDES",
    "len": 884,
    "fnv": "2d8a25c2",
@@ -2720,6 +2792,12 @@
    "version": 46
   },
   {
+   "name": "FEEDBACK COMB",
+   "len": 656,
+   "fnv": "a4ae1874",
+   "version": 46
+  },
+  {
    "name": "FM BELL",
    "len": 279,
    "fnv": "adf0f255",
@@ -2844,6 +2922,12 @@
    "len": 434,
    "fnv": "b9f3de62",
    "version": 21
+  },
+  {
+   "name": "FM CHOWNING",
+   "len": 774,
+   "fnv": "121a626c",
+   "version": 46
   },
   {
    "name": "FM CHOWNING",
@@ -3137,6 +3221,12 @@
    "name": "GOTAS RESONADOR",
    "len": 615,
    "fnv": "747c6ed3",
+   "version": 49
+  },
+  {
+   "name": "GOTAS RESONADOR",
+   "len": 790,
+   "fnv": "80e2f7b7",
    "version": 49
   },
   {
@@ -3646,6 +3736,12 @@
   {
    "name": "INIT",
    "len": 615,
+   "fnv": "5f3c60ee",
+   "version": 49
+  },
+  {
+   "name": "INIT",
+   "len": 615,
    "fnv": "6f238220",
    "version": 49
   },
@@ -4077,6 +4173,12 @@
   },
   {
    "name": "LEAD 1969",
+   "len": 944,
+   "fnv": "20655b9c",
+   "version": 49
+  },
+  {
+   "name": "LEAD 1969",
    "len": 767,
    "fnv": "368068f8",
    "version": 49
@@ -4092,6 +4194,12 @@
    "len": 3802,
    "fnv": "a55299d6",
    "version": 34
+  },
+  {
+   "name": "LORENZ DRONE",
+   "len": 786,
+   "fnv": "1083522b",
+   "version": 49
   },
   {
    "name": "LORENZ DRONE",
@@ -4588,6 +4696,12 @@
   {
    "name": "MUUG BAJO",
    "len": 786,
+   "fnv": "2e3b4863",
+   "version": 49
+  },
+  {
+   "name": "MUUG BAJO",
+   "len": 786,
    "fnv": "4deb07f2",
    "version": 49
   },
@@ -4595,6 +4709,12 @@
    "name": "MUUG BAJO",
    "len": 611,
    "fnv": "c54efc7b",
+   "version": 49
+  },
+  {
+   "name": "MUUG TAPE",
+   "len": 875,
+   "fnv": "0ff706a7",
    "version": 49
   },
   {
@@ -4631,6 +4751,12 @@
    "name": "NIEBLA GRANULAR",
    "len": 535,
    "fnv": "b14b6cec",
+   "version": 46
+  },
+  {
+   "name": "NIEBLA GRANULAR",
+   "len": 708,
+   "fnv": "d864841c",
    "version": 46
   },
   {
@@ -5522,6 +5648,12 @@
    "version": 49
   },
   {
+   "name": "POLIRRITMO",
+   "len": 982,
+   "fnv": "f77efab7",
+   "version": 49
+  },
+  {
    "name": "PULSE LEAD",
    "len": 276,
    "fnv": "a4db7692",
@@ -6102,6 +6234,12 @@
    "len": 3219,
    "fnv": "31f4bd49",
    "version": 46
+  },
+  {
+   "name": "SHIFT ESPACIAL",
+   "len": 789,
+   "fnv": "04b664a5",
+   "version": 49
   },
   {
    "name": "SHIFT ESPACIAL",
@@ -7407,6 +7545,12 @@
   },
   {
    "name": "SYNC LEAD",
+   "len": 802,
+   "fnv": "3914cba1",
+   "version": 49
+  },
+  {
+   "name": "SYNC LEAD",
    "len": 627,
    "fnv": "b1678247",
    "version": 49
@@ -7421,6 +7565,12 @@
    "name": "THEREMIN",
    "len": 639,
    "fnv": "0c72cad1",
+   "version": 46
+  },
+  {
+   "name": "THEREMIN",
+   "len": 814,
+   "fnv": "d16285ef",
    "version": 46
   },
   {
@@ -7553,6 +7703,12 @@
    "name": "TURING MAQUINA",
    "len": 972,
    "fnv": "dd718956",
+   "version": 49
+  },
+  {
+   "name": "TURING MAQUINA",
+   "len": 972,
+   "fnv": "f84a112b",
    "version": 49
   },
   {
@@ -7992,6 +8148,12 @@
    "len": 324,
    "fnv": "08894aac",
    "version": 21
+  },
+  {
+   "name": "VOCES FORMANTE",
+   "len": 929,
+   "fnv": "46a3e5bb",
+   "version": 46
   },
   {
    "name": "VOCES FORMANTE",

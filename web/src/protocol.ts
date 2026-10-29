@@ -94,7 +94,7 @@
 import { noteWord, PATTERNS_MAX, SHIFT_MAX, SONG_LEN_MAX, SONGS_MAX, TRACK_NOTES_MAX, wordNote, type SongEntry, type StepNote } from './track';
 
 export const PREFIX = [0x7d, 0x4d, 0x31];
-export const CMD = { hello: 0x01, chunk: 0x10, commit: 0x11, store: 0x12, param: 0x20, att: 0x21, bypass: 0x22, range: 0x23, transport: 0x25, mute: 0x27, focus: 0x29, track: 0x2a, diag: 0x2b, live: 0x2c, slot: 0x13, slotErase: 0x14, slotInfo: 0x15, ack: 0x40, info: 0x41, slotReply: 0x42, slotNow: 0x43, muteNow: 0x45, paramNow: 0x47, focusNow: 0x48, trackNow: 0x49, diagReply: 0x4b, presets: 0x2d, presetGet: 0x2e, presetPut: 0x2f, presetDel: 0x30, sandbox: 0x31, preset: 0x4c, presetData: 0x4d, presetStored: 0x4e, testKey: 0x32, testTurn: 0x33, testScreen: 0x34, testPeak: 0x35, screen: 0x50, peak: 0x51, pattern: 0x36, song: 0x37, patternNow: 0x52, songNow: 0x53 } as const; // diag: bring-up diagnostics (tools/m1_link.py diag; the editor does not use it)
+export const CMD = { hello: 0x01, chunk: 0x10, commit: 0x11, store: 0x12, param: 0x20, att: 0x21, bypass: 0x22, range: 0x23, transport: 0x25, mute: 0x27, focus: 0x29, track: 0x2a, diag: 0x2b, live: 0x2c, slot: 0x13, slotErase: 0x14, slotInfo: 0x15, ack: 0x40, info: 0x41, slotReply: 0x42, slotNow: 0x43, muteNow: 0x45, paramNow: 0x47, focusNow: 0x48, trackNow: 0x49, diagReply: 0x4b, presets: 0x2d, presetGet: 0x2e, presetPut: 0x2f, presetDel: 0x30, sandbox: 0x31, preset: 0x4c, presetData: 0x4d, presetStored: 0x4e, testKey: 0x32, testTurn: 0x33, testScreen: 0x34, testPeak: 0x35, screen: 0x50, peak: 0x51, pattern: 0x36, song: 0x37, patternNow: 0x52, songNow: 0x53, patchGet: 0x38, patchData: 0x54, patchNow: 0x55 } as const; // diag: bring-up diagnostics (tools/m1_link.py diag; the editor does not use it)
 export const PROTO_VERSION = 1;
 export const CHUNK_BYTES = 384;
 export const STATUS_TEXT = ['ok', 'bad offset or size', 'checksum mismatch', 'the firmware refused the patch', 'flash error', 'unknown command', 'nothing to store', 'the preset store is full', 'no such preset'];
@@ -259,6 +259,8 @@ export interface Info {
   patchFormats?: { min: number; max: number };
   /** MENU > MIDI OUT is on (the FM-1's panel reaches the editor); null: the firmware does not say (no feature bit 8) */
   midiOut: boolean | null;
+  /** KITTEN RACK (INFO byte 9): bit 0 = PATCH_GET / PATCH_DATA / PATCH_NOW */
+  kr?: number;
 }
 export interface Ack {
   cmd: number;
@@ -272,7 +274,7 @@ export function parseInfo(p: Parsed): Info | null {
   const features = (p.payload[5] ?? 0) | ((p.payload[6] ?? 0) << 8);
   return { version: p.payload[0], maxModules: p.payload[1], maxCables: p.payload[2], flashOk: !!(p.payload[3] & 1), patchLoaded: !!(p.payload[3] & 2), delays: p.payload[4], features,
     midiOut: features & FEATURE_SANDBOX ? !!(p.payload[3] & 4) : null,
-    ...(p.payload.length >= 9 ? { patchFormats: { min: p.payload[7], max: p.payload[8] } } : {}) };
+    ...(p.payload.length >= 9 ? { patchFormats: { min: p.payload[7], max: p.payload[8] } } : {}), ...(p.payload.length >= 10 ? { kr: p.payload[9] } : {}) };
 }
 export const parseAck = (p: Parsed): Ack | null => (p.cmd === CMD.ack && p.payload.length >= 4 ? { cmd: p.payload[0], seq: p.payload[1], status: p.payload[2], aux: p.payload[3] } : null);
 
@@ -374,6 +376,19 @@ export const testKeyFrame = (id: number, down: boolean): Uint8Array => frame(CMD
 export const testTurnFrame = (enc: number, clicks: number): Uint8Array => frame(CMD.testTurn, [enc & 0xff, Math.max(-128, Math.min(127, clicks | 0)) & 0xff]);
 export const testScreenFrame = (): Uint8Array => frame(CMD.testScreen);
 export const testPeakFrame = (): Uint8Array => frame(CMD.testPeak);
+
+// ---- KITTEN RACK: the running patch read back (proto.c m1_patch_data)
+//   38 PATCH_GET   offset u16                         device answers PATCH_DATA
+//   54 PATCH_DATA  total u16, offset u16, crc16 u16, slot u8, n u8, n bytes   a piece of the patch the FM-1 plays
+//   55 PATCH_NOW   total u16, crc16 u16, slot u8      unasked: the patch changed on the FM-1 (the rack page's patching)
+export const patchGetFrame = (offset: number): Uint8Array => frame(CMD.patchGet, [offset & 0xff, (offset >> 8) & 0xff]);
+export interface PatchPiece { total: number; offset: number; crc: number; slot: number; data: number[] }
+export const parsePatchData = (p: Parsed): PatchPiece | null =>
+  p.cmd === CMD.patchData && p.payload.length >= 8 && p.payload.length >= 8 + p.payload[7]
+    ? { total: p.payload[0] | (p.payload[1] << 8), offset: p.payload[2] | (p.payload[3] << 8), crc: p.payload[4] | (p.payload[5] << 8), slot: p.payload[6], data: p.payload.slice(8, 8 + p.payload[7]) }
+    : null;
+export const parsePatchNow = (p: Parsed): { total: number; crc: number; slot: number } | null =>
+  p.cmd === CMD.patchNow && p.payload.length >= 5 ? { total: p.payload[0] | (p.payload[1] << 8), crc: p.payload[2] | (p.payload[3] << 8), slot: p.payload[4] } : null;
 export interface ScreenText { x: number; y: number; w: number; h: number; s: string }
 export interface ScreenHead { count: number; page: number; sandbox: boolean; booting: boolean }
 /** a SCREEN frame: the head (k 0xFF) or text k */

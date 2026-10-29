@@ -141,3 +141,38 @@ export function pack(p: Patch, defs: Record<string, ModuleDef>): number {
 }
 
 const rank = (m: ModuleInst): number => (m.type === 'fm1' ? 0 : m.type === 'output' ? 2 : 1);
+
+/** the rack's modules in reading order: row by row, left to right */
+export const readingOrder = (p: Patch): ModuleInst[] =>
+  [...p.modules].sort((a, b) => placeOf(a).row - placeOf(b).row || placeOf(a).hp - placeOf(b).hp || a.id - b.id);
+
+/** the patch as the FM-1 gets it: its device pages in the rack's reading order (pages.ts devicesOf reads columns of x, so
+ * every module stands in a column of its own, left to right in reading order). The rack keeps its own copy as it is. */
+export function forDevice(p: Patch): Patch {
+  const q = structuredClone(p);
+  const order = new Map(readingOrder(p).map((m, i) => [m.id, i]));
+  for (const m of q.modules) {
+    m.x = RAIL_X + 1000 * (order.get(m.id) ?? 0);
+    m.y = 0;
+  }
+  return q;
+}
+
+/** pack the modules into rows in the order given (ids; the rest after them, as they are listed) */
+export function packInOrder(p: Patch, defs: Record<string, ModuleDef>, ids: number[]): number {
+  const seen = new Set(ids);
+  const order = [...ids.map((id) => p.modules.find((m) => m.id === id)).filter((m): m is ModuleInst => !!m && !!defs[m.type]),
+    ...p.modules.filter((m) => !seen.has(m.id) && defs[m.type])];
+  let row = 0;
+  let x = 0;
+  for (const m of order) {
+    const w = geoOf(p, defs, m).hp;
+    if (x + w > ROW_HP) {
+      row++;
+      x = 0;
+    }
+    setPlace(m, row, x);
+    x += w;
+  }
+  return row + 1;
+}
