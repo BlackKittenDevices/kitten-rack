@@ -816,6 +816,73 @@ static void seq_clear_press(void)
     seq_msg_due = seq_msg_buf;
     seq_msg_ms = SEQ_CLEAR_MS;
 }
+/* KITTEN RACK: REC held 4 s on the SEQ page (panel.c rec_hold_poll) clears the pattern the selected track plays, at once */
+static void seq_pattern_clear(void)
+{
+    static const uint32_t none[1];
+    int mod = seq_module();
+    if (mod < 0)
+        return;
+    (void)eng_steps_set_notes((uint32_t)mod, none, 0);
+    seq_held = -1;
+    seq_sync(mod);
+    seq_msg_due = "PATRON BORRADO";
+    seq_msg_ms = 1500;
+    ui_dirty = ui_dirty ? ui_dirty : 1;
+}
+
+/* KITTEN RACK: K1..K4 on the SEQ page with no step held: the track's steps (1..64), its rate, its swing, the tempo
+ * (st[2..5]; `fast`: the knob turned quickly, larger steps); into the running patch and to the editor */
+static void seq_knob_set(uint32_t mod, uint32_t par, int32_t v)
+{
+    eng_set_param(mod, par, v);
+    m1_patch_param(mod, par, v);
+    m1_param_now(mod, par, v);
+}
+static void seq_knobs(const int32_t *st, int fast)
+{
+    const def_t *d = &DEFS[T_STEPS];
+    int mod = seq_module(), main_mod = eng_find(T_FM1);
+    char m[32], *p;
+    if (mod < 0)
+        return;
+    if (st[2]) {
+        int32_t v = clampi(((eng_get_param((uint32_t)mod, STEPS_P_LEN) + 32768) >> 16) + st[2] * (fast ? 4 : 1), 1, DEF_TOP(d, STEPS_P_LEN) >> 16);
+        seq_knob_set((uint32_t)mod, STEPS_P_LEN, v << 16);
+        fmt_int(put(m, "PASOS "), v);
+        seq_clamp();
+        ui_msg(m, 900);
+    }
+    if (st[3]) {
+        int32_t v = clampi(((eng_get_param((uint32_t)mod, STEPS_P_RATE) + 32768) >> 16) + st[3], d->pmin[STEPS_P_RATE] >> 16, DEF_TOP(d, STEPS_P_RATE) >> 16);
+        seq_knob_set((uint32_t)mod, STEPS_P_RATE, v << 16);
+        *put_param(put(m, "RITMO "), d, STEPS_P_RATE, v << 16) = 0;
+        ui_msg(m, 900);
+    }
+    if (st[4]) {
+        int32_t v = clampi(((eng_get_param((uint32_t)mod, STEPS_P_SWING) + 32768) >> 16) + st[4] * (fast ? 3 : 1), d->pmin[STEPS_P_SWING] >> 16, DEF_TOP(d, STEPS_P_SWING) >> 16);
+        seq_knob_set((uint32_t)mod, STEPS_P_SWING, v << 16);
+        p = put(m, "SWING ");
+        fmt_int(p, v);
+        while (*p)
+            p++;
+        *p++ = '%';
+        *p = 0;
+        ui_msg(m, 900);
+    }
+    if (st[5] && main_mod >= 0) {
+        if (eng_clock_is_external())
+            ui_msg("TEMPO: MIDI CLOCK", 1000);
+        else {
+            int32_t bpm = clampi(((eng_get_param((uint32_t)main_mod, FM1_P_TEMPO) + 32768) >> 16) + st[5] * (fast ? 5 : 1), 20, 300);
+            seq_knob_set((uint32_t)main_mod, FM1_P_TEMPO, bpm << 16);
+            fmt_int(put(m, "TEMPO "), bpm);
+            ui_msg(m, 900);
+        }
+    }
+    ui_dirty = ui_dirty ? ui_dirty : 1;
+}
+
 /* anything else pressed or turned, or SEQ let go, while the clear asks: not cleared */
 static uint32_t song_del_at;
 static void seq_clear_cancel(void)
@@ -1122,10 +1189,9 @@ static void seq_grid_draw(int full, int mod, int map, const char *info)
     if (eng_steps_muted((uint32_t)mod))
         p = put(p, "  MUTED");
     if (seq_armed_trk() != (int)seq_trk && !eng_steps_muted((uint32_t)mod)) {
-        p = put(p, map >= 0 ? "  ALGO: TRACK" : "  BLACK/ALGO: TRACK");
-        *put(p, "  SEQ+REC: CLEAR") = 0;           /* (#231: where it fits) */
+        *put(p, "  K1 PASOS K2 RITMO K3 SW K4 BPM") = 0;   /* (KITTEN RACK: the knobs with no step held, seq_knobs) */
         if (text_w(&FONT_S, line, -1) > 224u)
-            *p = 0;
+            *put(line, "K1 PASOS  K2 RITMO  K3 SWING  K4 BPM") = 0;
     } else
         *p = 0;
     seq_grid_line(1, 202, line, C_DIM, 224);
@@ -1135,7 +1201,7 @@ static void seq_grid_draw(int full, int mod, int map, const char *info)
         hint = "KEYS record  SEL row  OCT octave";
     else
         hint = seq_rec == 2u ? "BLACK hear  SEL+KEY pen  WHITE step" : seq_rec ? "BLACK hit  SEL+KEY pen  WHITE step"
-             : "SEL+KEY pen  WHITE step  FX acc  LFO tie";
+             : "BLANCA PASO  SELECT NOTA  OCT PAGINA";
     seq_grid_line(2, 222, hint, C_HINT, 228);
     seq_grid_ok = 1;
 }
@@ -1166,10 +1232,10 @@ static void seq_draw(int full)
     *p++ = '-';
     fmt_int(num, seq_pg * 16 + 16 < len ? seq_pg * 16 + 16 : len);
     p = put(p, num);
-    p = put(p, " OF ");
+    p = put(p, " DE ");
     fmt_int(num, len);
     p = put(p, num);
-    p = put(p, "  RATE ");
+    p = put(p, "  RITMO ");
     {                                            /* (the pattern's own rate, else the track's) */
         int rt = eng_pattern_rate((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod));
         p = put_param(p, &DEFS[T_STEPS], STEPS_P_RATE, rt >= 0 && eng_pattern_has((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod)) ? rt << 16 : eng_get_param((uint32_t)mod, STEPS_P_RATE));
@@ -1181,6 +1247,15 @@ static void seq_draw(int full)
             fmt_int(num, sw);
             p = put(p, num);
             *p++ = '%';
+        }
+    }
+    {                                            /* KITTEN RACK: the tempo (K4) */
+        int main_mod = eng_find(T_FM1);
+        if (main_mod >= 0 && !eng_clock_is_external()) {
+            p = put(p, "  ");
+            fmt_int(num, (eng_get_param((uint32_t)main_mod, FM1_P_TEMPO) + 32768) >> 16);
+            p = put(p, num);
+            p = put(p, " BPM");
         }
     }
     *p = 0;

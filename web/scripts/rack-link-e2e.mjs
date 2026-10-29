@@ -149,7 +149,31 @@ try {
   check(`a module added on the FM-1 (EDIT): the editor shows it (${nDev} -> ${p.modules.length})`, p.modules.length === nDev + 1);
   await cmd('tap 6');   // (out of the patching)
 
-  // 7. AL FM-1: into a slot
+  // 7. notes placed on the piano roll: the FM-1's track has them
+  await page.locator('.panel.t-steps .roll-open').first().click();
+  await page.waitForTimeout(500);
+  await page.evaluate(() => {
+    const g = document.querySelector('.roll-grid');
+    const r = g.getBoundingClientRect();
+    const y = (108 - 60) * 16 + 8;   // C4
+    for (const k of [0, 4, 8, 12]) {
+      const x = 44 + k * 22 + 10;
+      g.dispatchEvent(new PointerEvent('pointerdown', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
+      window.dispatchEvent(new PointerEvent('pointerup', { clientX: r.left + x, clientY: r.top + y, bubbles: true }));
+    }
+  });
+  await page.waitForTimeout(800);
+  await page.screenshot({ path: join(ROOT, 'build/rack-roll.png') });
+  await page.click('#roll-box button:has-text("LISTO")');
+  await page.click('#link');
+  await page.click('#link');
+  await page.waitForFunction(() => /EN VIVO/.test(document.querySelector('#link')?.textContent ?? ''), null, { timeout: 15000 });
+  await page.waitForTimeout(2500);
+  p = await stored();
+  const trk = p.modules.find((m) => m.type === 'steps');
+  check(`four notes on the roll: the FM-1's track holds them (${trk?.notes?.length ?? 0})`, trk?.notes?.length === 4 && trk.notes.every((n) => n.note === 60));
+
+  // 8. AL FM-1: into a slot
   await page.click('#tofm1');
   await page.waitForTimeout(6000);
   const opts = await page.locator('#slot-list option').count();

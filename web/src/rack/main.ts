@@ -15,6 +15,8 @@ import { deviceView } from '../poly';
 import { crc16 } from '../protocol';
 import { encodePatch } from '../patchbin';
 import { decodeDevicePatch } from './devicebin';
+import { openRoll } from './roll';
+import type { StepNote } from '../track';
 import { DEVICE_COMPILE } from '../device-compile';
 
 // the rack shows every module it holds on the FM-1 too, played or not (the compile pass would leave out the silent ones)
@@ -185,6 +187,17 @@ function panel(m: ModuleInst): HTMLElement {
       sendPatch();
     };
     head.append(x);
+  }
+  if (m.type === 'steps') {   // the track's piano roll (roll.ts)
+    const r = document.createElement('button');
+    r.className = 'roll-open';
+    r.title = 'Editar las notas (piano roll)';
+    r.textContent = 'ROLL';
+    r.onclick = (e) => {
+      e.stopPropagation();
+      openRoll(patch, m, rollHost);
+    };
+    head.append(r);
   }
   head.onpointerdown = (e) => dragPanel(e, m, el);
   el.append(head);
@@ -528,7 +541,7 @@ const closeMenus = (): void => document.querySelectorAll('.menu').forEach((m) =>
 // ---------- moving panels ----------
 
 function dragPanel(e: PointerEvent, m: ModuleInst, el: HTMLElement): void {
-  if ((e.target as HTMLElement).closest('.kill')) return;
+  if ((e.target as HTMLElement).closest('.kill, .roll-open')) return;
   e.preventDefault();
   const start = placeOf(m);
   const hp = geoOf(patch, DEFS, m).hp;
@@ -676,6 +689,31 @@ function importJson(): void {
   };
   input.click();
 }
+
+// ---------- the piano roll's edits ----------
+
+const rollHost = {
+  changed(m: ModuleInst, pat: number, notes: StepNote[] | undefined, param?: { name: string; value: number }): void {
+    if (pat === 0) m.notes = notes;
+    else {
+      const pats = m.patterns ?? [];
+      while (pats.length < pat) pats.push(null);
+      pats[pat - 1] = { ...(pats[pat - 1] ?? {}), notes };
+      m.patterns = pats;
+    }
+    host.setPatch(structuredClone(patch));
+    saveCurrent();
+    knobEls.get(`${m.id}:${param?.name ?? ''}`)?.show();
+    if (!linked) return;
+    lastCrc = -1;
+    if (param) link.param(patch, m.id, param.name, param.value);
+    else link.track(patch, m.id, notes, pat);
+  },
+  audition(note: number): void {
+    noteOn(note, 100);
+    setTimeout(() => noteOff(note), 180);
+  },
+};
 
 // ---------- the FM-1, live (device.ts DeviceLink: the same SysEx link as Matryoshka's editor) ----------
 

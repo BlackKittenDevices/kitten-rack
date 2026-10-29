@@ -368,6 +368,34 @@ static void page_button(uint32_t b, int down)
     page_mask();
 }
 
+/* KITTEN RACK: REC held on the SEQ page (SEQ not held): after a second it counts down in the bar, at 4 s the pattern the
+ * selected track plays is cleared; REC's release then does nothing (from panel_edges, every pass) */
+#define REC_CLEAR_MS 4000u
+static uint32_t rec_down_ms;                        /* fm1_ms | 1 of REC's press on the SEQ page, 0: not held there */
+static uint8_t rec_count_shown, rec_hold_used;      /* the countdown's last second shown; the hold used REC up */
+static void seq_pattern_clear(void);
+static void rec_hold_poll(void)
+{
+    uint32_t t;
+    if (!rec_down_ms || !(panel_held >> BTN_REC & 1u) || page != PAGE_SEQ || (panel_held >> BTN_SEQ & 1u)) {
+        rec_down_ms = 0;
+        return;
+    }
+    t = fm1_ms - (rec_down_ms & ~1u);
+    if (t >= REC_CLEAR_MS) {
+        rec_down_ms = 0;
+        seq_pattern_clear();
+        return;
+    }
+    if (t >= 1000u && rec_count_shown != (uint8_t)(t / 1000u)) {
+        char m[24];
+        rec_count_shown = (uint8_t)(t / 1000u);
+        rec_hold_used = 1;
+        fmt_int(put(m, "BORRAR PATRON: "), (int32_t)(REC_CLEAR_MS / 1000u - t / 1000u));
+        ui_msg(m, 1100);
+    }
+}
+
 /* a Page button held long enough: its first page shows until it is let go (from panel_edges, every pass) */
 static void page_hold_poll(void)
 {
@@ -496,6 +524,12 @@ static void panel_encoders(int32_t *st)
             seq_value(st[2], st[3], cfg.accel && fm1_ms - last_ms[1] < 80u);
             last_ms[1] = fm1_ms;
             st[2] = st[3] = 0;
+        }
+        if ((st[2] || st[3] || st[4] || st[5]) && seq_held < 0 && seq_module() >= 0) {   /* KITTEN RACK: no step held: K1 the
+                                                     * steps, K2 the rate, K3 the swing, K4 the tempo (seq_knobs) */
+            seq_knobs(st, cfg.accel && fm1_ms - last_ms[1] < 80u);
+            last_ms[1] = fm1_ms;
+            st[2] = st[3] = st[4] = st[5] = 0;
         }
     }
     if (page == PAGE_GLO && (st[0] || st[1]))       /* SELECT / ALGO on GLO's page: back to the device pages, then as there */
@@ -803,6 +837,10 @@ static void panel_edges(uint32_t p, uint32_t rel)
         rel &= ~(1u << BTN_REC);
         ui_dirty = ui_dirty ? ui_dirty : 1;          /* (its row) */
     }
+    if ((rel & (1u << BTN_REC)) && rec_hold_used) {    /* KITTEN RACK: REC held for the clear (rec_hold_poll): its release does nothing */
+        rel &= ~(1u << BTN_REC);
+        rec_hold_used = 0;
+    }
     if ((rel & (1u << BTN_REC)) && !rec_held_used) {   /* REC: recording on / off (the SEQ page opens for hits, the armed track) */
         if (seq_rec_page() && page != PAGE_SEQ) {
             seq_rec_aim();                          /* (nothing armed: on a drum track, the hits seen landing) */
@@ -854,6 +892,12 @@ static void panel_edges(uint32_t p, uint32_t rel)
         }
     }
     page_hold_poll();
+    if ((p & (1u << BTN_REC)) && page == PAGE_SEQ && !(panel_held >> BTN_SEQ & 1u)) {
+        rec_down_ms = fm1_ms | 1u;                  /* KITTEN RACK: REC held 4 s clears the pattern (rec_hold_poll) */
+        rec_count_shown = 0;
+        rec_hold_used = 0;
+    }
+    rec_hold_poll();
     if (p & (1u << BTN_HOME))
         home_t0 = (fm1_ms & ~3u) | 1u;              /* HOME acts on release: a tap goes back, 0.7 s held opens the menu
                                                      * (bit 1 cleared: with fm1_ms's own bit 1 a press looked fired) */
