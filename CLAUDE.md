@@ -1,6 +1,6 @@
 # KITTEN RACK — notes for Claude
 
-A Eurorack-style modular firmware for the **M-VAVE FM-1**, a fork of Matryoshka 1.5.1 (glvno/matryoshka). Repo: BlackKittenDevices/kitten-rack. User-facing docs: `README.md` (Spanish, rioplatense; keep it in step with what the device does). Design of the inherited parts (formats, engine, protocol): `docs/ARCHITECTURE.md` (written for Matryoshka; its ledger links point at files that were removed).
+A Eurorack-style modular firmware for the **M-VAVE FM-1**, a fork of Matryoshka 1.5.1 (glvno/matryoshka). Repo: BlackKittenDevices/kitten-rack. User-facing docs: `README.md` (English) and `README.es.md` (Spanish, rioplatense); keep both in step with what the device does. Design of the inherited parts (formats, engine, protocol): `docs/ARCHITECTURE.md` (written for Matryoshka; its ledger links point at files that were removed).
 
 ## The owner
 
