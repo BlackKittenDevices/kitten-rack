@@ -5605,6 +5605,8 @@ static void steps_thru(const node_t *nd, inst_t *it, int32_t len, int ext, int32
     uint32_t t = nd->trk, node = (uint32_t)(nd - E.node), e;
     int32_t semis = (int32_t)(((int64_t)tr * 12 + 32768) >> 16);
     int live = (E.trk_rec >> t & 1u) && it->s.stp.pos >= 0 && it->s.stp.slen > 0 && (ext || E.running);
+    /* KITTEN RACK: the transport starts this block (REC waiting for a note, kr_rec_note): a note lands on the first step */
+    int starting = (E.trk_rec >> t & 1u) && !ext && E.running && !it->s.stp.run;
     for (e = 0; e < E.nthru; e++) {
         uint32_t note = E.blk_thru[e][1] & 0x7Fu, vel = E.blk_thru[e][2];
         int was;
@@ -5613,7 +5615,15 @@ static void steps_thru(const node_t *nd, inst_t *it, int32_t len, int ext, int32
         steps_thru_off(t, node, it, note);
         if (!(E.blk_thru[e][1] & 0x80u))
             continue;
-        if (live && E.nrin < ENG_RIN) {
+        if (starting && E.nrin < ENG_RIN) {
+            int32_t dir = clampi(round_q16(EF(it, STEPS_P_DIR)), 0, 3), lp = it->s.stp.loop + 1;   /* (steps_next from the start) */
+            rin_t *x = &E.rin[E.nrin++];
+            x->trk = (uint8_t)t;
+            x->note = (uint8_t)note;
+            x->at = (uint8_t)(dir == 3 ? (int32_t)(hash32(it->s.stp.seed ^ ((uint32_t)lp * 0x9e3779b9u) ^ 0x85ebca6bu) % (uint32_t)len) : dir == 1 ? len - 1 : 0);
+            x->vel = (uint8_t)vel;
+            x->t = 0;
+        } else if (live && E.nrin < ENG_RIN) {
             int32_t ago = it->s.stp.sst, sl = it->s.stp.slen, pos = it->s.stp.pos;
             int next = ago * 2 >= sl;
             int32_t target = next ? steps_next(it, len, clampi(round_q16(EF(it, STEPS_P_DIR)), 0, 3)).pos : pos;

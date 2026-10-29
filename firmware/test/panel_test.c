@@ -1667,32 +1667,14 @@ int main(void)
         panel_edges(0, 1u << BTN_REC);
         loop();
         check("REC held + a black key: the track armed, REC's release records nothing", pat >= 0 && eng_armed() == pat && seq_rec == 0 && page == 0u);
-        tap(BTN_REC);
-        check("REC with a melodic track armed, stopped: its roll with REC on (no step entry)", page == PAGE_SEQ && seq_rec == 2u
-              && seq_trk == 1u && seq_map() < 0 && !seq_kbd());
-        later(1100);
-        check("  its bar: PATTERN REC on red", bar_shows("PATTERN REC P01", C_RED));
-        before = (uint32_t)eng_steps_notes((uint32_t)pat, &w);
-        steps_inst((uint32_t)pat)->s.stp.hit = 0;
-        r0 = seq_row;
-        panel_keys(1u << 8);                                /* black key C#4: heard, nothing recorded, the row stays */
-        panel_keys(0);
-        check("a black key there: its pitch heard, nothing recorded, the row stays", steps_inst((uint32_t)pat)->s.stp.hit
-              && E.trk_last[E.node[pat].trk] == base + 8u && (uint32_t)eng_steps_notes((uint32_t)pat, &w) == before && seq_row == r0);
-        hw = eng_steps_note((uint32_t)pat, 1u, seq_grid_note(-1, seq_row));
-        panel_keys(1u << 2);                                /* a white key: step 2, the selected pitch */
-        panel_keys(0);
-        loop();
-        check("a white key: the selected pitch's note on its step switched", !hw == !!eng_steps_note((uint32_t)pat, 1u, seq_grid_note(-1, seq_row)));
-        snap_to(getenv("PANEL_SNAP_ROLL_REC"));
-        tap(BTN_PLAY);                                      /* PLAY: a live take on the roll, the 27 keys its keyboard */
-        loop();
-        check("PLAY with REC on: the keys are the armed track's keyboard (the hint says so)", seq_kbd()
-              && !strcmp(seq_grid_text[2], "KEYS record  SEL row  OCT octave"));
-        for (i = 0; i < 40; i++)
+        tap(BTN_REC);                                       /* KITTEN RACK: REC as on Kitten Synths (kr_rec_press) */
+        check("REC with a melodic track armed, stopped: the page stays, REC waits for a note", page == 0u && seq_rec == 2u
+              && seq_rec_wait && !eng_transport_running() && eng_armed() == pat);
+        for (i = 0; i < 4; i++)
             eng_render(l, r, 128);
         before = (uint32_t)eng_steps_notes((uint32_t)pat, &w);
-        panel_keys(1u << 1);                                /* F#3: a note the track did not have */
+        panel_keys(1u << 1);                                /* F#3: the first note starts the transport and the take */
+        check("  the first note: the transport runs, REC records", eng_transport_running() && !seq_rec_wait && seq_rec == 2u);
         for (i = 0; i < 10; i++)
             eng_render(l, r, 128);
         panel_keys(0);
@@ -1701,14 +1683,15 @@ int main(void)
         {
             int nn = eng_steps_notes((uint32_t)pat, &w), got = 0;
             for (i = 0; i < nn; i++)
-                got |= ((w[i] >> 12) & 127u) == base + 1u;
-            check("the live take on the roll: the played note in the track", got && (uint32_t)nn == before + 1u);
+                got |= ((w[i] >> 12) & 127u) == base + 1u && (w[i] & 63u) == 0u;
+            check("  that note recorded on the first step", got && (uint32_t)nn == before + 1u);
         }
+        tap(BTN_REC);
+        check("REC again: off, the transport goes on", seq_rec == 0 && eng_transport_running() && page == 0u);
         tap(BTN_PLAY);
         loop();
-        check("stopped again: the roll with REC on", !seq_kbd() && seq_rec == 2u && page == PAGE_SEQ);
-        tap(BTN_REC);
-        check("REC again: off", seq_rec == 0 && !seq_kbd());
+        tap(BTN_SEQ);
+        check("(the SEQ page, the PATTERN roll)", page == PAGE_SEQ && seq_map() < 0);
 
         eng_arm_mask(0);                                    /* nothing armed, the roll shown (the owner's 1.2.0 device check) */
         loop();
@@ -2338,23 +2321,14 @@ int main(void)
         drums = eng_steps_module(0);
         map = eng_steps_drummap((uint32_t)drums);
         seq_trk = 1;                                        /* (PATTERN selected last) */
+        tap(BTN_REC);                                       /* KITTEN RACK (kr_rec_press): the melodic PATTERN, waiting, the page stays */
+        check("REC, nothing armed: the selected melodic track waits for a note, the page stays",
+              page == 0u && seq_trk == 1u && seq_rec == 2u && seq_rec_wait && eng_armed() == eng_steps_module(1));
         tap(BTN_REC);
-        check("REC, nothing armed: the SEQ page on the drum track, its grid, the black keys record hits",
-              page == PAGE_SEQ && seq_trk == 0u && seq_map() == map && seq_rec == 1u
-              && px(4u + GRID_NAME_W - 1u, GRID_Y + GRID_RH * seq_row + 1u) == C_ACC);
+        check("REC again: off, the track disarmed again, the page stays", seq_rec == 0u && !seq_rec_wait && eng_armed() < 0 && page == 0u);
+        held_key(BTN_REC, 1);                               /* DRUMS armed, stopped: REC as before on a drum track (seq_rec_press) */
         tap(BTN_REC);
-        check("REC again: off, the page stays", seq_rec == 0u && page == PAGE_SEQ);
-        tap(BTN_HOME);
-        held_key(BTN_REC, 1);                               /* DRUMS armed, stopped: REC opens its grid */
-        tap(BTN_REC);
-        check("REC with a drum track armed, stopped: its grid (no step entry), REC on", page == PAGE_SEQ && seq_trk == 0u
-              && seq_rec == 2u && !seq_kbd() && seq_map() == map);
-        n0 = eng_steps_notes((uint32_t)drums, &w);
-        steps_inst((uint32_t)drums)->s.stp.hit = 0;
-        panel_keys(1u << 3);                                /* black key 2: a hit, heard, nothing recorded while stopped */
-        panel_keys(0);
-        check("a black key there: a hit (heard), the row stays, nothing recorded", steps_inst((uint32_t)drums)->s.stp.hit
-              && seq_row == 0u && eng_steps_notes((uint32_t)drums, &w) == n0);
+        check("REC with a drum track armed, stopped: REC on, the page stays", page == 0u && seq_trk == 0u && seq_rec == 2u);
         tap(BTN_REC);
         tap(BTN_HOME);
         tap(BTN_PLAY);                                      /* running, from the device page: a live take on DRUMS */

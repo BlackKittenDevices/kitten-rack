@@ -2742,6 +2742,8 @@ const steps: ModuleImpl<StepsState> = {
       if (any) s.gap = was;
     };
     const live = s.rec && s.pos >= 0 && s.sl > 0 && (ext || v.run);
+    // KITTEN RACK: the transport starts this block (REC waiting for a note): a note lands on the first step (engine.c)
+    const starting = s.rec && !ext && v.run && !s.run;
     if (s.thru.length) {
       // the armed track's keys in: each into keys out (transposed as the track's notes) and the mono outputs; recording
       // live, a note lands on the nearest step and lasts the whole steps it was held (at least one)
@@ -2756,7 +2758,10 @@ const steps: ModuleImpl<StepsState> = {
           s.took.push({ note: { at: x.at, len: Math.min(STEPS_MAX, Math.max(1, Math.round(x.t / s.sl))), note, vel: x.vel }, loop: x.loop });
         }
         if (!(s.thru[e] & 0x80)) continue;
-        if (live) {
+        if (starting) {
+          const first = nextStep({ ...s, pos: -1 }, len, dir);
+          s.rin.push({ note, at: first.pos, t: 0, vel: s.thru[e + 1], loop: first.loop });
+        } else if (live) {
           const next = s.ago * 2 >= s.sl;
           const target = next ? nextStep(s, len, dir) : s;
           s.rin.push({ note, at: target.pos, t: next ? s.ago - s.sl : s.ago, vel: s.thru[e + 1], loop: target.loop });

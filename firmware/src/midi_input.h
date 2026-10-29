@@ -70,6 +70,7 @@ static void midi_drain_mode(int quick)
                     eng_note_off(n, midi_sus_held[n]);
                     midi_sus_held[n] = 0;
                 }
+                kr_rec_note();                          /* (KITTEN RACK: REC waiting: this note starts the take) */
                 eng_note_on(n, (int32_t)(v * 65536u / 127u), chn);
             } else if (midi_sus_on && (!cfg.ch || cfg.ch == chn))
                 midi_sus_held[n] = (uint8_t)chn;        /* the pedal holds it */

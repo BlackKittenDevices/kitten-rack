@@ -134,9 +134,10 @@ static int seq_armed_trk(void)
 }
 /* the keys are the armed melodic track's keyboard: REC records it on this page while the transport runs (a live take); a
  * drum track's grid takes the black keys as hits instead (seq_key) */
+static uint8_t seq_rec_wait;            /* KITTEN RACK: REC stopped: armed, waiting for the first note to start (kr_rec_note) */
 static int seq_kbd(void)
 {
-    return seq_rec == 2u && page == PAGE_SEQ && eng_armed() >= 0 && eng_steps_drummap((uint32_t)eng_armed()) < 0 && eng_transport_running();
+    return seq_rec == 2u && page == PAGE_SEQ && eng_armed() >= 0 && eng_steps_drummap((uint32_t)eng_armed()) < 0 && (eng_transport_running() || seq_rec_wait);
 }
 
 static int32_t seq_len(int mod)
@@ -704,6 +705,7 @@ static void seq_rec_off(void)
     }
     seq_rec_arms = -1;
     seq_rec = 0;
+    seq_rec_wait = 0;
     ent_keys = 0;
     ui_dirty = 2;
 }
@@ -747,6 +749,62 @@ static void seq_rec_press(void)
     seq_name((uint32_t)t, name);
     put(put(m, "REC "), name)[0] = 0;
     ui_msg(m, 1000);
+    ui_dirty = 2;
+}
+
+/* KITTEN RACK: REC as on Kitten Synths (the user, 2026-10-29), from any page, which stays: running, the sequencer records
+ * where it plays (the armed track, else the selected melodic track, else the first, armed for it); stopped, REC waits
+ * for the first note, which starts the transport and the take (panel.c kr_rec_note). REC again: off (the transport goes on).
+ * A drum track (a patch of Matryoshka's) keeps REC as it was (seq_rec_press). */
+static int seq_melodic(int t) { return t >= 0 && t < eng_steps_count() && eng_steps_drummap((uint32_t)eng_steps_module((uint32_t)t)) < 0; }
+static void kr_rec_press(void)
+{
+    int t = seq_armed_trk(), mod, k;
+    char m[32], name[TRACK_NAME_MAX + 8];
+    if (seq_rec) {
+        seq_rec_off();
+        ui_msg("REC OFF", 1000);
+        return;
+    }
+    if (t < 0 && seq_melodic(seq_trk))
+        t = seq_trk;
+    for (k = 0; t < 0 && k < eng_steps_count(); k++)
+        if (seq_melodic(k))
+            t = k;
+    if (t < 0 && eng_steps_count()) {            /* (only drum tracks: as before) */
+        seq_rec_press();
+        return;
+    }
+    if (t < 0) {
+        ui_msg("SIN SECUENCIADOR", 1200);
+        return;
+    }
+    if (!seq_melodic(t)) {
+        seq_rec_press();
+        return;
+    }
+    mod = eng_steps_module((uint32_t)t);
+    if (eng_armed() != mod) {
+        eng_arm_mask(eng_arm_mask_get() | (uint64_t)1 << mod);
+        m1_arms_now((uint32_t)eng_arm_mask_get(), (uint32_t)(eng_arm_mask_get() >> 32));
+        seq_rec_arms = (int8_t)mod;
+    }
+    if ((uint32_t)t != seq_trk) {
+        seq_pg = 0;
+        seq_roll_trk = -1;
+    }
+    seq_trk = (uint8_t)t;
+    seq_held = -1;
+    seq_rec = 2;
+    eng_steps_rec((uint32_t)mod, 1);
+    seq_name((uint32_t)t, name);
+    if (eng_transport_running())
+        put(put(m, "REC "), name)[0] = 0;
+    else {
+        seq_rec_wait = 1;
+        put(m, "REC: TOCA UNA NOTA")[0] = 0;
+    }
+    ui_msg(m, 1500);
     ui_dirty = 2;
 }
 
@@ -898,7 +956,7 @@ static void seq_clear_cancel(void)
 /* the page is left: REC on the armed track while stopped and the black keys' recording end (a live take goes on) */
 static void seq_leave(void)
 {
-    if (seq_rec == 1u || (seq_rec == 2u && !eng_transport_running()))
+    if (seq_rec == 1u || (seq_rec == 2u && !eng_transport_running() && !seq_rec_wait))
         seq_rec_off();
     ent_keys = 0;
 }

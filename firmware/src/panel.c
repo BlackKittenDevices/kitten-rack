@@ -414,6 +414,18 @@ static void page_hold_poll(void)
     list_focus();
 }
 
+static void play_toggle(void);
+/* KITTEN RACK: a note while REC waits (kr_rec_press): the transport starts, so the take begins on this note */
+static void kr_rec_note(void)
+{
+    if (!seq_rec_wait)
+        return;
+    seq_rec_wait = 0;
+    if (!eng_transport_running())
+        play_toggle();
+    ui_msg("REC", 800);
+}
+
 static void play_toggle(void)                       /* PLAY: the transport (the Main module's run output and clock) */
 {
     eng_transport(!eng_transport_running());
@@ -673,6 +685,8 @@ static int panel_key(uint32_t n, int down, int quick)
             : eng_drummap_repeat((uint32_t)map) ? key_note[n] : KEY_SILENT;
         key_sounding |= bit;
         if (key_eng[n] != KEY_SILENT)
+            kr_rec_note();
+        if (key_eng[n] != KEY_SILENT)
             eng_note_on(key_eng[n], vel == 127u ? ENG_ONE : (int32_t)((vel << 16) / 127u), cfg.ch ? cfg.ch : 1u);   /* the panel plays on the device's channel */
         if (key_eng[n] != KEY_SILENT)
             midi_send(0x90u, key_eng[n], 100u);
@@ -844,13 +858,8 @@ static void panel_edges(uint32_t p, uint32_t rel)
         rel &= ~(1u << BTN_REC);
         rec_hold_used = 0;
     }
-    if ((rel & (1u << BTN_REC)) && !rec_held_used) {   /* REC: recording on / off (the SEQ page opens for hits, the armed track) */
-        if (seq_rec_page() && page != PAGE_SEQ) {
-            seq_rec_aim();                          /* (nothing armed: on a drum track, the hits seen landing) */
-            page_set(PAGE_SEQ);
-        }
-        seq_rec_press();
-    }
+    if ((rel & (1u << BTN_REC)) && !rec_held_used)    /* REC: recording on / off, the page stays (KITTEN RACK: kr_rec_press) */
+        kr_rec_press();
     if (rel & (1u << BTN_REC))
         rec_held_used = 0;
     if (p & (1u << BTN_OCT_DOWN))
