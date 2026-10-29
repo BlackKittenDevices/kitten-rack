@@ -1221,11 +1221,20 @@ int main(void)
         if (page != 0)
             screen_back();
         tap(BTN_ENV);
-        check("ENV on a patch of plain modules: its envelope's device page", page == 0 && eng_type((uint32_t)pg_dev[pg_cur_dev].module) == T_ADSR);
+        check("ENV on a patch of plain modules: an envelope's or a filter's device page", page == 0 && (eng_type((uint32_t)pg_dev[pg_cur_dev].module) == T_ADSR || eng_type((uint32_t)pg_dev[pg_cur_dev].module) == T_FILTER));
+        {
+            uint32_t seen = 0, k;
+            for (k = 0; k < 4u; k++) {
+                int t = eng_type((uint32_t)pg_dev[pg_cur_dev].module);
+                seen |= t == T_ADSR ? 1u : t == T_FILTER ? 2u : 4u;
+                tap(BTN_ENV);
+            }
+            check("  ENV again and again: the envelope and the filter in turn, nothing else", seen == 3u);
+        }
         tap(2);
         check("FX: its tape echo's device page", page == 0 && eng_type((uint32_t)pg_dev[pg_cur_dev].module) == T_DELAY);
         tap(5);
-        check("LFO with no modulators: says so, the page stays", page == 0 && eng_type((uint32_t)pg_dev[pg_cur_dev].module) == T_DELAY);
+        check("LFO with no modulators: the next sound source (its VCO)", page == 0 && eng_type((uint32_t)pg_dev[pg_cur_dev].module) == T_OSC);
         tap(10);
         check("ARP on: the arpeggiator plays (no longer bypassed) and its page is on K1..K4",
               page == 0 && eng_type((uint32_t)pg_dev[pg_cur_dev].module) == T_ARP && !eng_bypass((uint32_t)pg_dev[pg_cur_dev].module));

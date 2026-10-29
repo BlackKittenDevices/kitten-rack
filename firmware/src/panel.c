@@ -87,15 +87,18 @@ static int kr_in(int t, uint32_t cat)
     switch (cat) {
     case KR_FX_IDX:
         return t == T_DELAY || t == T_REVERB || t == T_CHORUS || t == T_PHASER || t == T_CRUSH || t == T_GRAIN || t == T_SHIFT;
-    case KR_LFO_IDX:
-        return t == T_LFO || t == T_FUNC || t == T_CHAOS || t == T_RANDOM || t == T_SH || t == T_TURING;
-    default:                                        /* (ENV) */
-        return t == T_ADSR || t == T_ENV || t == T_ENV8 || t == T_RATEENV || t == T_FUNC || t == T_LPG;
+    case KR_LFO_IDX:                                /* the modulators and the sound sources (the user, 2026-10-29) */
+        return t == T_LFO || t == T_FUNC || t == T_CHAOS || t == T_RANDOM || t == T_SH || t == T_TURING || t == T_MARBLES
+            || t == T_EUCLID || t == T_BERN || t == T_OSC || t == T_WAVETABLE || t == T_PD || t == T_NOISE || t == T_STRING
+            || t == T_MODAL || t == T_RING;
+    default:                                        /* (ENV) the envelopes and the filters */
+        return t == T_ADSR || t == T_ENV || t == T_ENV8 || t == T_RATEENV || t == T_FUNC || t == T_LPG || t == T_FILTER
+            || t == T_LADDER || t == T_MUUG || t == T_VOWEL || t == T_COMB;
     }
 }
 static int kr_step(uint32_t cat)
 {
-    static const char *const NONE[] = {"SIN EFECTOS", "", "SIN ENVOLVENTES", "SIN MODULADORES"};
+    static const char *const NONE[] = {"SIN EFECTOS", "", "SIN ENVOLVENTES NI FILTROS", "SIN FUENTES NI MODULADORES"};
     uint32_t k, d;
     pages_ensure();
     for (k = 1; k <= pg_ndev; k++) {
