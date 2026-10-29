@@ -1,6 +1,6 @@
 # KITTEN RACK: the rack editor on GitHub Pages (https://blackkittendevices.github.io/kitten-rack/), a page of its own on
-# https, where the browser lets it use MIDI (the claude.ai preview does not). Every push to main that touches web/.
-# Needs Pages turned on once: the repository's Settings > Pages > Source: GitHub Actions.
+# https, where the browser lets it use MIDI (the claude.ai preview does not). Every push to main that touches web/
+# rebuilds it into the gh-pages branch, which Pages serves.
 name: rack-pages
 on:
   push:
@@ -8,32 +8,29 @@ on:
     paths: [web/**, .github/workflows/rack-pages.yml]
   workflow_dispatch:
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 concurrency:
   group: rack-pages
   cancel-in-progress: true
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    defaults:
-      run:
-        working-directory: web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
       - run: npm ci
+        working-directory: web
       - run: npx vite build --base /kitten-rack/ --outDir ../rack-site --emptyOutDir
-      - run: cp ../rack-site/rack.html ../rack-site/index.html
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: rack-site
-      - id: deploy
-        uses: actions/deploy-pages@v4
+        working-directory: web
+      - name: the gh-pages branch
+        run: |
+          cd rack-site
+          cp rack.html index.html
+          rm -rf brand review
+          touch .nojekyll
+          git init -q -b gh-pages
+          git add -A
+          git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" commit -qm "rack editor from ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
