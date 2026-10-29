@@ -5,7 +5,7 @@ name: rack-pages
 on:
   push:
     branches: [main]
-    paths: [web/**, .github/workflows/rack-pages.yml]
+    paths: [web/**, firmware/src/**, firmware/wasm/**, firmware/test/host_ui.h, .github/workflows/rack-pages.yml]
   workflow_dispatch:
 permissions:
   contents: write
@@ -21,6 +21,11 @@ jobs:
         with:
           node-version: 24
       - run: npm ci
+        working-directory: web
+      - name: the FM-1's screens as WebAssembly (play.html)
+        run: |
+          sudo apt-get install -y --no-install-recommends clang lld
+          npm run fm1-wasm
         working-directory: web
       - run: npx vite build --base /kitten-rack/ --outDir ../rack-site --emptyOutDir
         working-directory: web

@@ -69,6 +69,8 @@ jobs:
       - name: the offline editor (the rack page, relative paths, served by the installer on localhost)
         working-directory: web
         run: |
+          sudo apt-get install -y --no-install-recommends clang lld
+          npm run fm1-wasm
           npx vite build --base ./ --outDir ../build/editor --emptyOutDir
           cp ../build/editor/rack.html ../build/editor/index.html
           rm -rf ../build/editor/brand ../build/editor/review ../build/editor/firmware ../build/editor/changelog.html
