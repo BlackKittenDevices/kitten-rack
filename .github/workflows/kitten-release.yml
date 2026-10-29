@@ -1,4 +1,4 @@
-# KITTEN RACK: a release with its installer. Pushing a tag vX.Y.Z (or Actions > kitten-release > Run workflow) builds the
+# KITTEN RACK: a release with its installer. Pushing a tag vX.Y.Z (or Actions > kitten-release > Run workflow, which makes the tag) builds the
 # firmware (identity FM-1_79Y for X.Y), runs the host tests and publishes a GitHub pre-release with
 # KittenRack-instalador-X.Y.Z.zip (instalar_kitten_rack.py, fm1_install.py, the .fwsc, SHA256SUMS, LEEME.txt) and the .fwsc.
 name: kitten-release
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "the tag to release (vX.Y.Z), already pushed"
+        description: "the release tag (vX.Y.Z): made on the commit this runs on"
         required: true
 permissions:
   contents: write
@@ -17,8 +17,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.tag || github.ref }}
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -84,6 +82,6 @@ jobs:
           TAG: ${{ inputs.tag || github.ref_name }}
           V: ${{ steps.build.outputs.version }}
         run: |
-          gh release create "$TAG" --prerelease --title "KITTEN RACK $V (prueba)" \
+          gh release create "$TAG" --target "$GITHUB_SHA" --prerelease --title "KITTEN RACK $V (prueba)" \
             --notes "Primera versión para probar en el FM-1. Bajá KittenRack-instalador-$V.zip, descomprimilo y abrí instalar_kitten_rack.py (instrucciones en LEEME.txt). Sin probar todavía en hardware: respaldá tus datos antes." \
             "dist/KittenRack-instalador-$V.zip" "dist/kitten-rack-$V.fwsc" dist/SHA256SUMS
