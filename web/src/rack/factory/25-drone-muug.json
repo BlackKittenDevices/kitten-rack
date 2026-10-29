@@ -12,21 +12,29 @@
     "tempo": 120
    },
    "panel": {
+    "toggle": [
+     "arp"
+    ],
     "kinds": {
      "fx": "nothing",
      "lfo": "nothing",
      "edit": "nothing",
-     "arp": "nothing"
+     "arp": "bypass"
+    },
+    "targets": {
+     "arp": {
+      "module": 10
+     }
     }
    }
   },
   {
    "id": 2,
    "type": "output",
-   "x": 640,
-   "y": 414,
+   "x": 440,
+   "y": 828,
    "params": {
-    "level": 0.98
+    "level": 0.94
    }
   },
   {
@@ -39,7 +47,7 @@
     "emph": 9.2,
     "drive": 1,
     "cvamt": 1,
-    "track": 1
+    "track": 0
    },
    "att": [
     0.06,
@@ -65,32 +73,22 @@
     "cutoff": -1.52,
     "emph": 8.8,
     "drive": 1,
-    "cvamt": 0.15,
-    "track": 1
+    "cvamt": 1,
+    "track": 0
    },
    "att": [
-    1,
+    0.15,
     1
    ],
    "map": {
     "p1": [
      "cutoff"
     ],
-    "p2": [
-     "emph"
-    ],
-    "k1": [
-     "cutoff"
-    ],
-    "k2": [
-     "emph"
-    ],
-    "k3": [
-     "drive"
-    ],
-    "k4": [
-     "cvamt"
-    ]
+    "p2": [],
+    "k1": [],
+    "k2": [],
+    "k3": [],
+    "k4": []
    }
   },
   {
@@ -240,9 +238,99 @@
      "pre"
     ]
    }
+  },
+  {
+   "id": 9,
+   "type": "steps",
+   "x": 640,
+   "y": 414,
+   "params": {
+    "len": 16,
+    "rate": 4,
+    "swing": 50,
+    "gate": 0.25,
+    "dir": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "len"
+    ],
+    "p2": [
+     "rate"
+    ],
+    "k1": [
+     "len"
+    ],
+    "k2": [
+     "rate"
+    ],
+    "k3": [
+     "swing"
+    ],
+    "k4": [
+     "gate"
+    ]
+   },
+   "name": "PATTERN"
+  },
+  {
+   "id": 10,
+   "type": "arp",
+   "x": 40,
+   "y": 828,
+   "params": {
+    "mode": 0,
+    "rate": 4,
+    "octaves": 1,
+    "gate": 0.5,
+    "latch": 0
+   },
+   "bypass": true
+  },
+  {
+   "id": 11,
+   "type": "alloc",
+   "x": 200,
+   "y": 828,
+   "params": {
+    "voices": 1,
+    "assign": 0,
+    "legato": 0,
+    "priority": 0,
+    "unison": 0,
+    "channel": 0,
+    "low": 0,
+    "high": 127,
+    "steal": 1,
+    "stack": 0
+   }
   }
  ],
  "cables": [
+  {
+   "from": {
+    "module": 11,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 3,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 11,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 4,
+    "port": "cv"
+   }
+  },
   {
    "from": {
     "module": 5,
@@ -260,7 +348,7 @@
    },
    "to": {
     "module": 4,
-    "port": "cv"
+    "port": "p1"
    }
   },
   {
@@ -311,6 +399,36 @@
    "to": {
     "module": 2,
     "port": "r"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "keys"
+   },
+   "to": {
+    "module": 9,
+    "port": "keys"
+   }
+  },
+  {
+   "from": {
+    "module": 9,
+    "port": "keys"
+   },
+   "to": {
+    "module": 10,
+    "port": "keys"
+   }
+  },
+  {
+   "from": {
+    "module": 10,
+    "port": "keys"
+   },
+   "to": {
+    "module": 11,
+    "port": "keys"
    }
   }
  ],

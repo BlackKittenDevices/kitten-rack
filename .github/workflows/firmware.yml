@@ -116,7 +116,7 @@ jobs:
         working-directory: web
         run: |
           npm run export-defs
-          git diff --exit-code ../firmware/src/defs.h ../firmware/src/presets.h ../firmware/test/presets_matryoshka.h || { echo "::error::defs.h / presets.h are stale: run 'npm run export-defs' and commit"; exit 1; }
+          git diff --exit-code ../firmware/src/defs.h ../firmware/src/presets.h ../firmware/test/presets_matryoshka.h ../firmware/test/kitten_fixtures.h || { echo "::error::defs.h / presets.h are stale: run 'npm run export-defs' and commit"; exit 1; }
       - name: build the firmware, no warnings, pool headroom >= 8 KB
         run: |
           export JIELI_TOOLCHAIN="$HOME/.jieli/toolchain" AC79_SDK="$HOME/.jieli/ac79-sdk"

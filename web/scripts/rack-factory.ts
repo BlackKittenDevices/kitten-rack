@@ -7,7 +7,7 @@
 // Run from web/:  npx vite-node scripts/rack-factory.ts
 import { readdirSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { DEFS } from '../src/modules';
-import { addModule, connect, newPatch, validatePatch, type ModuleInst, type Patch } from '../src/patch';
+import { addModule, connect, newPatch, NEW_PANEL, validatePatch, type ModuleInst, type Patch } from '../src/patch';
 import { pack } from '../src/rack/layout';
 import { Engine } from '../src/engine';
 import { deviceBudget, encodePatch } from '../src/patchbin';
@@ -43,9 +43,34 @@ function build(name: string, play: Play, notes: string, make: (add: Add, wire: W
     return m;
   };
   make(add, wire, main, out);
+  withSequencer(p, main);
   p.notes = notes;
   pack(p, DEFS);
   return { patch: validatePatch(structuredClone(p), DEFS), play };
+}
+
+/**
+ * Every patch gets the FM-1's own sequencer, as INIT has it: the keys go through a Steps track (SEQ, REC and PLAY record
+ * and play it), an arpeggiator the ARP button switches on and off, and a one-voice allocator; the cables that took the
+ * keyboard's pitch, gate and velocity from MIDI-CV take them from the allocator instead, so a played and a sequenced
+ * note sound the same.
+ */
+function withSequencer(p: Patch, main: ModuleInst): void {
+  const steps = addModule(p, DEFS.steps, 0, 0);
+  Object.assign(steps.params, { len: 16, rate: 4, swing: 50, gate: 0.25, dir: 0 });
+  steps.name = 'PATTERN';
+  steps.att = [1, 1];
+  steps.map = { p1: ['len'], p2: ['rate'], k1: ['len'], k2: ['rate'], k3: ['swing'], k4: ['gate'] };
+  const arp = addModule(p, DEFS.arp, 0, 0);
+  Object.assign(arp.params, { mode: 0, rate: 4, octaves: 1, gate: 0.5, latch: 0 });
+  arp.bypass = true;
+  const voice = addModule(p, DEFS.alloc, 0, 0);
+  Object.assign(voice.params, { voices: 1, assign: 0, legato: 0, priority: 0, unison: 0, channel: 0, low: 0, high: 127, steal: 1, stack: 0 });
+  for (const c of p.cables)
+    if (c.from.module === main.id && ['pitch', 'gate', 'vel'].includes(c.from.port)) c.from = { module: voice.id, port: c.from.port };
+  for (const [a, ap, b, bp] of [[main, 'keys', steps, 'keys'], [steps, 'keys', arp, 'keys'], [arp, 'keys', voice, 'keys']] as const)
+    if (!connect(p, DEFS, { module: a.id, port: ap }, { module: b.id, port: bp })) throw new Error(`${p.name}: sequencer ${a.type}.${ap} -> ${b.type}.${bp}`);
+  main.panel = { ...(main.panel ?? {}), toggle: ['arp'], kinds: { ...(main.panel?.kinds ?? {}), arp: 'bypass' }, targets: { ...(main.panel?.targets ?? {}), arp: { module: arp.id } } } as typeof main.panel;
 }
 
 /** the classic Matryoshka INIT (one voice, keys, a filter, an envelope), with a tape echo before OUT */
@@ -59,6 +84,8 @@ function init(): Built {
   Object.assign(d.params, { time: 320, fb: 0.35, mix: 0.25, tape: 0.5 });
   for (const [a, ap, b, bp] of [[vca, 'out', d, 'in'], [d, 'out', out, 'l'], [d, 'out', out, 'r']] as const)
     if (!connect(p, DEFS, { module: a.id, port: ap }, { module: b.id, port: bp })) throw new Error('init');
+  const m = p.modules.find((x) => x.type === 'fm1')!;   // the free buttons KITTEN RACK's (FX, LFO, EDIT: panel.c kr_button)
+  m.panel = { ...(m.panel ?? {}), kinds: { ...NEW_PANEL().kinds, ...(m.panel?.kinds ?? {}) } } as typeof m.panel;
   p.notes = 'El punto de partida: un oscilador, un filtro, una envolvente y un eco de cinta. Se toca con el teclado.';
   pack(p, DEFS);
   return { patch: validatePatch(p, DEFS), play: 'keys' };
@@ -451,14 +478,15 @@ const BANK: [string, () => Built][] = [
     wire(chaos, 'x', vcf, 'cv'); wire(vcf, 'lp24', ring, 'a'); wire(func, 'out', ring, 'b');
     wire(ring, 'out', rev, 'in'); wire(rev, 'out', out, 'l'); wire(rev, 'out', out, 'r');
   })],
-  ['drone muug', () => build('drone muug', 'self', 'Dos Muug cantando solos (énfasis pasado 8), a una quinta y a la deriva; el teclado los mueve. Girá CORTE y ENFASIS.', (add, wire, _main, out) => {
-    const a = add('muug', { cutoff: -2.1, emph: 9.2, track: 1 }, { p1: ['cutoff'], att: [0.06, 1] });
-    const b = add('muug', { cutoff: -1.52, emph: 8.8, track: 1, cvamt: 0.15 });
+  ['drone muug', () => build('drone muug', 'self', 'Dos Muug cantando solos (énfasis pasado 8), a una quinta y a la deriva; el teclado los mueve. Girá CORTE y ENFASIS.', (add, wire, main, out) => {
+    const a = add('muug', { cutoff: -2.1, emph: 9.2, cvamt: 1 }, { p1: ['cutoff'], att: [0.06, 1] });
+    const b = add('muug', { cutoff: -1.52, emph: 8.8, cvamt: 1 }, { p1: ['cutoff'], att: [0.15, 1] });
     const chaos = add('chaos', { speed: 0.12, rho: 26 });
     const slow = add('lfo', { wave: 0, rate: 0.03, depth: 1 });
     const mix = add('mixer', { l1: 0.7, l2: 0.6 });
     const rev = add('reverb', { size: 0.85, damp: 0.4, mix: 0.5 });
-    wire(chaos, 'y', a, 'p1'); wire(slow, 'out', b, 'cv');
+    wire(main, 'pitch', a, 'cv'); wire(main, 'pitch', b, 'cv');
+    wire(chaos, 'y', a, 'p1'); wire(slow, 'out', b, 'p1');
     wire(a, 'out', mix, 'in1'); wire(b, 'out', mix, 'in2');
     wire(mix, 'out', rev, 'in'); wire(rev, 'out', out, 'l'); wire(rev, 'out', out, 'r');
   })],

@@ -12,19 +12,27 @@
     "tempo": 120
    },
    "panel": {
+    "toggle": [
+     "arp"
+    ],
     "kinds": {
      "fx": "nothing",
      "lfo": "nothing",
      "edit": "nothing",
-     "arp": "nothing"
+     "arp": "bypass"
+    },
+    "targets": {
+     "arp": {
+      "module": 14
+     }
     }
    }
   },
   {
    "id": 2,
    "type": "output",
-   "x": 480,
-   "y": 828,
+   "x": 280,
+   "y": 1242,
    "params": {
     "level": 1
    }
@@ -389,12 +397,82 @@
      "sync"
     ]
    }
+  },
+  {
+   "id": 13,
+   "type": "steps",
+   "x": 480,
+   "y": 828,
+   "params": {
+    "len": 16,
+    "rate": 4,
+    "swing": 50,
+    "gate": 0.25,
+    "dir": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "len"
+    ],
+    "p2": [
+     "rate"
+    ],
+    "k1": [
+     "len"
+    ],
+    "k2": [
+     "rate"
+    ],
+    "k3": [
+     "swing"
+    ],
+    "k4": [
+     "gate"
+    ]
+   },
+   "name": "PATTERN"
+  },
+  {
+   "id": 14,
+   "type": "arp",
+   "x": 640,
+   "y": 828,
+   "params": {
+    "mode": 0,
+    "rate": 4,
+    "octaves": 1,
+    "gate": 0.5,
+    "latch": 0
+   },
+   "bypass": true
+  },
+  {
+   "id": 15,
+   "type": "alloc",
+   "x": 40,
+   "y": 1242,
+   "params": {
+    "voices": 1,
+    "assign": 0,
+    "legato": 0,
+    "priority": 0,
+    "unison": 0,
+    "channel": 0,
+    "low": 0,
+    "high": 127,
+    "steal": 1,
+    "stack": 0
+   }
   }
  ],
  "cables": [
   {
    "from": {
-    "module": 1,
+    "module": 15,
     "port": "pitch"
    },
    "to": {
@@ -454,7 +532,7 @@
   },
   {
    "from": {
-    "module": 1,
+    "module": 15,
     "port": "gate"
    },
    "to": {
@@ -464,7 +542,7 @@
   },
   {
    "from": {
-    "module": 1,
+    "module": 15,
     "port": "gate"
    },
    "to": {
@@ -560,6 +638,36 @@
    "to": {
     "module": 2,
     "port": "r"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "keys"
+   },
+   "to": {
+    "module": 13,
+    "port": "keys"
+   }
+  },
+  {
+   "from": {
+    "module": 13,
+    "port": "keys"
+   },
+   "to": {
+    "module": 14,
+    "port": "keys"
+   }
+  },
+  {
+   "from": {
+    "module": 14,
+    "port": "keys"
+   },
+   "to": {
+    "module": 15,
+    "port": "keys"
    }
   }
  ],

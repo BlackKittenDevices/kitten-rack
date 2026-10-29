@@ -1,6 +1,7 @@
 # KITTEN RACK: a release with its installer. Pushing a tag vX.Y.Z (or Actions > kitten-release > Run workflow, which makes the tag) builds the
 # firmware (identity FM-1_79Y for X.Y), runs the host tests and publishes a GitHub pre-release with
-# KittenRack-instalador-X.Y.Z.zip (instalar_kitten_rack.py, fm1_install.py, the .fwsc, SHA256SUMS, LEEME.txt) and the .fwsc.
+# KittenRack-instalador-X.Y.Z.zip (KittenRack.pyw, the window installer; instalar_kitten_rack.py, fm1_install.py, the .fwsc, the offline
+# editor, SHA256SUMS, LEEME.txt), the .fwsc and kitten-rack-editor-X.Y.Z.zip (what the installer's BAJAR EDITOR fetches).
 name: kitten-release
 on:
   push:
@@ -42,7 +43,7 @@ jobs:
         working-directory: web
         run: |
           npm run export-defs
-          git diff --exit-code ../firmware/src/defs.h ../firmware/src/presets.h ../firmware/test/presets_matryoshka.h
+          git diff --exit-code ../firmware/src/defs.h ../firmware/src/presets.h ../firmware/test/presets_matryoshka.h ../firmware/test/kitten_fixtures.h
       - name: build the release, no warnings
         id: build
         env:
@@ -64,6 +65,12 @@ jobs:
           tools/preset_test.sh
           tools/patch_edit_test.sh
           tools/bank_test.sh
+      - name: the offline editor (the rack page, relative paths, served by the installer on localhost)
+        working-directory: web
+        run: |
+          npx vite build --base ./ --outDir ../build/editor --emptyOutDir
+          cp ../build/editor/rack.html ../build/editor/index.html
+          rm -rf ../build/editor/brand ../build/editor/review ../build/editor/firmware ../build/editor/changelog.html
       - name: the installer folder
         env:
           V: ${{ steps.build.outputs.version }}
@@ -71,10 +78,12 @@ jobs:
           D="KittenRack-instalador-$V"
           mkdir -p "dist/$D"
           cp "build/matryoshka-$V.fwsc" "dist/$D/kitten-rack-$V.fwsc"
-          cp tools/instalar_kitten_rack.py tools/fm1_install.py "dist/$D/"
+          cp tools/KittenRack.pyw tools/instalar_kitten_rack.py tools/fm1_install.py "dist/$D/"
           cp tools/LEEME-instalador.txt "dist/$D/LEEME.txt"
+          cp -r build/editor "dist/$D/editor"
           (cd "dist/$D" && sha256sum "kitten-rack-$V.fwsc" > SHA256SUMS)
-          (cd dist && zip -r "$D.zip" "$D")
+          (cd dist && zip -qr "$D.zip" "$D")
+          (cd build && zip -qr "../dist/kitten-rack-editor-$V.zip" editor)
           cp "dist/$D/kitten-rack-$V.fwsc" "dist/$D/SHA256SUMS" dist/
       - name: publish the pre-release
         env:
@@ -83,5 +92,5 @@ jobs:
           V: ${{ steps.build.outputs.version }}
         run: |
           gh release create "$TAG" --target "$GITHUB_SHA" --prerelease --title "KITTEN RACK $V (prueba)" \
-            --notes "Primera versión para probar en el FM-1. Bajá KittenRack-instalador-$V.zip, descomprimilo y abrí instalar_kitten_rack.py (instrucciones en LEEME.txt). Sin probar todavía en hardware: respaldá tus datos antes." \
-            "dist/KittenRack-instalador-$V.zip" "dist/kitten-rack-$V.fwsc" dist/SHA256SUMS
+            --notes "Bajá KittenRack-instalador-$V.zip, descomprimilo y abrí KittenRack.pyw (doble clic): instala el firmware, abre el editor offline y el online (instrucciones en LEEME.txt). Respaldá tus datos antes." \
+            "dist/KittenRack-instalador-$V.zip" "dist/kitten-rack-$V.fwsc" "dist/kitten-rack-editor-$V.zip" dist/SHA256SUMS

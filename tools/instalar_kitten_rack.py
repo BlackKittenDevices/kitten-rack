@@ -177,7 +177,7 @@ def main():
         say("\nListo: el FM-1 tiene el firmware nuevo.")
         if "kitten-rack" in os.path.basename(pkg).lower():
             say("En el primer arranque KITTEN RACK escribe sus 33 patches de fábrica (si el banco no estaba vacío,")
-            say("hacé MENU > FACTORY RESET). GLO abre el RACK; REC en el rack, el patcheo.")
+            say("hacé MENU > FACTORY RESET). SEL abre el RACK; EDIT, el patcheo.")
     else:
         say(f"\nLa instalación no terminó (código {rc}). No desenchufes: volvé a abrir este instalador y lo completa.")
     pause(rc)

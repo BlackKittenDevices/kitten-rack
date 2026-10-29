@@ -6,10 +6,10 @@
  * rack its page's four rows show, which K1..K4 turn as on the device page. SELECT: the device, ALGO: its page, SEL: its
  * device page, GLO: Main's page, HOME: back.
  *
- * Patching (REC on the rack opens its menu): CABLE NUEVO (SELECT a module, ALGO an output, SEL grabs it; SELECT another
+ * Patching (EDIT opens its menu, from any page, when the patch leaves EDIT free: panel.c kr_button): CABLE NUEVO (SELECT a module, ALGO an output, SEL grabs it; SELECT another
  * module, ALGO an input, SEL plugs it in), CABLES (every cable; SEL twice pulls the one marked), AGREGAR (the catalog
  * by family; SEL puts the module at the end of the rack), QUITAR ULTIMO (the last module added here, with its cables).
- * HOME steps back, REC leaves. Each change is an edit of the running binary (patch_edit.h), loaded again as a whole: the
+ * HOME steps back, EDIT leaves. Each change is an edit of the running binary (patch_edit.h), loaded again as a whole: the
  * notes sounding stop. SAVE keeps it as any edit. */
 
 #include "patch_edit.h"
@@ -29,7 +29,7 @@ static int rack_apply(const uint8_t *bin, uint32_t len);   /* the edited binary 
 static uint8_t rk_row[PG_DEVS], rk_hp0[PG_DEVS], rk_hpw[PG_DEVS];
 static uint8_t rk_dev_of[ENG_MAX_MODULES];              /* a module's device, RK_NONE: none (inside nothing shown) */
 static uint8_t rk_mods[ENG_MAX_MODULES], rk_nmods;      /* the modules a cable can reach, in rack order */
-static uint32_t rk_nrows, rk_first, rk_gen = 0xFFFFFFFFu;
+static uint32_t rk_nrows, rk_first, rk_gen = 0xFFFFFFFFu, rk_ndev;
 static uint32_t rk_drawn_dev = 0xFFFFFFFFu, rk_drawn_first = 0xFFFFFFFFu;
 
 static uint32_t rk_px(uint32_t hp) { return RK_X0 + hp * RK_W / RK_HP; }
@@ -101,9 +101,10 @@ static void rk_layout(void)
 {
     uint32_t d, x = 0, row = 0, m, k;
     pages_ensure();
-    if (rk_gen == pg_built_gen && rk_nrows)
+    if (rk_gen == pg_built_gen && rk_nrows && rk_ndev == pg_ndev)
         return;
     rk_gen = pg_built_gen;
+    rk_ndev = pg_ndev;
     for (m = 0; m < ENG_MAX_MODULES; m++)
         rk_dev_of[m] = RK_NONE;
     for (d = 0; d < pg_ndev; d++) {
@@ -144,7 +145,7 @@ static void rk_layout(void)
 /* where device d sits on screen; 0 when its row is scrolled away */
 static int rk_box(uint32_t d, uint32_t *x, uint32_t *y, uint32_t *w)
 {
-    if (d >= pg_ndev || rk_row[d] < rk_first || rk_row[d] >= rk_first + RK_ROWS)
+    if (d >= pg_ndev || !rk_hpw[d] || rk_row[d] < rk_first || rk_row[d] >= rk_first + RK_ROWS)
         return 0;
     *x = rk_px(rk_hp0[d]);
     *w = rk_px(rk_hp0[d] + rk_hpw[d]) - *x - 1u;

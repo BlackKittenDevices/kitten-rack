@@ -275,5 +275,20 @@ static int rack_apply(const uint8_t *bin, uint32_t len)
     return 0;
 }
 #include "../src/rack_ui.c"
+static void save_state(void);
+#ifndef M1_NAME
+#define M1_NAME 20u
+#endif
+static int save_slot_name(uint32_t slot, char *name)   /* (the preview's bank: the factory patches' names) */
+{
+    uint32_t i;
+    if (slot >= N_PRESETS || !(bank_mask >> slot & 1u))
+        return 0;
+    for (i = 0; i < M1_NAME && PRESET_LIST[slot].name[i]; i++)
+        name[i] = PRESET_LIST[slot].name[i];
+    name[i] = 0;
+    return 1;
+}
+#include "../src/save_ui.c"
 #include "../src/splash.c"
 

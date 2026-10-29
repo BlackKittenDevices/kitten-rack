@@ -75,9 +75,84 @@ static void panel_button(uint32_t b, int down) { panel_button_set(b, down); }
 static void page_button(uint32_t b, int down);
 static void page_set(uint32_t p);
 static void page_mask(void);
+/* KITTEN RACK: what the FM-1's buttons do when the patch leaves them free (ui.c panel_used: no kind, no cable from their
+ * Main output). FX, LFO and ENV step through the patch's effects, modulators and envelopes, each press the next one's
+ * device page on K1..K4 (as the stock FM-1's buttons open those sections); EDIT opens the rack's patching. */
+#define KR_FX_IDX 0u
+#define KR_LFO_IDX 3u
+#define KR_EDIT_IDX 4u
+static int kr_in(int t, uint32_t cat)
+{
+    switch (cat) {
+    case KR_FX_IDX:
+        return t == T_DELAY || t == T_REVERB || t == T_CHORUS || t == T_PHASER || t == T_CRUSH || t == T_GRAIN || t == T_SHIFT;
+    case KR_LFO_IDX:
+        return t == T_LFO || t == T_FUNC || t == T_CHAOS || t == T_RANDOM || t == T_SH || t == T_TURING;
+    default:                                        /* (ENV) */
+        return t == T_ADSR || t == T_ENV || t == T_ENV8 || t == T_RATEENV || t == T_FUNC || t == T_LPG;
+    }
+}
+static int kr_step(uint32_t cat)
+{
+    static const char *const NONE[] = {"SIN EFECTOS", "", "SIN ENVOLVENTES", "SIN MODULADORES"};
+    uint32_t k, d;
+    pages_ensure();
+    for (k = 1; k <= pg_ndev; k++) {
+        d = (pg_cur_dev + (page == 0 ? k : k - 1u)) % (pg_ndev ? pg_ndev : 1u);   /* (from another page: this one first) */
+        if (d < pg_ndev && pg_dev[d].module >= 0 && kr_in(eng_type((uint32_t)pg_dev[d].module), cat)) {
+            (void)pages_focus(d, 0);
+            if (page != 0)
+                page_set(0);
+            m1_focus_now(pg_cur_dev, pg_cur_page);
+            ui_dirty = 2;
+            return 1;
+        }
+    }
+    ui_msg(NONE[cat == KR_FX_IDX ? 0 : cat == KR_LFO_IDX ? 3 : 2], 1200);
+    return 1;
+}
+static void kr_patching(void)
+{
+    if (page == PAGE_RACK && rack_editing()) {
+        rk_rec_press();                             /* (again: the rack) */
+        return;
+    }
+    if (page != PAGE_RACK) {
+        rack_open();
+        page_set(PAGE_RACK);
+    }
+    rk_rec_press();                                 /* the patching menu */
+}
+/* a press of a free button: 1 when KITTEN RACK did something with it */
+static int kr_button(uint32_t b)
+{
+    if (panel_used() >> b & 1u)
+        return 0;
+    if (b == KR_FX_IDX || b == KR_LFO_IDX)
+        return kr_step(b);
+    if (b == KR_EDIT_IDX) {
+        kr_patching();
+        return 1;
+    }
+    return 0;
+}
+/* ENV with a patch of plain modules (no assembly: nothing for the environment page): its envelopes */
+static int kr_env(void)
+{
+    uint32_t d;
+    pages_ensure();
+    for (d = 0; d < pg_ndev; d++)
+        if (pg_dev[d].module < 0 || pg_dev[d].structure)
+            return 0;
+    return kr_step(BTN_ENV_IDX);
+}
 static void panel_button_set(uint32_t b, int down)
 {
     const uint8_t *pn;
+    if (down && !(FIXED_BTNS >> b & 1u) && kr_button(b))   /* KITTEN RACK: a free FX, LFO or EDIT */
+        return;
+    if (!down && !(FIXED_BTNS >> b & 1u) && !(panel_used() >> b & 1u) && (b == KR_FX_IDX || b == KR_LFO_IDX || b == KR_EDIT_IDX))
+        return;
     if (eng_button_kind(b) == ENG_BTN_PAGE && !(FIXED_BTNS >> b & 1u)) {   /* a page list (#117): its own press / hold rules */
         page_button(b, down);
         return;
@@ -305,6 +380,10 @@ static void panel_encoders(int32_t *st)
     for (k = 0; k < 7u; k++)                        /* a turn while the track's clear asks: not cleared (#231) */
         if (st[k])
             seq_clear_cancel();
+    if (page == PAGE_SAVE) {                        /* KITTEN RACK: the SAVE page: SELECT / ALGO the slot */
+        save_turn(st[0] + st[1]);
+        return;
+    }
     if (page == PAGE_MENU) {                        /* the settings menu: ALGO tabs, SELECT rows, K1..K4 the value */
         menu_knobs(st);
         if (st[6])                                  /* (PRESET only ever steps the patches) */
@@ -594,6 +673,9 @@ static void sel_open(void)
     } else if (page == 0 && pg_cur_dev < pg_ndev && pg_dev[pg_cur_dev].structure) {
         presets_open();
         page_set(PAGE_PRESETS);
+    } else if (page == 0 && pg_cur_dev < pg_ndev && pg_dev[pg_cur_dev].module >= 0) {
+        rack_open();                                /* KITTEN RACK: a plain module: its panel on the rack (SEL there: back) */
+        page_set(PAGE_RACK);
     } else if (page == 0)
         dp_none_msg(pg_cur_dev);                    /* (why not: an old patch, a plain module) */
 }
@@ -680,6 +762,8 @@ static void panel_edges(uint32_t p, uint32_t rel)
         sel_open();
     if (p & (1u << BTN_ENV))                        /* ENV (#197, fixed): the environment, on its release (held + SAVE: a preset) */
         env_held_used = 0;
+    if ((rel & (1u << BTN_ENV)) && !env_held_used && page != PAGE_MENU && kr_env())
+        rel &= ~(1u << BTN_ENV);                    /* (KITTEN RACK: a patch of plain modules: ENV steps its envelopes) */
     if ((rel & (1u << BTN_ENV)) && !env_held_used && page != PAGE_MENU) {
         if (page != PAGE_ENV)
             env_open();
@@ -687,10 +771,6 @@ static void panel_edges(uint32_t p, uint32_t rel)
     }
     if (rel & (1u << BTN_SEQ))
         seq_held_used = 0;
-    if ((rel & (1u << BTN_REC)) && !rec_held_used && page == PAGE_RACK) {   /* REC on the rack: patching (rack_ui.c) */
-        rk_rec_press();
-        rel &= ~(1u << BTN_REC);
-    }
     if ((rel & (1u << BTN_REC)) && !rec_held_used && page == PAGE_ENV) {   /* REC on the environment: the row's arm (#191, #198) */
         env_arm_toggle();
         rel &= ~(1u << BTN_REC);
@@ -727,11 +807,15 @@ static void panel_edges(uint32_t p, uint32_t rel)
         p &= ~(1u << BTN_SAVE);
         preset_store_focused();
     }
-    if (p & (1u << BTN_SAVE)) {
-        int menu = page == PAGE_MENU;
-        save_state();
-        if (menu)                                   /* SAVE in the menu: saved (the settings too), and the menu closes */
+    if ((p & (1u << BTN_SAVE)) && page == PAGE_MENU) {
+        save_state();                               /* SAVE in the menu: saved (the settings too), and the menu closes */
+        screen_back();
+    } else if ((p & (1u << BTN_SAVE)) && page == PAGE_SAVE) {
+        if (save_confirm())                         /* KITTEN RACK: written into the slot chosen, the page closes */
             screen_back();
+    } else if (p & (1u << BTN_SAVE)) {
+        save_open();                                /* KITTEN RACK: SAVE asks where (save_ui.c) */
+        page_set(PAGE_SAVE);
     }
     {
         uint32_t b;

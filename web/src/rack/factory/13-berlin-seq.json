@@ -12,18 +12,26 @@
     "tempo": 120
    },
    "panel": {
+    "toggle": [
+     "arp"
+    ],
     "kinds": {
      "fx": "nothing",
      "lfo": "nothing",
      "edit": "nothing",
-     "arp": "nothing"
+     "arp": "bypass"
+    },
+    "targets": {
+     "arp": {
+      "module": 16
+     }
     }
    }
   },
   {
    "id": 2,
    "type": "output",
-   "x": 240,
+   "x": 800,
    "y": 1242,
    "params": {
     "level": 0.84
@@ -474,6 +482,76 @@
      "sync"
     ]
    }
+  },
+  {
+   "id": 15,
+   "type": "steps",
+   "x": 240,
+   "y": 1242,
+   "params": {
+    "len": 16,
+    "rate": 4,
+    "swing": 50,
+    "gate": 0.25,
+    "dir": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "len"
+    ],
+    "p2": [
+     "rate"
+    ],
+    "k1": [
+     "len"
+    ],
+    "k2": [
+     "rate"
+    ],
+    "k3": [
+     "swing"
+    ],
+    "k4": [
+     "gate"
+    ]
+   },
+   "name": "PATTERN"
+  },
+  {
+   "id": 16,
+   "type": "arp",
+   "x": 400,
+   "y": 1242,
+   "params": {
+    "mode": 0,
+    "rate": 4,
+    "octaves": 1,
+    "gate": 0.5,
+    "latch": 0
+   },
+   "bypass": true
+  },
+  {
+   "id": 17,
+   "type": "alloc",
+   "x": 560,
+   "y": 1242,
+   "params": {
+    "voices": 1,
+    "assign": 0,
+    "legato": 0,
+    "priority": 0,
+    "unison": 0,
+    "channel": 0,
+    "low": 0,
+    "high": 127,
+    "steal": 1,
+    "stack": 0
+   }
   }
  ],
  "cables": [
@@ -519,7 +597,7 @@
   },
   {
    "from": {
-    "module": 1,
+    "module": 17,
     "port": "pitch"
    },
    "to": {
@@ -529,7 +607,7 @@
   },
   {
    "from": {
-    "module": 1,
+    "module": 17,
     "port": "pitch"
    },
    "to": {
@@ -655,6 +733,36 @@
    "to": {
     "module": 2,
     "port": "r"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "keys"
+   },
+   "to": {
+    "module": 15,
+    "port": "keys"
+   }
+  },
+  {
+   "from": {
+    "module": 15,
+    "port": "keys"
+   },
+   "to": {
+    "module": 16,
+    "port": "keys"
+   }
+  },
+  {
+   "from": {
+    "module": 16,
+    "port": "keys"
+   },
+   "to": {
+    "module": 17,
+    "port": "keys"
    }
   }
  ],

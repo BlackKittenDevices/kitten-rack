@@ -12,19 +12,27 @@
     "tempo": 120
    },
    "panel": {
+    "toggle": [
+     "arp"
+    ],
     "kinds": {
      "fx": "nothing",
      "lfo": "nothing",
      "edit": "nothing",
-     "arp": "nothing"
+     "arp": "bypass"
+    },
+    "targets": {
+     "arp": {
+      "module": 11
+     }
     }
    }
   },
   {
    "id": 2,
    "type": "output",
-   "x": 800,
-   "y": 414,
+   "x": 600,
+   "y": 828,
    "params": {
     "level": 0.23
    }
@@ -305,12 +313,82 @@
      "pre"
     ]
    }
+  },
+  {
+   "id": 10,
+   "type": "steps",
+   "x": 40,
+   "y": 828,
+   "params": {
+    "len": 16,
+    "rate": 4,
+    "swing": 50,
+    "gate": 0.25,
+    "dir": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "len"
+    ],
+    "p2": [
+     "rate"
+    ],
+    "k1": [
+     "len"
+    ],
+    "k2": [
+     "rate"
+    ],
+    "k3": [
+     "swing"
+    ],
+    "k4": [
+     "gate"
+    ]
+   },
+   "name": "PATTERN"
+  },
+  {
+   "id": 11,
+   "type": "arp",
+   "x": 200,
+   "y": 828,
+   "params": {
+    "mode": 0,
+    "rate": 4,
+    "octaves": 1,
+    "gate": 0.5,
+    "latch": 0
+   },
+   "bypass": true
+  },
+  {
+   "id": 12,
+   "type": "alloc",
+   "x": 360,
+   "y": 828,
+   "params": {
+    "voices": 1,
+    "assign": 0,
+    "legato": 0,
+    "priority": 0,
+    "unison": 0,
+    "channel": 0,
+    "low": 0,
+    "high": 127,
+    "steal": 1,
+    "stack": 0
+   }
   }
  ],
  "cables": [
   {
    "from": {
-    "module": 1,
+    "module": 12,
     "port": "pitch"
    },
    "to": {
@@ -320,7 +398,7 @@
   },
   {
    "from": {
-    "module": 1,
+    "module": 12,
     "port": "pitch"
    },
    "to": {
@@ -416,6 +494,36 @@
    "to": {
     "module": 2,
     "port": "r"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "keys"
+   },
+   "to": {
+    "module": 10,
+    "port": "keys"
+   }
+  },
+  {
+   "from": {
+    "module": 10,
+    "port": "keys"
+   },
+   "to": {
+    "module": 11,
+    "port": "keys"
+   }
+  },
+  {
+   "from": {
+    "module": 11,
+    "port": "keys"
+   },
+   "to": {
+    "module": 12,
+    "port": "keys"
    }
   }
  ],

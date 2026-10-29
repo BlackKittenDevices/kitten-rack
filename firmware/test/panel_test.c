@@ -66,6 +66,7 @@ static void preset_step(int32_t d)
 }
 static void save_state(void) { saved++; }
 #include "../src/poly_edit.h"
+#include "kitten_fixtures.h"
 static int poly_row_set(uint32_t mod, uint32_t field, int32_t v)
 {
     return poly_patch_set(pv_bin, pv_len, mod, field, v, eng_load);
@@ -697,7 +698,38 @@ int main(void)
     enc(6, 1);
     check("PRESET alone: the next patch", presets_stepped == 1);
     tap(BTN_SAVE);
-    check("SAVE", saved == 1);
+    check("SAVE: the save page opens on the patch's own slot, nothing saved yet", page == PAGE_SAVE && saved == 0 && sv_sel == cur_preset);
+    tap(BTN_SAVE);
+    check("SAVE again: saved in its own slot, the page closes", saved == 1 && page != PAGE_SAVE);
+    {                                                       /* another slot: an empty one saves at once, an occupied one asks twice */
+        uint32_t was = cur_preset, s, empty = M1_SLOTS;
+        for (s = 0; s < M1_SLOTS && empty == M1_SLOTS; s++)
+            if (s != was && !save_slot_name(s, (char[24]){0}))
+                empty = s;
+        saved = 0;
+        tap(BTN_SAVE);
+        save_turn(1);
+        check("SAVE + a knob: the next slot chosen", page == PAGE_SAVE && sv_sel == (was + 1u) % M1_SLOTS);
+        tap(BTN_HOME);
+        check("HOME: cancelled, nothing saved", page != PAGE_SAVE && saved == 0 && cur_preset == was);
+        if (save_slot_name((was + 1u) % M1_SLOTS, (char[24]){0})) {
+            tap(BTN_SAVE);
+            save_turn(1);
+            tap(BTN_SAVE);
+            check("an occupied slot: SAVE once only arms it", page == PAGE_SAVE && saved == 0 && sv_armed);
+            tap(BTN_SAVE);
+            check("SAVE again: written over it", saved == 1 && cur_preset == (was + 1u) % M1_SLOTS && page != PAGE_SAVE);
+        }
+        if (empty < M1_SLOTS) {
+            saved = 0;
+            tap(BTN_SAVE);
+            save_turn((int)empty - (int)sv_sel);
+            tap(BTN_SAVE);
+            check("an empty slot: saved there at once", saved == 1 && cur_preset == empty);
+        }
+        cur_preset = was;
+        saved = 1;
+    }
 
     {                                                       /* MIDI out (#115): every control, raw */
         static const struct { uint8_t id, cc; } B[] = {{0, 92}, {1, 93}, {2, 80}, {3, 81}, {4, 82}, {5, 83}, {6, 84}, {7, 85},
@@ -708,7 +740,7 @@ int main(void)
             at = mlen;
             tap(B[i].id);
             all &= sent(at, 0xB0u, B[i].cc, 127u) && sent(at, 0xB0u, B[i].cc, 0u);
-            if (page == PAGE_SEQ)                           /* (SEQ and REC opened the step page: back) */
+            if (page == PAGE_SEQ || page == PAGE_SAVE)                          /* (SEQ, REC, SAVE opened the step page: back) */
                 tap(BTN_HOME);
             loop();
         }
@@ -1134,17 +1166,38 @@ int main(void)
         eng_set_param((uint32_t)main, FM1_P_TEMPO, bpm);
     }
 
-    {                                                       /* KITTEN RACK: patching on the rack (REC) */
-        static uint8_t orig[4096];
-        uint32_t olen = pv_len, nm = (uint32_t)eng_nmodules(), nc = (uint32_t)eng_ncables(), i, muug = 0, last, from, fp, to, tp;
+    {                                                       /* KITTEN RACK: patching on the rack (EDIT) */
+        static uint8_t orig[4096], before[4096];
+        uint32_t blen = pv_len, olen, nm, nc, i, muug = 0, last, from, fp, to, tp;
+        for (i = 0; i < pv_len; i++)
+            before[i] = pv_bin[i];
+        for (i = 0; i < sizeof KR_INIT; i++)              /* KITTEN RACK's INIT: plain modules, only ARP taken */
+            pv_bin[i] = KR_INIT[i];
+        pv_len = sizeof KR_INIT;
+        (void)eng_upgrade(pv_bin, &pv_len, sizeof pv_bin);
+        pv_gen++;
+        check("(KITTEN RACK's INIT: plain modules, FX LFO EDIT free, ARP its arpeggiator)", eng_load(pv_bin, pv_len) == 0 && (panel_used() & 0x59u) == 0x40u);
+        pages_ensure();
+        page_set(0);
+        if (page != 0)
+            screen_back();
+        tap(BTN_ENV);
+        check("ENV on a patch of plain modules: its envelope's device page", page == 0 && eng_type((uint32_t)pg_dev[pg_cur_dev].module) == T_ADSR);
+        tap(2);
+        check("FX: its tape echo's device page", page == 0 && eng_type((uint32_t)pg_dev[pg_cur_dev].module) == T_DELAY);
+        tap(5);
+        check("LFO with no modulators: says so, the page stays", page == 0 && eng_type((uint32_t)pg_dev[pg_cur_dev].module) == T_DELAY);
+        tap(BTN_SEL);
+        check("SEL on a plain module: its panel on the rack", page == PAGE_RACK);
+        tap(BTN_HOME);
+        olen = pv_len; nm = (uint32_t)eng_nmodules(); nc = (uint32_t)eng_ncables();
         for (i = 0; i < pv_len; i++)
             orig[i] = pv_bin[i];
         for (i = 0; i < RK_NCAT; i++)
             if (RK_CAT_TYPE[i] == T_MUUG)
                 muug = i;
-        tap(7);
-        tap(BTN_REC);
-        check("REC on the rack: the patching menu, no recording", page == PAGE_RACK && rack_editing() && rk_mode == RK_MENU && seq_rec == 0);
+        tap(6);
+        check("EDIT (free in this patch): the rack and its patching menu, no recording", page == PAGE_RACK && rack_editing() && rk_mode == RK_MENU && seq_rec == 0);
         if (getenv("PANEL_SNAP_PATCH_MENU")) { setenv("PANEL_SNAP", getenv("PANEL_SNAP_PATCH_MENU"), 1); snap(); }
         enc(0, 2);
         tap(BTN_SEL);
@@ -1155,7 +1208,7 @@ int main(void)
         last = (uint32_t)eng_nmodules() - 1u;
         check("  SEL: a VCF Muug at the end of the rack, in focus, the rack again", eng_nmodules() == (int)nm + 1 && eng_type(last) == T_MUUG
               && rk_mode == RK_VIEW && rk_dev_of[last] == pg_cur_dev && m1_edited);
-        tap(BTN_REC);
+        tap(6);
         tap(BTN_SEL);
         check("  CABLE NUEVO: an output of the module in focus", rk_mode == RK_OUT && rk_cur_mod() == last);
         for (i = 0; i < 64u && rk_cur_mod() != 0u; i++)
@@ -1193,12 +1246,16 @@ int main(void)
         }
         tap(BTN_SEL);
         check("  again: nothing more of ours to take out", eng_nmodules() == (int)nm);
-        tap(BTN_REC);
-        check("REC: the rack again", !rack_editing() && page == PAGE_RACK);
+        tap(6);
+        check("EDIT again: the rack", !rack_editing() && page == PAGE_RACK);
         tap(BTN_HOME);
         check("  HOME: the device page", page == 0);
-        (void)olen;
-        (void)orig;
+        for (i = 0; i < blen; i++)                         /* the patch the tests below expect */
+            pv_bin[i] = before[i];
+        pv_len = blen;
+        check("(the earlier patch back)", eng_load(pv_bin, pv_len) == 0);
+        pv_gen++;
+        pages_ensure();
     }
 
     panel_keys(1u << 7);                                    /* a key: a note, sent out */

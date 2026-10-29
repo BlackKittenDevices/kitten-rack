@@ -2,30 +2,44 @@ KITTEN RACK - instalador para el M-VAVE FM-1
 ============================================
 
 Qué hay en esta carpeta
-  instalar_kitten_rack.py   el instalador (doble clic, o: python instalar_kitten_rack.py)
-  fm1_install.py            el método de instalación de Felucca que usa el instalador
+  KittenRack.pyw            EL INSTALADOR CON VENTANA: doble clic y listo
+  editor/                   el editor del rack, para usar sin internet (lo abre el instalador)
+  instalar_kitten_rack.py   el mismo instalador en modo texto (por si la ventana no abre)
+  fm1_install.py            el método de instalación de Felucca que usan los dos
   kitten-rack-*.fwsc        el firmware
   SHA256SUMS                las huellas para comprobar que el archivo llegó entero
 
 Antes de instalar
-  1. Necesitás Python 3.8 o más nuevo (python.org; en Windows marcá "Add python.exe to PATH").
+  1. Necesitás Python 3.8 o más nuevo (python.org o la Microsoft Store).
      En Windows no hace falta instalar nada más: usa el MIDI del sistema.
   2. Respaldá los patches y canciones del firmware que tenés ahora (Kitten Synths: con su editor).
      KITTEN RACK usa su propio banco de patches y el anterior puede perderse.
   3. Conectá el FM-1 por USB con un cable de datos y cerrá todo programa que use MIDI
      (editores web, DAW, el editor de Kitten Synths).
 
-Instalar
-  Doble clic en instalar_kitten_rack.py. Te muestra qué firmware tiene el FM-1, te pregunta,
-  e instala. No desenchufes el FM-1 hasta que diga "Listo" (uno o dos minutos).
-  Si algo se corta, volvé a abrir el instalador: el FM-1 queda esperando y lo termina.
+La ventana del instalador
+  BUSCAR FM-1            muestra qué firmware tiene el FM-1 ahora
+  INSTALAR KITTEN RACK   sube el firmware (uno o dos minutos; no desenchufes hasta que diga "Listo").
+                         Si algo se corta, apretalo de nuevo: el FM-1 queda esperando y se termina.
+  EDITOR OFFLINE         abre el editor de esta carpeta en tu navegador (Chrome o Edge), con MIDI.
+                         Funciona mientras la ventana del instalador esté abierta.
+  EDITOR ONLINE          abre el editor en internet (https://blackkittendevices.github.io/kitten-rack/)
+  OTRO FIRMWARE...       instala otro .fwsc, por ejemplo Kitten Synths para volver atrás
+  BAJAR EDITOR OFFLINE   baja la última versión del editor a la carpeta editor/
 
-Después
+  El editor y el instalador no pueden usar el MIDI a la vez: para instalar, cerrá la pestaña del editor.
+
+Después, en el FM-1
   En el primer arranque KITTEN RACK escribe sus 33 patches de fábrica. Si no aparecen,
-  MENU > FACTORY RESET.  GLO abre el RACK, REC en el rack abre el patcheo.
+  MENU > FACTORY RESET.
+  SEL      el RACK (los módulos del patch)        EDIT   el patcheo (agregar módulos y cables)
+  FX       salta entre los efectos                LFO    salta entre los moduladores
+  ENV      salta entre las envolventes            ARP    prende / apaga el arpegiador
+  SEQ      el secuenciador (16 pasos)             REC    graba pasos     PLAY   corre / para
+  SAVE     elegí dónde guardar con SELECT y SAVE de nuevo (HOME cancela). El patch se guarda
+           entero: el sonido y sus secuencias.
 
-Volver a Kitten Synths (o a otro firmware de la familia Felucca)
-  python instalar_kitten_rack.py --paquete C:\ruta\al\archivo-de-kitten-synths.fwsc
-
-Solo ver qué firmware tiene el FM-1
-  python instalar_kitten_rack.py --solo-info
+Sin ventana (modo texto)
+  python instalar_kitten_rack.py                       instala
+  python instalar_kitten_rack.py --solo-info           solo muestra qué firmware tiene
+  python instalar_kitten_rack.py --paquete ARCHIVO.fwsc   instala otro firmware

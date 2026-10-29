@@ -378,6 +378,16 @@ static int m1_slot_info(uint32_t slot, char *name, uint32_t *len)
         name[i] = h.name[i];
     return 1;
 }
+static int save_slot_name(uint32_t slot, char *name)   /* KITTEN RACK: the SAVE page's list (save_ui.c) */
+{
+    uint32_t len, i;
+    if (!m1_slot_info(slot, name, &len))
+        return 0;
+    for (i = 0; i < M1_NAME && name[i]; i++)
+        ;
+    name[i < M1_NAME ? i : M1_NAME] = 0;
+    return 1;
+}
 
 /* The loading screen (splash.c): the logo, then what is being loaded and a bar, from the first LCD write until the patches
  * are up */

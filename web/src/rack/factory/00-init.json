@@ -16,6 +16,9 @@
      "arp"
     ],
     "kinds": {
+     "fx": "nothing",
+     "lfo": "nothing",
+     "edit": "nothing",
      "arp": "bypass"
     },
     "targets": {
