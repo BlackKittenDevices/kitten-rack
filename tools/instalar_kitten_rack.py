@@ -5,7 +5,7 @@
 Doble clic en este archivo, o desde una terminal:   python instalar_kitten_rack.py
 
 Qué hace, paso a paso, preguntando antes de tocar el FM-1:
-  1. instala lo que necesita (mido y python-rtmidi) si falta;
+  1. en macOS y Linux instala lo que necesita (mido y python-rtmidi) si falta; en Windows usa el MIDI del sistema;
   2. busca el paquete del firmware (kitten-rack-*.fwsc) en esta misma carpeta; si no está, baja la última versión
      publicada en GitHub (BlackKittenDevices/kitten-rack) y comprueba su huella SHA-256;
   3. busca el FM-1 por USB-MIDI y muestra qué firmware tiene ahora;
@@ -45,6 +45,8 @@ def pause(code):
 
 
 def need_modules():
+    if sys.platform == "win32":
+        return                                       # (Windows: fm1_install.py usa el MIDI del sistema, no hace falta nada)
     try:
         import mido  # noqa: F401
         import rtmidi  # noqa: F401

@@ -14,7 +14,8 @@ the FM-1 restarts and the installed identity is checked.
   fm1_install.py --info [--port NAME]
 
 If the FM-1 is still in update mode (an earlier install was cut off), the
-install finishes the write, when that loader may write this package. Needs mido with python-rtmidi.
+install finishes the write, when that loader may write this package. Needs mido with python-rtmidi,
+except on Windows, where it uses the system's MIDI (winmm.dll) and needs nothing.
 
 Exit codes: 0 done, 1 cancelled or other error, 2 bad arguments or package,
 3 FM-1 not found, 4 connection lost or the device stopped, 5 timeout (no
@@ -24,6 +25,7 @@ M-VAVE loader only gets the official V15, a Felucca-type one everything else).
 """
 import argparse
 import hashlib
+import os
 import queue
 import re
 import sys
@@ -242,6 +244,163 @@ class MidoBackend:
 
     def open(self, in_name, out_name):
         return MidoLink(self, in_name, out_name)
+
+
+# KITTEN RACK: on Windows the installer talks to the FM-1 through the system's own MIDI (winmm.dll, by ctypes), so it
+# needs nothing installed: python-rtmidi has no ready-made build for every Python on Windows (3.13 from the Microsoft
+# Store had to compile it, without a compiler). Same interface as MidoBackend / MidoLink.
+class WinMMLink:
+    """one WinMM MIDI in/out pair with a SysEx queue"""
+    NBUF, BUFLEN = 8, 8192
+
+    def __init__(self, backend, in_name, out_name):
+        import ctypes
+        from ctypes import wintypes
+        self.ct, self.backend, self.name = ctypes, backend, in_name
+        self.q = queue.Queue()
+        self.closing = False
+        w = backend.w
+        ins, outs = backend.input_names(), backend.output_names()
+        self.hin, self.hout = wintypes.HANDLE(), wintypes.HANDLE()
+        self.cb = backend.PROC(self._rx)        # (kept alive as long as the port is open)
+        r = w.midiInOpen(ctypes.byref(self.hin), ins.index(in_name), self.cb, 0, 0x30000)   # CALLBACK_FUNCTION
+        if r:
+            raise OSError(f"midiInOpen {r} ({in_name}: in use by another program?)")
+        self.bufs, self.hdrs = [], []
+        for _ in range(self.NBUF):
+            buf = ctypes.create_string_buffer(self.BUFLEN)
+            hdr = backend.MIDIHDR()
+            hdr.lpData = ctypes.cast(buf, ctypes.c_void_p)
+            hdr.dwBufferLength = self.BUFLEN
+            w.midiInPrepareHeader(self.hin, ctypes.byref(hdr), ctypes.sizeof(hdr))
+            w.midiInAddBuffer(self.hin, ctypes.byref(hdr), ctypes.sizeof(hdr))
+            self.bufs.append(buf)
+            self.hdrs.append(hdr)
+        w.midiInStart(self.hin)
+        r = w.midiOutOpen(ctypes.byref(self.hout), outs.index(out_name), None, 0, 0)
+        if r:
+            self.close()
+            raise OSError(f"midiOutOpen {r} ({out_name}: in use by another program?)")
+        time.sleep(DELAY["open"])
+
+    def _rx(self, h, msg, inst, p1, p2):
+        if msg != 0x3C4 or self.closing:        # MIM_LONGDATA: a SysEx buffer came back filled
+            return
+        ct = self.ct
+        hdr = ct.cast(ct.c_void_p(p1), ct.POINTER(self.backend.MIDIHDR)).contents
+        n = hdr.dwBytesRecorded
+        if n:
+            data = ct.string_at(hdr.lpData, n)
+            i = data.find(b"\xf0")
+            while i >= 0:
+                j = data.find(b"\xf7", i)
+                if j < 0:
+                    break
+                self.q.put(bytes(data[i:j + 1]))
+                i = data.find(b"\xf0", j)
+        self.backend.w.midiInAddBuffer(self.hin, ct.byref(hdr), ct.sizeof(hdr))
+
+    @property
+    def lost(self):
+        return self.name not in self.backend.input_names()
+
+    def send(self, pkt):
+        ct, w = self.ct, self.backend.w
+        try:
+            buf = ct.create_string_buffer(bytes(pkt), len(pkt))
+            hdr = self.backend.MIDIHDR()
+            hdr.lpData = ct.cast(buf, ct.c_void_p)
+            hdr.dwBufferLength = len(pkt)
+            if w.midiOutPrepareHeader(self.hout, ct.byref(hdr), ct.sizeof(hdr)):
+                return False
+            ok = w.midiOutLongMsg(self.hout, ct.byref(hdr), ct.sizeof(hdr)) == 0
+            end = time.monotonic() + 2.0
+            while ok and not (hdr.dwFlags & 1) and time.monotonic() < end:   # MHDR_DONE
+                time.sleep(0.0005)
+            w.midiOutUnprepareHeader(self.hout, ct.byref(hdr), ct.sizeof(hdr))
+            return ok and bool(hdr.dwFlags & 1)
+        except Exception:
+            return False
+
+    def read(self, timeout):
+        try:
+            return self.q.get(timeout=max(timeout, 0))
+        except queue.Empty:
+            return None
+
+    def drain(self):
+        while not self.q.empty():
+            self.q.get_nowait()
+
+    def close(self):
+        ct, w = self.ct, self.backend.w
+        self.closing = True
+        try:
+            if self.hin:
+                w.midiInStop(self.hin)
+                w.midiInReset(self.hin)
+                for hdr in self.hdrs:
+                    w.midiInUnprepareHeader(self.hin, ct.byref(hdr), ct.sizeof(hdr))
+                w.midiInClose(self.hin)
+                self.hin = None
+        except Exception:
+            pass
+        try:
+            if self.hout:
+                w.midiOutReset(self.hout)
+                w.midiOutClose(self.hout)
+                self.hout = None
+        except Exception:
+            pass
+
+
+class WinMMBackend:
+    def __init__(self):
+        import ctypes
+        from ctypes import wintypes
+        self.w = ctypes.WinDLL("winmm")
+
+        class MIDIHDR(ctypes.Structure):
+            _fields_ = [("lpData", ctypes.c_void_p), ("dwBufferLength", wintypes.DWORD), ("dwBytesRecorded", wintypes.DWORD),
+                        ("dwUser", ctypes.c_size_t), ("dwFlags", wintypes.DWORD), ("lpNext", ctypes.c_void_p),
+                        ("reserved", ctypes.c_size_t), ("dwOffset", wintypes.DWORD), ("dwReserved", ctypes.c_size_t * 8)]
+
+        class INCAPS(ctypes.Structure):
+            _fields_ = [("wMid", wintypes.WORD), ("wPid", wintypes.WORD), ("vDriverVersion", wintypes.UINT),
+                        ("szPname", wintypes.WCHAR * 32), ("dwSupport", wintypes.DWORD)]
+
+        class OUTCAPS(ctypes.Structure):
+            _fields_ = [("wMid", wintypes.WORD), ("wPid", wintypes.WORD), ("vDriverVersion", wintypes.UINT),
+                        ("szPname", wintypes.WCHAR * 32), ("wTechnology", wintypes.WORD), ("wVoices", wintypes.WORD),
+                        ("wNotes", wintypes.WORD), ("wChannelMask", wintypes.WORD), ("dwSupport", wintypes.DWORD)]
+        self.MIDIHDR, self.INCAPS, self.OUTCAPS = MIDIHDR, INCAPS, OUTCAPS
+        self.PROC = ctypes.WINFUNCTYPE(None, wintypes.HANDLE, wintypes.UINT, ctypes.c_size_t, ctypes.c_size_t, ctypes.c_size_t)
+        self.w.midiInOpen.argtypes = [ctypes.POINTER(wintypes.HANDLE), wintypes.UINT, self.PROC, ctypes.c_size_t, wintypes.DWORD]
+        self.w.midiOutOpen.argtypes = [ctypes.POINTER(wintypes.HANDLE), wintypes.UINT, ctypes.c_void_p, ctypes.c_size_t, wintypes.DWORD]
+        for f in ("midiInPrepareHeader", "midiInUnprepareHeader", "midiInAddBuffer", "midiOutPrepareHeader",
+                  "midiOutUnprepareHeader", "midiOutLongMsg"):
+            getattr(self.w, f).argtypes = [wintypes.HANDLE, ctypes.c_void_p, wintypes.UINT]
+        for f in ("midiInStart", "midiInStop", "midiInReset", "midiInClose", "midiOutReset", "midiOutClose"):
+            getattr(self.w, f).argtypes = [wintypes.HANDLE]
+        self.w.midiInGetDevCapsW.argtypes = [ctypes.c_size_t, ctypes.c_void_p, wintypes.UINT]
+        self.w.midiOutGetDevCapsW.argtypes = [ctypes.c_size_t, ctypes.c_void_p, wintypes.UINT]
+        self.ct = ctypes
+
+    def _names(self, n, caps, get):
+        out = []
+        for i in range(n):
+            c = caps()
+            out.append(c.szPname if get(i, self.ct.byref(c), self.ct.sizeof(c)) == 0 else f"?{i}")
+        return out
+
+    def input_names(self):
+        return self._names(self.w.midiInGetNumDevs(), self.INCAPS, self.w.midiInGetDevCapsW)
+
+    def output_names(self):
+        return self._names(self.w.midiOutGetNumDevs(), self.OUTCAPS, self.w.midiOutGetDevCapsW)
+
+    def open(self, in_name, out_name):
+        return WinMMLink(self, in_name, out_name)
 
 
 def pair_output(name, outs):
@@ -525,6 +684,8 @@ def main(argv=None, backend=None, out=sys.stdout, ask=ask_tty):
     if bool(a.info) == bool(a.package):
         ap.error("give a PACKAGE.fwsc or --info")
     try:
+        if backend is None and sys.platform == "win32" and not os.environ.get("FM1_MIDO"):
+            backend = WinMMBackend()            # (Windows: its own MIDI, nothing to install)
         if backend is None:
             try:
                 backend = MidoBackend()
@@ -534,6 +695,9 @@ def main(argv=None, backend=None, out=sys.stdout, ask=ask_tty):
     except InstallError as e:
         print(f"error: {e}", file=sys.stderr)
         return EXIT.get(e.code, 1)
+    except OSError as e:                        # (the system's MIDI refused a port: another program holds it)
+        print(f"error: MIDI: {e}", file=sys.stderr)
+        return EXIT["notfound"]
     except KeyboardInterrupt:
         print("\ninterrupted: if the FM-1 is in update mode, run the install again to finish", file=sys.stderr)
         return 130

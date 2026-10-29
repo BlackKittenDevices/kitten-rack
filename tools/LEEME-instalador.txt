@@ -9,7 +9,7 @@ Qué hay en esta carpeta
 
 Antes de instalar
   1. Necesitás Python 3.8 o más nuevo (python.org; en Windows marcá "Add python.exe to PATH").
-     Recomendado: Python 3.12 o 3.13 (python-rtmidi trae instalación lista para esas versiones).
+     En Windows no hace falta instalar nada más: usa el MIDI del sistema.
   2. Respaldá los patches y canciones del firmware que tenés ahora (Kitten Synths: con su editor).
      KITTEN RACK usa su propio banco de patches y el anterior puede perderse.
   3. Conectá el FM-1 por USB con un cable de datos y cerrá todo programa que use MIDI
