@@ -89,12 +89,13 @@ jobs:
           (cd dist && zip -qr "$D.zip" "$D")
           (cd build && zip -qr "../dist/kitten-rack-editor-$V.zip" editor)
           cp "dist/$D/kitten-rack-$V.fwsc" "dist/$D/SHA256SUMS" dist/
-      - name: publish the pre-release
+      - name: publish the release (0.x and -suffix versions as pre-releases)
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag || github.ref_name }}
           V: ${{ steps.build.outputs.version }}
         run: |
-          gh release create "$TAG" --target "$GITHUB_SHA" --prerelease --title "KITTEN RACK $V (prueba)" \
-            --notes "Bajá KittenRack-instalador-$V.zip, descomprimilo y abrí KittenRack.pyw (doble clic): instala el firmware, abre el editor offline y el online (instrucciones en LEEME.txt). Respaldá tus datos antes." \
+          case "$V" in 0.*|*-*) PRE="--prerelease"; TITLE="KITTEN RACK $V (prueba)";; *) PRE=""; TITLE="KITTEN RACK $V";; esac
+          V="$V" python3 tools/release_notes.py > notes.md
+          gh release create "$TAG" --target "$GITHUB_SHA" $PRE --title "$TITLE" --notes-file notes.md \
             "dist/KittenRack-instalador-$V.zip" "dist/kitten-rack-$V.fwsc" "dist/kitten-rack-editor-$V.zip" dist/SHA256SUMS
