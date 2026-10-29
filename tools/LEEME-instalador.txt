@@ -30,14 +30,25 @@ La ventana del instalador
   El editor y el instalador no pueden usar el MIDI a la vez: para instalar, cerrá la pestaña del editor.
 
 Después, en el FM-1
-  En el primer arranque KITTEN RACK escribe sus 33 patches de fábrica. Si no aparecen,
-  MENU > FACTORY RESET.
-  SEL      el RACK (los módulos del patch)        EDIT   el patcheo (agregar módulos y cables)
-  FX       salta entre los efectos                LFO    salta entre los moduladores
-  ENV      salta entre las envolventes            ARP    prende / apaga el arpegiador
-  SEQ      el secuenciador (16 pasos)             REC    graba pasos     PLAY   corre / para
-  SAVE     elegí dónde guardar con SELECT y SAVE de nuevo (HOME cancela). El patch se guarda
-           entero: el sonido y sus secuencias.
+  En el primer arranque KITTEN RACK escribe sus 33 patches de fábrica. Al actualizar, los patches de
+  fábrica que nunca editaste se reemplazan solos por los nuevos (los tuyos no se tocan).
+  SEL      el RACK (los módulos del patch)
+  EDIT     el patcheo: CABLE NUEVO, CABLES (sacar), AGREGAR MODULO, QUITAR ULTIMO. EDIT de nuevo sale
+  FX       salta entre los efectos
+  LFO      salta entre las fuentes de sonido y los moduladores
+  ENV      salta entre las envolventes y los filtros
+  ARP      prende / apaga el arpegiador y muestra su página (modo, ritmo, octavas, largo)
+  SEQ      el secuenciador: las teclas blancas ponen pasos, SELECT elige la nota, OCT- / OCT+ las
+           páginas (hasta 64 pasos). Sin paso apretado: K1 pasos, K2 ritmo, K3 swing, K4 tempo.
+           REC graba, PLAY corre / para, REC sostenido 4 segundos borra el patrón
+  SAVE     elegí un lugar con SELECT: SAVE guarda ahí (si hay otro patch, SAVE de nuevo lo pisa),
+           SEL carga el que está ahí, HOME sale. El patch se guarda entero: sonido y secuencias.
+
+El editor, en vivo con el FM-1
+  Abrí el editor (offline u online, en Chrome o Edge) y apretá el botón FM-1 de arriba:
+  lee el patch que toca el FM-1 y desde ahí lo que movés en uno lo hace el otro (perillas, cables,
+  módulos, notas). ROLL en el módulo PATTERN abre el piano roll. AL FM-1 guarda en un lugar del banco.
+  Para instalar firmware, primero desconectá el editor (botón FM-1) o cerrá su pestaña.
 
 Sin ventana (modo texto)
   python instalar_kitten_rack.py                       instala
