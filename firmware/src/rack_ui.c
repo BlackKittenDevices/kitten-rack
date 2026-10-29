@@ -486,8 +486,11 @@ static uint8_t *rk_begin(uint32_t *len, uint32_t *cap)
     return b;
 }
 /* the edit's outcome: loaded and said, or why not */
-static int rk_finish(uint8_t *b, uint32_t len, int rc, const char *done)
+/* (len by address: the edit is an argument too, and C does not say which argument is worked out first: the FM-1's
+ * compiler read the length before the edit grew it, so every edit reached the engine cut short) */
+static int rk_finish(uint8_t *b, const uint32_t *lenp, int rc, const char *done)
 {
+    uint32_t len = *lenp;
 #if defined(KR_DEV) && KR_DEV
     uint32_t clen;
     const uint8_t *cur = pages_src(&clen);
@@ -540,7 +543,7 @@ static void rk_sel_press(void)
             rk_sel = 0;
         } else if (!rk_added) {
             ui_msg("NADA AGREGADO AQUI", 1500);
-        } else if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, len, pe_module_pop(b, &len), "QUITADO") == 0) {
+        } else if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, &len, pe_module_pop(b, &len), "QUITADO") == 0) {
             rk_added--;
             rk_added_gen = pages_gen();
             if (pg_cur_dev >= pg_ndev && pg_ndev)
@@ -566,7 +569,7 @@ static void rk_sel_press(void)
             ui_msg("SIN ENTRADAS", 1200);
             return;
         }
-        if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, len, pe_cable_add(b, &len, cap, rk_src, rk_src_jack, rk_cur_mod(), rk_jack), "CABLE LISTO") == 0) {
+        if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, &len, pe_cable_add(b, &len, cap, rk_src, rk_src_jack, rk_cur_mod(), rk_jack), "CABLE LISTO") == 0) {
             rk_mode = RK_OUT;                           /* another cable from the same module, or SELECT on */
             rk_focus_mod();
         }
@@ -582,13 +585,13 @@ static void rk_sel_press(void)
             return;
         }
         rk_armed = 0;
-        if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, len, pe_cable_del(b, &len, rk_sel), "CABLE AFUERA") == 0 && rk_sel && rk_sel >= (uint32_t)eng_ncables())
+        if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, &len, pe_cable_del(b, &len, rk_sel), "CABLE AFUERA") == 0 && rk_sel && rk_sel >= (uint32_t)eng_ncables())
             rk_sel--;
         return;
     }
     if (rk_mode == RK_ADD) {
         uint32_t before = (uint32_t)eng_nmodules();
-        if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, len, pe_module_add(b, &len, cap, RK_CAT_TYPE[rk_sel]), "AGREGADO") == 0) {
+        if ((b = rk_begin(&len, &cap)) != 0 && rk_finish(b, &len, pe_module_add(b, &len, cap, RK_CAT_TYPE[rk_sel]), "AGREGADO") == 0) {
             rk_added++;
             rk_added_gen = pages_gen();
             rk_layout();
