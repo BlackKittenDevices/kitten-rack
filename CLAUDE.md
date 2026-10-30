@@ -1,11 +1,11 @@
-# KITTEN RACK — notes for Claude
+# Kitten Rack — notes for Claude
 
 A Eurorack-style modular firmware for the **M-VAVE FM-1**, a fork of Matryoshka 1.5.1 (glvno/matryoshka). Repo: BlackKittenDevices/kitten-rack. User-facing docs: `README.md` (English) and `README.es.md` (Spanish, rioplatense); keep both in step with what the device does. Design of the inherited parts (formats, engine, protocol): `docs/ARCHITECTURE.md` (written for Matryoshka; its ledger links point at files that were removed).
 
 ## The owner
 
 - Not a programmer, works on Windows, cannot run GitHub steps: Claude commits, pushes to `main` and runs releases.
-- Look: orange on black. The device screen has ENGLISH / ESPANOL (GLO K4, `LG(en, es)` in ui.c, English default): every new KITTEN RACK text needs both. Docs: README.md English, README.es.md Spanish (keep both in step); the editor is Spanish; the LCD manual (`firmware/src/manual.c`) stays in English capitals, ≤ 35 chars a line, no `;`.
+- Look: orange on black. The device screen has ENGLISH / ESPANOL (GLO K4, `LG(en, es)` in ui.c, English default): every new Kitten Rack text needs both. Docs: README.md English, README.es.md Spanish (keep both in step); the editor is Spanish; the LCD manual (`firmware/src/manual.c`) stays in English capitals, ≤ 35 chars a line, no `;`.
 - Backs up before installing. **Never ship firmware without Felucca's USB update (OTA) path**: it is the way back.
 
 ## Layout

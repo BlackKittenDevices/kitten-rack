@@ -1,4 +1,4 @@
-# KITTEN RACK: a development build for the emulator (tools/emu), published as the assets of the "dev" pre-release:
+# Kitten Rack: a development build for the emulator (tools/emu), published as the assets of the "dev" pre-release:
 # dev-app.bin (what m1emu runs), dev-emu-app.bin (M1_EMU_MIDI=1: its USB MIDI for m1emu serve) and dev-matryoshka.elf (its symbols). Not a release for the FM-1: nothing to install.
 # Actions > kitten-dev > Run workflow, or a push to main that touches the firmware.
 name: kitten-dev

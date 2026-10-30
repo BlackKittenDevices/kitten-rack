@@ -7,7 +7,7 @@
 import { DEFS } from '../modules';
 import { PANEL_BUTTONS } from '../modules';
 import {
-  GROUP_REC, PANEL_BYTES, TYPE_ORDER, BYPASS_BIT, FLAG_MORPH, FLAG_MORPH_MODULES, FLAG_RANGE, FLAG_INPUTS, FLAG_INPUT_MAP, FLAG_NOTES,
+  GROUP_REC, PANEL_BYTES, TYPE_ORDER, BYPASS_BIT, FLAG_MORPH, FLAG_MORPH_MODULES, FLAG_RANGE, FLAG_MIDIMAP, FLAG_INPUTS, FLAG_INPUT_MAP, FLAG_NOTES,
   FLAG_DEVICES, FLAG_EXTRAS, FLAG_BUTTONS, FLAG_NAMES, FLAG_PATTERNS, Q, maskBytes, paramsAt,
 } from '../patchbin';
 import { MAX_PARTS, PANEL_LABEL_KEYS, PANEL_LABEL_MAX, SOURCES, type MainPanel, type ModuleInst, type Patch, type Cable } from '../patch';
@@ -260,6 +260,15 @@ export function decodeDevicePatch(b: Uint8Array, name = 'FM-1'): Patch {
       if (m && pd) ((m.range ??= {})[pin] ??= {})[pd.name] = [b[at + 3] / 255, b[at + 4] / 255];
     }
   }
+  const midiMap: { cc: number; ch?: number; module: number; param: string }[] = [];
+  if (flags & FLAG_MIDIMAP) {   // KITTEN RACK: the MIDI map (patchbin.ts midiMapList)
+    const nm = b[at++];
+    for (let k = 0; k < nm; k++, at += 4) {
+      const m = mods[b[at + 2]];
+      const pd = DEFS[m?.type ?? '']?.params[b[at + 3]];
+      if (m && pd) midiMap.push({ cc: b[at] & 127, ...(b[at + 1] ? { ch: b[at + 1] } : {}), module: m.id, param: pd.name });
+    }
+  }
   if (at !== b.length) throw new DecodeError(`${b.length - at} bytes left over`);
   // the panel: which buttons switch and which are on
   const toggle = PANEL_BUTTONS.filter((_, i) => (switched >> i) & 1);
@@ -289,7 +298,7 @@ export function decodeDevicePatch(b: Uint8Array, name = 'FM-1'): Patch {
     m.params = Object.fromEntries(DEFS.alloc.params.map((pd) => [pd.name, pd.default]));
     if (main) cables.push({ from: { module: main.id, port: 'keys' }, to: { module: m.id, port: 'keys' } });
   }
-  const p: Patch = { version: 2, name, modules: mods, cables };
+  const p: Patch = { version: 2, name, modules: mods, cables, ...(midiMap.length ? { midiMap } : {}) };
   packInOrder(p, DEFS, [...(main ? [main.id] : []), ...order.map((i) => mods[i]?.id).filter((x): x is number => x !== undefined && x !== main?.id)]);
   return p;
 }

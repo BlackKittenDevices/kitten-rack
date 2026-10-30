@@ -1,4 +1,4 @@
-# KITTEN RACK
+# Kitten Rack
 
 Un Eurorack virtual adentro del **M-VAVE FM-1**: módulos con panel, jacks y cables, donde cualquier salida va a cualquier entrada. Se arma, se toca y se guarda como un instrumento. Naranja sobre negro, de [Black Kitten Devices](https://github.com/BlackKittenDevices).
 
@@ -28,14 +28,14 @@ Este documento explica todo lo que tiene el firmware: cómo instalarlo, cómo se
 
 1. En [Releases](https://github.com/BlackKittenDevices/kitten-rack/releases) bajá `KittenRack-instalador-X.Y.Z.zip` (la versión más nueva) y descomprimilo.
 2. Necesitás **Python 3.8 o más nuevo** (python.org o la Microsoft Store). En Windows no hace falta nada más.
-3. **Respaldá** los patches y canciones del firmware que tenés ahora (Kitten Synths: con su editor). KITTEN RACK usa su propio banco.
+3. **Respaldá** los patches y canciones del firmware que tenés ahora (Kitten Synths: con su editor). Kitten Rack usa su propio banco.
 4. Conectá el FM-1 con un cable USB de datos y cerrá todo programa que use MIDI (editores web, DAW).
 5. Doble clic en **`KittenRack.pyw`**. La ventana tiene:
 
 | Botón | Qué hace |
 | --- | --- |
 | BUSCAR FM-1 | Muestra qué firmware tiene el FM-1 ahora |
-| INSTALAR KITTEN RACK | Sube el firmware (uno o dos minutos, no desenchufes hasta que diga "Listo"). Si algo se corta, apretalo de nuevo: el FM-1 queda esperando |
+| INSTALAR Kitten Rack | Sube el firmware (uno o dos minutos, no desenchufes hasta que diga "Listo"). Si algo se corta, apretalo de nuevo: el FM-1 queda esperando |
 | EDITOR OFFLINE | Abre el editor de la carpeta en Chrome o Edge, con MIDI, mientras la ventana esté abierta |
 | EDITOR ONLINE | Abre el editor en internet |
 | OTRO FIRMWARE... | Instala otro `.fwsc`: por ejemplo Kitten Synths para volver atrás |
@@ -43,14 +43,14 @@ Este documento explica todo lo que tiene el firmware: cómo instalarlo, cómo se
 
 Si la ventana no abre: `python instalar_kitten_rack.py` (modo texto; `--solo-info` solo muestra el firmware, `--paquete ARCHIVO.fwsc` instala otro).
 
-**En el primer arranque** KITTEN RACK escribe sus 33 patches de fábrica. Al actualizar, los patches de fábrica que nunca editaste se reemplazan solos por los nuevos; los tuyos no se tocan. Para volver al banco de fábrica entero está FACTORY RESET en el menú SYSTEM (HOME sostenido; pide OCT+ dos veces y borra tus patches).
+**En el primer arranque** Kitten Rack escribe sus 33 patches de fábrica. Al actualizar, los patches de fábrica que nunca editaste se reemplazan solos por los nuevos; los tuyos no se tocan. Para volver al banco de fábrica entero está FACTORY RESET en el menú SYSTEM (HOME sostenido; pide OCT+ dos veces y borra tus patches).
 
 **Arranques especiales** (con el FM-1 apagado, mantené apretado y prendé):
 
 - **OCT- + OCT+:** modo actualización. El FM-1 solo espera un firmware nuevo. Es la vía de vuelta si algo sale mal.
 - **SAVE:** modo seguro: arranca con un patch mínimo de emergencia en vez del guardado (sirve si un patch no deja arrancar).
 
-> **Regla de oro:** nunca instales un firmware que no tenga la actualización por USB de Felucca. KITTEN RACK, Kitten Synths, Felucca, Sloop y Matryoshka la tienen. El original de M-VAVE se puede volver a poner con OTRO FIRMWARE.
+> **Regla de oro:** nunca instales un firmware que no tenga la actualización por USB de Felucca. Kitten Rack, Kitten Synths, Felucca, Sloop y Matryoshka la tienen. El original de M-VAVE se puede volver a poner con OTRO FIRMWARE.
 
 ---
 
@@ -79,7 +79,7 @@ El FM-1 toca **patches**: un patch es un rack entero (módulos, cables, perillas
 | OCT- / OCT+ | La octava del teclado. En SEQ: las páginas de pasos |
 | Teclas | Tocan el patch, con velocidad |
 
-**Idioma de la pantalla:** GLO, GLO otra vez y **K4**: ENGLISH o ESPANOL (también en el menú, HOME sostenido → PANEL → LANGUAGE). Se guarda al instante. Cambia los textos que KITTEN RACK escribe (secuenciador, rack, guardar, visuales, catálogo de módulos y sus jacks); los parámetros de los módulos y los nombres de los patches quedan como están. De fábrica viene en inglés.
+**Idioma de la pantalla:** GLO, GLO otra vez y **K4**: ENGLISH o ESPANOL (también en el menú, HOME sostenido → PANEL → LANGUAGE). Se guarda al instante. Cambia los textos que Kitten Rack escribe (secuenciador, rack, guardar, visuales, catálogo de módulos y sus jacks); los parámetros de los módulos y los nombres de los patches quedan como están. De fábrica viene en inglés.
 
 La batería se ve abajo a la derecha (0 a 3 rayitas, un rayo con USB).
 
@@ -139,6 +139,10 @@ Otros atajos: FX sostenido + tecla blanca pone un acento; LFO sostenido + tecla 
 - **REC otra vez:** deja de grabar; lo grabado sigue sonando.
 
 Las notas grabadas **guardan cuánto las sostuviste**: si mantuviste una nota tres pasos, queda de tres pasos y suena entera hasta soltar. El largo se mide en pasos de la grilla; para más detalle, subí el ritmo con K2 (1/32 o 1/64) antes de grabar. Después podés corregir cualquier nota con su paso apretado y K3.
+
+### Probar sonidos sobre una secuencia
+
+Grabá o escribí una secuencia y recorré patches con **PRESET** mientras suena: un patch que **no tiene secuencia propia** se queda con la que venía sonando (sus notas, largo, rate, swing y el tempo) y la pantalla dice SECUENCIA CONSERVADA. Así grabás una vez y probás sonidos encima, como en la mayoría de los sintes con secuenciador. Los patches que sí tienen su propia secuencia conservan la suya. **SAVE** guarda la secuencia en el patch nuevo.
 
 ### Canciones
 
@@ -241,7 +245,7 @@ Por el mismo cable el FM-1 es también un **dispositivo MIDI** llamado KittenRac
 
 ### Qué no hace (y por qué)
 
-- **Grabación multipista:** no hace falta. KITTEN RACK es un solo instrumento y el master estéreo es su sonido completo. Si algún día hiciera falta, el USB del FM-1 aguanta unos 8 canales de 16 bits a 44,1 kHz.
+- **Grabación multipista:** no hace falta. Kitten Rack es un solo instrumento y el master estéreo es su sonido completo. Si algún día hiciera falta, el USB del FM-1 aguanta unos 8 canales de 16 bits a 44,1 kHz.
 - **Disco USB** (copiar archivos arrastrando): no vale la pena. Los patches se respaldan con el editor (EXPORTAR, AL FM-1).
 
 ---
@@ -267,13 +271,28 @@ Lo que tiene:
 
 ### Probar sin FM-1
 
-https://blackkittendevices.github.io/kitten-rack/play.html es KITTEN RACK en el navegador: las pantallas y los controles del firmware real compilados para la web, con el motor del editor haciendo el sonido. Los 33 patches de fábrica, el secuenciador, el rack, las visuales y el idioma funcionan; patchear con EDIT y guardar se hacen en el FM-1 o en el editor.
+https://blackkittendevices.github.io/kitten-rack/play.html es Kitten Rack en el navegador: las pantallas y los controles del firmware real compilados para la web, con el motor del editor haciendo el sonido. Los 33 patches de fábrica, el secuenciador, el rack, las visuales y el idioma funcionan; patchear con EDIT y guardar se hacen en el FM-1 o en el editor.
 
 ### En vivo con el FM-1
 
 Apretá **FM-1** arriba. El editor lee el patch que está tocando el FM-1 y desde ahí todo va y viene al instante: perillas, cables, módulos agregados o sacados, notas del piano roll y el patch que elegís con PRESET.
 
 **AL FM-1** guarda el patch del editor en un lugar del banco (elegís el lugar y el nombre).
+
+### MIDI LEARN: las perillas y faders de tu controlador
+
+Cualquier controlador MIDI puede mover los parámetros del rack, con los CC que ya manda:
+
+1. Apretá **MIDI LEARN** (barra de arriba). Las perillas muestran un aro punteado.
+2. Hacé clic en una perilla (un parámetro: los cables no se asignan). Titila.
+3. Mové el fader o la perilla de tu controlador. La perilla muestra una etiqueta como **CC 74** y desde ahí sigue a ese control en todo su recorrido.
+4. Repetí con todas las que quieras (hasta 32 por patch) y apretá **MIDI LEARN** de nuevo para terminar.
+
+Si movés un control que ya estaba asignado a otra perilla, la asignación se muda. **MAPA MIDI** muestra la lista: cada una puede escuchar en todos los canales (TODOS) o en uno, y **SACAR** la borra. Ahí también guardás el mapa con un nombre (por ejemplo el de tu controlador) y lo cargás en otro patch: busca los mismos módulos, en el mismo orden.
+
+**El mapa viaja con el patch.** Se guarda con GUARDAR, en el archivo exportado y, con **AL FM-1**, adentro del FM-1. Después el FM-1 responde solo a tu controlador, por USB o por su jack **MIDI TRS**, sin compu: asignás con el editor, guardás con AL FM-1, desenchufás los dos de la PC, conectás el controlador por TRS y el patch ya tiene sus controles. Con el editor conectado (botón FM-1), las asignaciones pasan al FM-1 a medida que las hacés.
+
+Un CC asignado es de su parámetro: en ese patch ya no mueve K1-K4 ni los otros controles de la lista de abajo.
 
 Para instalar firmware, primero desconectá el editor (botón FM-1) o cerrá su pestaña: el MIDI no se puede usar desde dos programas a la vez.
 
@@ -289,6 +308,7 @@ El FM-1 y el editor responden a cualquier controlador MIDI, por USB (y el FM-1 t
 - Rueda de modulación, pitch bend y aftertouch llegan a las salidas del módulo MIDI-CV.
 - CC 120 y 123 apagan todo.
 - Reloj MIDI y program change se activan en la página del FM-1.
+- Cualquier otro CC se puede asignar a un parámetro con [MIDI LEARN](#midi-learn-las-perillas-y-faders-de-tu-controlador), y la asignación queda guardada en el patch.
 
 ---
 
@@ -338,7 +358,7 @@ Los que suenan solos arrancan solos (tienen su propio reloj) y en casi todos una
 
 ## 12. Para desarrolladores
 
-KITTEN RACK es un fork de [Matryoshka](https://github.com/glvno/matryoshka) 1.5.1. Gran parte del código y de los comentarios todavía usa los nombres de Matryoshka; [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explica su diseño (formatos, motor, protocolo) y sigue valiendo.
+Kitten Rack es un fork de [Matryoshka](https://github.com/glvno/matryoshka) 1.5.1. Gran parte del código y de los comentarios todavía usa los nombres de Matryoshka; [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) explica su diseño (formatos, motor, protocolo) y sigue valiendo.
 
 ### Dónde está cada cosa
 
@@ -387,16 +407,16 @@ Antes de instalar algo en un FM-1: **nunca un firmware sin la actualización por
 - `fmhub.json` (en la raíz) da el texto de la tarjeta en inglés, la categoría (`synth`), el botón ▶ (`play.html`) y el del editor.
 - Identidad: desde la 1.0 cada release se presenta como `FM-1_79XYZ` con su versión adentro (1.0.0 = `FM-1_79100`); las 0.2 a 0.5 eran `FM-1_792` a `FM-1_795`. El cargador de actualización es el de Felucca.
 - USB: MIDI y una entrada de audio UAC1 (estéreo de 16 bits, 44,1 kHz), el mismo USB del firmware del que viene; no se presenta como teclado ni mouse.
-- **VST:** el conversor de VIBE FM del Hub (todavía "pronto") arma un plugin desde el código fuente de un firmware abierto. KITTEN RACK está listo para eso: es GPL-3.0, su motor es C en punto fijo sin hardware adentro (`firmware/src/engine.c`) y la interfaz ya compila a WebAssembly (`firmware/wasm/fm1_ui.c`, la que usa `play.html`). Cuando el conversor abra, se pide por mail a zven@thefirmwarehub.com.
+- **VST:** el conversor de VIBE FM del Hub (todavía "pronto") arma un plugin desde el código fuente de un firmware abierto. Kitten Rack está listo para eso: es GPL-3.0, su motor es C en punto fijo sin hardware adentro (`firmware/src/engine.c`) y la interfaz ya compila a WebAssembly (`firmware/wasm/fm1_ui.c`, la que usa `play.html`). Cuando el conversor abra, se pide por mail a zven@thefirmwarehub.com.
 
 ### El formato de patch
 
-Formato 49 (el de Matryoshka 48 más los módulos de KITTEN RACK). Una nota de secuencia es una palabra de 32 bits: paso (6 bits), largo - 1 (6), nota (7), velocidad (7), chance (5) y el bit 31, que marca una nota que suena entera hasta el final de su último paso (las grabadas y las que se alargan con K3).
+Formato 49 (el de Matryoshka 48 más los módulos de Kitten Rack). Una nota de secuencia es una palabra de 32 bits: paso (6 bits), largo - 1 (6), nota (7), velocidad (7), chance (5) y el bit 31, que marca una nota que suena entera hasta el final de su último paso (las grabadas y las que se alargan con K3). Un patch puede terminar con un mapa MIDI (flag 8 del byte 7): una cantidad y después 4 bytes por asignación: CC, canal (0 = el del FM-1), índice de módulo, índice de parámetro. Un firmware anterior rechaza ese patch en vez de leerlo mal.
 
 ---
 
 ## 13. Créditos y licencia
 
-KITTEN RACK parte de [Matryoshka](https://github.com/glvno/matryoshka) de michael glaviano (1.5.1, commit `ec7d934`), que viene de [Modular-1](https://github.com/WiggisModular/Modular-1) de WiggisModular y usa la capa de hardware y el instalador de [Felucca](https://github.com/hugelton/Felucca) de Leo Kuroshita / Hügelton Instruments.
+Kitten Rack parte de [Matryoshka](https://github.com/glvno/matryoshka) de michael glaviano (1.5.1, commit `ec7d934`), que viene de [Modular-1](https://github.com/WiggisModular/Modular-1) de WiggisModular y usa la capa de hardware y el instalador de [Felucca](https://github.com/hugelton/Felucca) de Leo Kuroshita / Hügelton Instruments.
 
 Todo el código es **GPL-3.0-only**: ver [LICENSE](LICENSE) y [LICENSING.md](LICENSING.md). Los cambios por versión están en [CHANGELOG.md](CHANGELOG.md).

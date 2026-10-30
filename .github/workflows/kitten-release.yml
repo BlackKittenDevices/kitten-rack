@@ -1,4 +1,4 @@
-# KITTEN RACK: a release with its installer. Pushing a tag vX.Y.Z (or Actions > kitten-release > Run workflow, which makes the tag) builds the
+# Kitten Rack: a release with its installer. Pushing a tag vX.Y.Z (or Actions > kitten-release > Run workflow, which makes the tag) builds the
 # firmware (identity FM-1_79Y for X.Y), runs the host tests and publishes a GitHub pre-release with
 # KittenRack-instalador-X.Y.Z.zip (KittenRack.pyw, the window installer; instalar_kitten_rack.py, fm1_install.py, the .fwsc, the offline
 # editor, SHA256SUMS, LEEME.txt), the .fwsc and kitten-rack-editor-X.Y.Z.zip (what the installer's BAJAR EDITOR fetches).
@@ -95,7 +95,7 @@ jobs:
           TAG: ${{ inputs.tag || github.ref_name }}
           V: ${{ steps.build.outputs.version }}
         run: |
-          case "$V" in 0.*|*-*) PRE="--prerelease"; TITLE="KITTEN RACK $V (prueba)";; *) PRE=""; TITLE="KITTEN RACK $V";; esac
+          case "$V" in 0.*|*-*) PRE="--prerelease"; TITLE="Kitten Rack $V (prueba)";; *) PRE=""; TITLE="Kitten Rack $V";; esac
           V="$V" python3 tools/release_notes.py > notes.md
           gh release create "$TAG" --target "$GITHUB_SHA" $PRE --title "$TITLE" --notes-file notes.md \
             "dist/KittenRack-instalador-$V.zip" "dist/kitten-rack-$V.fwsc" "dist/kitten-rack-editor-$V.zip" dist/SHA256SUMS

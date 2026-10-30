@@ -320,7 +320,21 @@ export interface Patch {
   /** what the patch is about, in the author's words (the share sheet's "What's going on"; at most NOTES_MAX characters).
    * Editor only, like the name: it travels in a link and a .json file; the binary format and the FM-1 ignore it */
   notes?: string;
+  /** KITTEN RACK: the MIDI map (MIDI LEARN in the rack editor): a controller's CC sets a module's parameter over its whole
+   * range, here and on the FM-1 (it travels in the binary: patchbin.ts midiMapList, flag bit 11). ch 0 / absent: any channel
+   * the FM-1 listens on */
+  midiMap?: MidiMapEntry[];
 }
+
+/** one MIDI LEARN assignment: CC `cc` (0..127) on channel `ch` (1..16, 0 any) sets parameter `param` of module `module` */
+export interface MidiMapEntry {
+  cc: number;
+  ch?: number;
+  module: number;
+  param: string;
+}
+/** the most entries a patch keeps (the FM-1's ENG_MAX_CCMAP) */
+export const MIDI_MAP_MAX = 32;
 
 /** the longest Patch.notes kept */
 export const NOTES_MAX = 500;
@@ -782,6 +796,20 @@ export function validatePatch(raw: unknown, defs: Record<string, ModuleDef>): Pa
     }
   }
   p.name = String(p.name ?? 'patch');
+  {   // KITTEN RACK: the MIDI map: entries whose module and parameter exist, one per CC and channel (the last wins)
+    const raw = Array.isArray(p.midiMap) ? p.midiMap : [];
+    const keep = new Map<string, MidiMapEntry>();
+    for (const e of raw) {
+      const cc = Math.round(Number(e?.cc)), ch = Math.round(Number(e?.ch ?? 0));
+      const m = p.modules.find((x) => x.id === e?.module);
+      if (!m || !Number.isInteger(cc) || cc < 0 || cc > 127 || !Number.isInteger(ch) || ch < 0 || ch > 16) continue;
+      if (!defs[m.type]?.params.some((q) => q.name === e.param)) continue;
+      keep.set(`${cc}:${ch}`, { cc, ...(ch ? { ch } : {}), module: m.id, param: String(e.param) });
+    }
+    const list = [...keep.values()].slice(0, MIDI_MAP_MAX);
+    if (list.length) p.midiMap = list;
+    else delete p.midiMap;
+  }
   if (typeof p.notes !== 'string' || !p.notes.trim()) delete p.notes;
   else p.notes = p.notes.slice(0, NOTES_MAX);
   if (!hasMorph(p as Patch) || typeof p.morphName !== 'string') delete p.morphName;

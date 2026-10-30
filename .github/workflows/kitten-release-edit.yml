@@ -1,4 +1,4 @@
-# KITTEN RACK: change an existing release's title, notes and pre-release mark (Claude's session cannot edit releases).
+# Kitten Rack: change an existing release's title, notes and pre-release mark (Claude's session cannot edit releases).
 # Actions > kitten-release-edit > Run workflow, or the API's workflow dispatch with the tag.
 name: kitten-release-edit
 on:
@@ -25,7 +25,7 @@ jobs:
         run: |
           V="${TAG#v}" python3 tools/release_notes.py > notes.md
           if [ "$PRE" = "true" ]; then
-            gh release edit "$TAG" --prerelease --title "KITTEN RACK ${TAG#v} (prueba)" --notes-file notes.md
+            gh release edit "$TAG" --prerelease --title "Kitten Rack ${TAG#v} (prueba)" --notes-file notes.md
           else
-            gh release edit "$TAG" --prerelease=false --latest --title "KITTEN RACK ${TAG#v}" --notes-file notes.md
+            gh release edit "$TAG" --prerelease=false --latest --title "Kitten Rack ${TAG#v}" --notes-file notes.md
           fi

@@ -32,6 +32,26 @@ static void midi_sus_release(void)
 /* Keep the input order: page controls and program changes may draw or rebuild the engine, so they and the events
  * behind them wait for the main loop. Notes, clock, bend, aftertouch, modulation and all-notes-off never draw.
  * The busy guard also covers a draw started by a normal drain (for example a MIDI page knob ending a title toast). */
+/* KITTEN RACK: the patch's MIDI map (the rack editor's MIDI LEARN, engine.c ENG_FLAG_MIDIMAP): a CC sets every parameter
+ * mapped to it, over its range, as a knob would (the binary keeps it for SAVE, the editor follows). An entry of channel 0
+ * listens on the FM-1's channel (MENU > MIDI CHANNEL); one with its own channel, on that one. 1: the CC was mapped */
+static int kr_cc_map(uint32_t chn, uint32_t cc, uint32_t v)
+{
+    uint32_t k, ch, c, mod, par, hit = 0;
+    for (k = 0; eng_ccmap_get(k, &ch, &c, &mod, &par); k++) {
+        int32_t val;
+        if (c != cc || (ch ? ch != chn : (cfg.ch && cfg.ch != chn)))
+            continue;
+        val = eng_cc_value(mod, par, v);
+        eng_set_param(mod, par, val);
+        m1_patch_param(mod, par, val);
+        m1_param_now(mod, par, val);
+        hit = 1;
+    }
+    if (hit && !ui_dirty)
+        ui_dirty = 1;
+    return (int)hit;
+}
 static uint8_t midi_draining;
 static void midi_drain_mode(int quick)
 {
@@ -76,6 +96,7 @@ static void midi_drain_mode(int quick)
                 midi_sus_held[n] = (uint8_t)chn;        /* the pedal holds it */
             else
                 eng_note_off(n, chn);
+        } else if (st == 0xB0u && kr_cc_map(chn, n, v)) {   /* KITTEN RACK: a CC the patch's MIDI map assigns (MIDI LEARN) */
         } else if (!cfg.ch || cfg.ch == chn) {  /* other channel messages on the MIDI channel (MENU > MIDI CHANNEL; 0 = all) */
             if (st == 0xB0u && (n == 123u || n == 120u)) {   /* all notes off, all sound off */
                 midi_sus_clear();

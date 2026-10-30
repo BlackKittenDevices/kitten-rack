@@ -551,6 +551,8 @@ typedef struct {
     int32_t ctl[ENG_NCTL];           /* pitch bend, mod wheel, aftertouch (engine.h ENG_CTL_*), Q16 */
     uint8_t has_b;                   /* the patch carries a morph B set (PARB) */
     uint8_t nranges;
+    struct { uint8_t cc, ch, mod, par; } ccmap[ENG_MAX_CCMAP];   /* KITTEN RACK: the MIDI map (ENG_FLAG_MIDIMAP) */
+    uint8_t nccmap;
     range_t ranges[ENG_MAX_RANGES];
     uint8_t btn_kind[ENG_PANEL_BUTTONS];   /* the button kinds (ENG_BTN_*, flag bit 6; without it every one is a Gate) */
     uint8_t btn_first[ENG_PANEL_BUTTONS], btn_n[ENG_PANEL_BUTTONS];   /* a Toggle's modules: btn_list[first .. first + n) */
@@ -1009,7 +1011,7 @@ int eng_load(const uint8_t *p, uint32_t len)
 #endif
     if (len < 8u || p[0] != 0xA1 || (p[1] > ENG_PATCH_VERSION || p[1] < ENG_PATCH_COMPAT_VERSION))
         return -1;
-    if ((p[7] & ~(ENG_FLAG_EXTRAS | ENG_FLAG_MORPH_MODULES | ENG_FLAG_PATTERNS)) || ((p[7] & ENG_FLAG_MORPH_MODULES) && (p[1] < 36u || !(p[6] & 1u))) || ((p[7] & ENG_FLAG_PATTERNS) && p[1] < 48u) || (p[1] < 34u && p[7]) || (p[1] < 33u && (p[6] & 128u)) || (p[1] < 17u && (p[6] & 4u)) || (p[1] < 18u && (p[6] & 8u)) || (p[1] < 27u && (p[6] & 16u)) || (p[1] < 30u && (p[6] & 64u)))
+    if ((p[7] & ~(ENG_FLAG_EXTRAS | ENG_FLAG_MORPH_MODULES | ENG_FLAG_PATTERNS | ENG_FLAG_MIDIMAP)) || ((p[7] & ENG_FLAG_MORPH_MODULES) && (p[1] < 36u || !(p[6] & 1u))) || ((p[7] & ENG_FLAG_PATTERNS) && p[1] < 48u) || (p[1] < 34u && p[7]) || (p[1] < 33u && (p[6] & 128u)) || (p[1] < 17u && (p[6] & 4u)) || (p[1] < 18u && (p[6] & 8u)) || (p[1] < 27u && (p[6] & 16u)) || (p[1] < 30u && (p[6] & 64u)))
         return -1;
     for (i = 0; i < ENG_PANEL_BUTTONS; i++)      /* (before eng_buttons below: no Toggle of the last patch acts on this one) */
         E.btn_kind[i] = (uint8_t)ENG_BTN_GATE, E.btn_n[i] = 0;
@@ -1069,6 +1071,7 @@ int eng_load(const uint8_t *p, uint32_t len)
     E.ncab = (uint16_t)ncab;
     E.has_b = 0;
     E.nranges = 0;
+    E.nccmap = 0;
     E.main = -1;
     E.morph = 0;
     E.nbuf = 0;
@@ -1396,6 +1399,24 @@ int eng_load(const uint8_t *p, uint32_t len)
             E.ranges[E.nranges].hi = p[at + 4];
             E.nranges++;
             E.node[mod].ranged[pin] |= 1u << par;
+        }
+    }
+    if (p[7] & ENG_FLAG_MIDIMAP) {               /* KITTEN RACK: the MIDI map: cc, channel, module, parameter */
+        uint32_t nm;
+        if (at >= len)
+            return -3;
+        nm = p[at++];
+        if (at + 4u * nm > len)
+            return -3;
+        for (i = 0; i < nm; i++, at += 4) {
+            uint32_t cc = p[at], ch = p[at + 1], mod = p[at + 2], par = p[at + 3];
+            if (cc > 127u || ch > 16u || mod >= E.nmod || par >= DEFS[E.node[mod].type].npar || E.nccmap >= ENG_MAX_CCMAP)
+                continue;                        /* (one it cannot set: ignored) */
+            E.ccmap[E.nccmap].cc = (uint8_t)cc;
+            E.ccmap[E.nccmap].ch = (uint8_t)ch;
+            E.ccmap[E.nccmap].mod = (uint8_t)mod;
+            E.ccmap[E.nccmap].par = (uint8_t)par;
+            E.nccmap++;
         }
     }
     /* the instances: state, the delay / reverb / string / chorus memories from the shared pools */
@@ -7136,4 +7157,26 @@ void eng_ctl(uint32_t which, int32_t q16)
 {
     if (which < ENG_NCTL)
         E.ctl[which] = clampi(q16, which == ENG_CTL_BEND ? -ENG_ONE : 0, ENG_ONE);
+}
+
+/* KITTEN RACK: the MIDI map (eng_load, ENG_FLAG_MIDIMAP); midi_input.h kr_cc_map sets the parameters */
+int eng_ccmap_get(uint32_t k, uint32_t *ch, uint32_t *cc, uint32_t *module, uint32_t *param)
+{
+    if (!E.loaded || k >= E.nccmap)
+        return 0;
+    *ch = E.ccmap[k].ch;
+    *cc = E.ccmap[k].cc;
+    *module = E.ccmap[k].mod;
+    *param = E.ccmap[k].par;
+    return 1;
+}
+int32_t eng_cc_value(uint32_t module, uint32_t param, uint32_t v)
+{
+    const def_t *d = &DEFS[E.node[module].type];
+    int32_t u = (int32_t)((v > 127u ? 127u : v) * 65536u / 127u);
+    if (d->pchoice && d->pchoice[param]) {      /* a choice: its positions in equal parts of the travel */
+        int32_t lo = d->pmin[param] >> 16, hi = d->pmax[param] >> 16, k = lo + (int32_t)(((int64_t)u * (hi - lo + 1)) >> 16);
+        return (k > hi ? hi : k) << 16;
+    }
+    return value_of(d, param, u);              /* as a knob turned from end to end (the cutoff's octaves) */
 }

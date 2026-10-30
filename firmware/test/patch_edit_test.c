@@ -128,6 +128,26 @@ int main(void)
             CHECK(pe_module_pop(bin, &len) == 0, "six VCOs out: %u", j);
         CHECK(len == len0 && !memcmp(bin, before, len), "six VCOs: not the same bytes again");
     }
+    {   /* KITTEN RACK: a patch with a MIDI map (ENG_FLAG_MIDIMAP, after the ranges): a module added and popped, a cable added
+         * and pulled; the map goes along unchanged and the engine still reads it */
+        uint32_t len = PRESET_LIST[0].len, len0, ch, cc, mod, par, k;
+        static uint8_t mbefore[CAP];
+        memcpy(bin, PRESET_LIST[0].data, len);
+        (void)eng_upgrade(bin, &len, CAP);
+        bin[7] |= ENG_FLAG_MIDIMAP;
+        bin[len++] = 2;
+        bin[len++] = 74; bin[len++] = 0; bin[len++] = 1; bin[len++] = 0;
+        bin[len++] = 71; bin[len++] = 3; bin[len++] = 2; bin[len++] = 0;
+        memcpy(mbefore, bin, len);
+        len0 = len;
+        CHECK(eng_load(bin, len) == 0 && eng_ccmap_get(1, &ch, &cc, &mod, &par) && cc == 71 && ch == 3 && mod == 2, "the MIDI map is not read");
+        CHECK(pe_module_add(bin, &len, CAP, T_OSC) == 0 && eng_load(bin, len) == 0, "a VCO onto a patch with a MIDI map");
+        CHECK(eng_ccmap_get(0, &ch, &cc, &mod, &par) && cc == 74 && mod == 1 && !eng_ccmap_get(2, &ch, &cc, &mod, &par), "the MIDI map after a VCO went in");
+        CHECK(pe_cable_add(bin, &len, CAP, bin[2] - 1u, 0, 1, 1) == 0 && eng_load(bin, len) == 0, "a cable on a patch with a MIDI map");
+        k = (uint32_t)eng_ncables() - 1u;
+        CHECK(pe_cable_del(bin, &len, k) == 0 && pe_module_pop(bin, &len) == 0, "out again");
+        CHECK(len == len0 && !memcmp(bin, mbefore, len), "the MIDI map patch: not the same bytes again");
+    }
     printf("patch edits %s: %u modules added and taken out across %u patches (%u past a pool of the engine)\n", fails ? "FAILED" : "ok", edits, (unsigned)N_PRESETS, refused);
     return fails ? 1 : 0;
 }

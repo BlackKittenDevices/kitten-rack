@@ -643,6 +643,20 @@ static int pe_module_del(uint8_t *p, uint32_t *len, uint32_t k)
         }
         p[cw] = (uint8_t)kept;
     }
+    if (p[7] & ENG_FLAG_MIDIMAP) {                      /* KITTEN RACK: the MIDI map: cc, channel, module, parameter */
+        uint32_t nm = p[r++], cw = w++, kept = 0;
+        for (i = 0; i < nm; i++, r += 4u) {
+            if (p[r + 2u] == k)
+                continue;
+            p[w] = p[r];
+            p[w + 1u] = p[r + 1u];
+            p[w + 2u] = (uint8_t)pe_ren(p[r + 2u], k);
+            p[w + 3u] = p[r + 3u];
+            w += 4u;
+            kept++;
+        }
+        p[cw] = (uint8_t)kept;
+    }
 #undef PE_CP
     if (r != *len)
         return -1;                                      /* (cannot happen with a binary that walks: the caller's copy is lost) */

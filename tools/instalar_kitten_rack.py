@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""Instalador de KITTEN RACK para el M-VAVE FM-1 (Windows, macOS y Linux).
+"""Instalador de Kitten Rack para el M-VAVE FM-1 (Windows, macOS y Linux).
 
 Doble clic en este archivo, o desde una terminal:   python instalar_kitten_rack.py
 
@@ -10,7 +10,7 @@ Qué hace, paso a paso, preguntando antes de tocar el FM-1:
      publicada en GitHub (BlackKittenDevices/kitten-rack) y comprueba su huella SHA-256;
   3. busca el FM-1 por USB-MIDI y muestra qué firmware tiene ahora;
   4. instala con el mismo método que los instaladores de Felucca (tools/fm1_install.py, que va al lado de este archivo):
-     el FM-1 se reinicia solo y al final se comprueba que quedó KITTEN RACK.
+     el FM-1 se reinicia solo y al final se comprueba que quedó Kitten Rack.
 
 Para volver a otro firmware (por ejemplo Kitten Synths), el mismo instalador acepta su paquete:
   python instalar_kitten_rack.py --paquete C:\\ruta\\kitten-synths.fwsc
@@ -129,14 +129,14 @@ def check_sum(path, sums):
 
 
 def main():
-    ap = argparse.ArgumentParser(description="Instalador de KITTEN RACK para el FM-1")
+    ap = argparse.ArgumentParser(description="Instalador de Kitten Rack para el FM-1")
     ap.add_argument("--paquete", help="un .fwsc para instalar (otro firmware, por ejemplo para volver atrás)")
     ap.add_argument("--puerto", help="el nombre del puerto MIDI del FM-1, si hay varios")
     ap.add_argument("--solo-info", action="store_true", help="solo mostrar qué firmware tiene el FM-1")
     ap.add_argument("--si", action="store_true", help="no preguntar")
     a = ap.parse_args()
 
-    say("=== KITTEN RACK: instalador para el M-VAVE FM-1 ===\n")
+    say("=== Kitten Rack: instalador para el M-VAVE FM-1 ===\n")
     if sys.version_info < (3, 8):
         say("Hace falta Python 3.8 o más nuevo (python.org).")
         pause(1)
@@ -158,7 +158,7 @@ def main():
     say(f"\n2) Paquete: {os.path.basename(pkg)}")
     say("   Antes de seguir:")
     say("   - Los patches y canciones guardados con el firmware de ahora pueden perderse: respaldalos con su editor.")
-    say("   - KITTEN RACK conserva el instalador de Felucca: si algo sale mal, el FM-1 queda esperando una")
+    say("   - Kitten Rack conserva el instalador de Felucca: si algo sale mal, el FM-1 queda esperando una")
     say("     instalación nueva y este mismo programa la termina. Para volver a tu firmware anterior, usá")
     say("     --paquete con su archivo .fwsc.")
     say("   - No desenchufes el FM-1 hasta que el instalador diga que terminó (tarda uno o dos minutos).")
@@ -176,7 +176,7 @@ def main():
     if rc == 0:
         say("\nListo: el FM-1 tiene el firmware nuevo.")
         if "kitten-rack" in os.path.basename(pkg).lower():
-            say("En el primer arranque KITTEN RACK escribe sus 33 patches de fábrica (si el banco no estaba vacío,")
+            say("En el primer arranque Kitten Rack escribe sus 33 patches de fábrica (si el banco no estaba vacío,")
             say("hacé MENU > FACTORY RESET). SEL abre el RACK; EDIT, el patcheo.")
     else:
         say(f"\nLa instalación no terminó (código {rc}). No desenchufes: volvé a abrir este instalador y lo completa.")

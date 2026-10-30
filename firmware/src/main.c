@@ -297,6 +297,8 @@ static int preset_load(uint32_t n)
     static uint8_t bank_buf[M1_PATCH_MAX] ENG_POOL;
     uint32_t len = 0;
     char slot_name[M1_NAME + 1];
+    if (patches_up && slot_used(n))
+        seq_carry_take();                           /* KITTEN RACK: the sequence goes along (seq_ui.c) */
     if (!slot_used(n) || sl_read(n, bank_buf, &len, slot_name) || m1_apply(bank_buf, len)) {
         fallback_boot();
         cur_preset = n < M1_SLOTS ? n : 0u;
@@ -307,8 +309,10 @@ static int preset_load(uint32_t n)
     put(label_buf, slot_name)[0] = 0;
     patch_label = label_buf;
     screen_patch();                             /* (while PRESET's last name shows: in place, #170) */
-    if (patches_up)
+    if (patches_up) {
+        (void)seq_carry_give();
         m1_slot_now(n, label_buf);                  /* the editor follows the slot (#65) */
+    }
     return 0;
 }
 

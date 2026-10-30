@@ -185,3 +185,15 @@ dialog.roll { width: min(1500px, 96vw); max-height: 92vh; }
 .roll-beat.bar { background: #3a3a3a; }
 .roll-note { position: absolute; background: var(--orange); border: 1px solid #000; border-radius: 2px; pointer-events: none; }
 .roll-note.acc { background: #ffd08a; box-shadow: 0 0 6px var(--orange); }
+
+/* KITTEN RACK: MIDI LEARN */
+.k-cc { position: absolute; top: 12px; right: -6px; font-family: var(--dots); font-size: 7px; color: #000; background: var(--orange); padding: 0 2px; height: 9px; line-height: 9px; display: none; pointer-events: none; }
+.knob.mapped .k-cc { display: block; }
+body.learning .knob svg { cursor: crosshair; outline: 1px dashed var(--orange-dim); border-radius: 50%; }
+body.learning .knob.learn-target svg { outline: 2px solid var(--orange); animation: learnblink .6s steps(2) infinite; }
+@keyframes learnblink { 50% { outline-color: transparent; } }
+#learn.on { background: var(--orange); color: #000; }
+#map-list { max-height: 40vh; overflow: auto; margin: 8px 0; }
+.map-row { display: grid; grid-template-columns: 70px 1fr auto auto; gap: 8px; align-items: center; padding: 3px 0; border-bottom: 1px solid #222; }
+.map-row b { font-size: 16px; }
+.map-presets { display: flex; gap: 6px; margin: 4px 0; flex-wrap: wrap; }

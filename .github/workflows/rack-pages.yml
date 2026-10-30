@@ -1,4 +1,4 @@
-# KITTEN RACK: the rack editor on GitHub Pages (https://blackkittendevices.github.io/kitten-rack/), a page of its own on
+# Kitten Rack: the rack editor on GitHub Pages (https://blackkittendevices.github.io/kitten-rack/), a page of its own on
 # https, where the browser lets it use MIDI (the claude.ai preview does not). Every push to main that touches web/
 # rebuilds it into the gh-pages branch, which Pages serves.
 name: rack-pages

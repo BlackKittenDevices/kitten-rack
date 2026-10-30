@@ -954,6 +954,53 @@ static void seq_knob_set(uint32_t mod, uint32_t par, int32_t v)
     m1_patch_param(mod, par, v);
     m1_param_now(mod, par, v);
 }
+/* KITTEN RACK: the sequence goes along with PRESET (the owner, 2026-10-30): record a part, then try it on other patches, as
+ * on a synth with a sequencer. seq_carry_take (before another patch loads) keeps the first track's notes of the pattern it
+ * plays, with its steps, rate and swing and the tempo; seq_carry_give (after) puts them on the new patch's first track when
+ * that track has no notes of its own in any pattern (a patch saved with its own sequence keeps it). A patch without a
+ * track leaves the sequence waiting for the next one. What arrives is part of the running patch: SAVE keeps it there. */
+static uint32_t carry_w[TRACK_NOTES_MAX] ENG_POOL;
+static uint8_t carry_n, carry_on;
+static int32_t carry_par[3], carry_tempo;
+static const uint8_t CARRY_PAR[3] = {STEPS_P_LEN, STEPS_P_RATE, STEPS_P_SWING};
+static void seq_carry_take(void)
+{
+    int mod = eng_steps_module(0), main_mod = eng_find(T_FM1), n, k;
+    const uint32_t *w;
+    if (mod < 0)
+        return;                                         /* (no track: what waits, waits on) */
+    n = eng_pattern_notes((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), &w);
+    carry_on = n > 0;
+    if (!carry_on)
+        return;
+    carry_n = (uint8_t)n;
+    for (k = 0; k < n; k++)
+        carry_w[k] = w[k];
+    for (k = 0; k < 3; k++)
+        carry_par[k] = eng_get_param((uint32_t)mod, CARRY_PAR[k]);
+    carry_tempo = main_mod >= 0 ? eng_get_param((uint32_t)main_mod, FM1_P_TEMPO) : 0;
+}
+static int seq_carry_give(void)
+{
+    int mod = eng_steps_module(0), main_mod = eng_find(T_FM1), k;
+    const uint32_t *w;
+    if (!carry_on || mod < 0)
+        return 0;
+    for (k = 0; k < ENG_PATTERNS; k++)                  /* its own sequence: kept */
+        if (eng_pattern_has((uint32_t)mod, (uint32_t)k) && eng_pattern_notes((uint32_t)mod, (uint32_t)k, &w) > 0) {
+            carry_on = 0;
+            return 0;
+        }
+    for (k = 0; k < 3; k++)
+        seq_knob_set((uint32_t)mod, CARRY_PAR[k], carry_par[k]);
+    if (main_mod >= 0 && carry_tempo)
+        seq_knob_set((uint32_t)main_mod, FM1_P_TEMPO, carry_tempo);
+    (void)eng_pattern_set_notes((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), carry_w, carry_n);
+    seq_sync(mod);
+    ui_msg(LG("SEQUENCE KEPT", "SECUENCIA CONSERVADA"), 1200);
+    return 1;
+}
+
 static void seq_knobs(const int32_t *st, int fast)
 {
     const def_t *d = &DEFS[T_STEPS];

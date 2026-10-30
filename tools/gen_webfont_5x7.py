@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""KITTEN RACK: the FM-1's 5x7 LCD type (firmware/src/font5x7.c, FONT5X7) as a web font for the rack editor, so its small
+"""Kitten Rack: the FM-1's 5x7 LCD type (firmware/src/font5x7.c, FONT5X7) as a web font for the rack editor, so its small
 labels read as the rack page on the FM-1 does: web/public/fonts/FM1-5x7.ttf (and .woff2 when brotli is there).
 
 One dot = 100 units, an em = 800 (a character cell 6 dots wide, 7 dots high plus one below): at 8 px a dot is one pixel,

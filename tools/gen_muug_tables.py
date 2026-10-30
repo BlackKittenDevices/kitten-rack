@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-# KITTEN RACK: the VCF Muug's tables, from FMini-1's Minimoog-style ladder (tools/fmini_filter.py of
+# Kitten Rack: the VCF Muug's tables, from FMini-1's Minimoog-style ladder (tools/fmini_filter.py of
 # github.com/BlackKittenDevices FMini-1, same laws, the sample rate the FM-1's 44118 Hz). One source for both engines:
 #   python3 tools/gen_muug_tables.py   (writes firmware/src/muug_tables.h and web/src/muugTables.ts; both are checked in)
 #!/usr/bin/env python3
@@ -21,7 +21,7 @@
 import math, pathlib, sys
 
 HERE = pathlib.Path(__file__).resolve().parent
-FS = 44118.0                             # KITTEN RACK: the FM-1 I2S rate (engine.h ENG_SR)
+FS = 44118.0                             # Kitten Rack: the FM-1 I2S rate (engine.h ENG_SR)
 
 C4 = math.sqrt(2 ** 0.25 - 1)              # corner / stage pole of four equal poles: 0.43498
 RATIO = 1.578                              # the singing pitch / the -3 dB corner (the hardware's)

@@ -66,6 +66,51 @@ int main(int argc, char **argv)
             }
         }
     }
+    {   /* KITTEN RACK: a patch with a MIDI map (ENG_FLAG_MIDIMAP): an entry per module (cc = its index); out with a module go
+         * its entries, the others follow their modules down; the engine reads the rest */
+        uint32_t mapped = 0;
+        for (k = 0; k < N_PRESETS; k++) {
+            uint32_t len0 = PRESET_LIST[k].len, n, e;
+            memcpy(bin, PRESET_LIST[k].data, len0);
+            if (eng_upgrade(bin, &len0, CAP) || len0 + 1u + 4u * bin[2] > CAP || bin[2] > 32u)
+                continue;
+            n = bin[2];
+            bin[7] |= ENG_FLAG_MIDIMAP;
+            bin[len0] = (uint8_t)n;
+            for (e = 0; e < n; e++) {
+                bin[len0 + 1u + 4u * e] = (uint8_t)e;
+                bin[len0 + 2u + 4u * e] = (uint8_t)(e & 1u ? 0u : 1u + e % 16u);
+                bin[len0 + 3u + 4u * e] = (uint8_t)e;
+                bin[len0 + 4u + 4u * e] = 0;
+            }
+            len0 += 1u + 4u * n;
+            if (m1_check(bin, len0) || eng_load(bin, len0)) {
+                printf("FAIL %s with a MIDI map: check %d load %d\n", PRESET_LIST[k].name, m1_check(bin, len0), eng_load(bin, len0));
+                fails++;
+                continue;
+            }
+            uint32_t had = 0, n0 = 0, ch0, cc0, mod0, par0;
+            for (e = 0; eng_ccmap_get(e, &ch0, &cc0, &mod0, &par0); e++, n0++)
+                had |= 1u << cc0;                       /* (the entries the engine took: not a module without parameters) */
+            for (m = 0; m < n; m++) {
+                static uint8_t b2[CAP];
+                uint32_t len = len0, ch, cc, mod, par, cnt = 0, ok = 1;
+                memcpy(b2, bin, len0);
+                if (pe_module_del(b2, &len, m))
+                    continue;
+                ok &= m1_check(b2, len) == 0 && eng_load(b2, len) == 0;
+                for (e = 0; ok && eng_ccmap_get(e, &ch, &cc, &mod, &par); e++, cnt++)
+                    ok &= cc != m && mod == (cc > m ? cc - 1u : cc);
+                ok &= cnt == n0 - (had >> m & 1u);
+                if (!ok) {
+                    printf("FAIL %s with a MIDI map - module %u\n", PRESET_LIST[k].name, (unsigned)m);
+                    fails++;
+                }
+                mapped++;
+            }
+        }
+        printf("MIDI map through deletes: %u\n", (unsigned)mapped);
+    }
     printf("patch deletes %s: %u modules taken out, %u refused (Main, the Output, a poly group's)\n", fails ? "FAILED" : "ok", (unsigned)dels, (unsigned)refused);
     return fails ? 1 : 0;
 }

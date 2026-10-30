@@ -1,4 +1,4 @@
-KITTEN RACK - installer for the M-VAVE FM-1
+Kitten Rack - installer for the M-VAVE FM-1
 ===========================================
 
 What is in this folder
@@ -14,13 +14,13 @@ Before installing
   1. You need Python 3.8 or newer (python.org or the Microsoft Store).
      On Windows nothing else is needed: it uses the system's MIDI.
   2. Back up the patches and songs of the firmware you have now (Kitten Synths: with its editor).
-     KITTEN RACK uses its own patch bank and the previous one may be lost.
+     Kitten Rack uses its own patch bank and the previous one may be lost.
   3. Plug the FM-1 in with a data USB cable and close every program that uses MIDI
      (web editors, DAWs, the Kitten Synths editor).
 
 The installer window (its buttons are in Spanish)
   BUSCAR FM-1            shows which firmware the FM-1 has now
-  INSTALAR KITTEN RACK   uploads the firmware (one or two minutes; don't unplug until it says "Listo").
+  INSTALAR Kitten Rack   uploads the firmware (one or two minutes; don't unplug until it says "Listo").
                          If something is cut off, press it again: the FM-1 stays waiting and finishes.
   EDITOR OFFLINE         opens the editor from this folder in your browser (Chrome or Edge), with MIDI.
                          It works while the installer window is open.
@@ -31,7 +31,7 @@ The installer window (its buttons are in Spanish)
   The editor and the installer can't use MIDI at the same time: to install, close the editor's tab.
 
 Then, on the FM-1
-  On the first boot KITTEN RACK writes its 33 factory patches. When you update, the factory patches
+  On the first boot Kitten Rack writes its 33 factory patches. When you update, the factory patches
   you never edited are replaced by the new ones (yours are not touched).
   LANGUAGE GLO, GLO again, K4: ENGLISH or ESPANOL (stored at once; it comes in English)
   SEL      the RACK (the patch's modules)

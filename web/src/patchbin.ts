@@ -180,6 +180,10 @@ const noteTracks = (p: Patch): number[] => p.modules.flatMap((m, i) => (m.type =
 export const trackRecSize = (n: number): number => 2 + 4 * n;
 /** the flag (u16 at offset 6) of the patterns and songs section, format 48 */
 export const FLAG_PATTERNS = 1024;
+/** KITTEN RACK: the MIDI map (flag bit 11 = p[7] bit 3, after the macro ranges): u8 count, then cc, channel (0 any),
+ * module index, parameter index per entry (engine.c ENG_FLAG_MIDIMAP). Written only when the patch has one; it keeps the
+ * format number (a firmware without it refuses the flag: patch_check.h) */
+export const FLAG_MIDIMAP = 2048;
 /** a pattern's words are short ones (track.ts shortWord): every note fits one */
 export const shortPattern = (notes: readonly StepNote[] | undefined): boolean => (notes ?? []).every(isShortNote);
 
@@ -217,6 +221,21 @@ export function patternRecord(source: Patch, dev: Patch): number[] {
   }
   return out;
 }
+/** KITTEN RACK: the MIDI map of `source` as the binary of its device form `p` lists it: cc, channel, module index,
+ * parameter index (an entry whose module the device form has not got, or a poly row, is left out) */
+export function midiMapList(source: Patch, p: Patch): number[][] {
+  const index = new Map(p.modules.map((m, i) => [m.id, i]));
+  const out: number[][] = [];
+  for (const e of source.midiMap ?? []) {
+    const i = index.get(e.module);
+    if (i === undefined) continue;
+    const par = DEFS[p.modules[i].type]?.params.findIndex((q) => q.name === e.param) ?? -1;
+    if (par < 0 || par > 255) continue;
+    out.push([e.cc & 127, e.ch ?? 0, i, par]);
+  }
+  return out.slice(0, 32);
+}
+
 /** the macro ranges of a patch as the binary lists them (module index, pin, parameter index, ends 0..255) */
 export function rangeList(p: Patch): { mod: number; pin: number; par: number; lo: number; hi: number }[] {
   const out: { mod: number; pin: number; par: number; lo: number; hi: number }[] = [];
@@ -377,6 +396,8 @@ function sizeOf(p: Patch, dg: DeviceGroup[], devs: Device[], source?: Patch): nu
   if (ranges) size += 1 + 5 * ranges;
   const maps = drumMaps(p).length;
   if (maps) size += 1 + maps * (1 + DRUM_ROWS * TRACK_NAME_MAX);
+  const mm = source ? midiMapList(source, p).length : 0;
+  if (mm) size += 1 + 4 * mm;
   return size + devicesSize(devs, p, source);
 }
 
@@ -398,6 +419,7 @@ export function encodePatch(source: Patch, anyway = false): Uint8Array {
   const devs = deviceSection(source, p);
   const kinds = buttonRecord(source, p);
   const pats = patternRecord(source, p);
+  const mmap = midiMapList(source, p);
   const size = sizeOf(p, groups, devs, source) + kinds.length;
   const ver = formatOf(source, p);
   const out = new Uint8Array(size);
@@ -407,7 +429,7 @@ export function encodePatch(source: Patch, anyway = false): Uint8Array {
   out[2] = p.modules.length;
   out[3] = groups.length;
   dv.setUint16(4, p.cables.length, true);
-  dv.setUint16(6, (morph ? FLAG_MORPH | FLAG_MORPH_MODULES : 0) | (ranges.length ? FLAG_RANGE : 0) | (routes.length ? FLAG_INPUT_MAP : 0) | (valued.length ? FLAG_NOTES : 0) | (devs.length ? FLAG_DEVICES | FLAG_EXTRAS : 0) | (kinds.length ? FLAG_BUTTONS : 0) | (drumMaps(p).length ? FLAG_NAMES : 0) | (pats.length ? FLAG_PATTERNS : 0), true);
+  dv.setUint16(6, (morph ? FLAG_MORPH | FLAG_MORPH_MODULES : 0) | (ranges.length ? FLAG_RANGE : 0) | (routes.length ? FLAG_INPUT_MAP : 0) | (valued.length ? FLAG_NOTES : 0) | (devs.length ? FLAG_DEVICES | FLAG_EXTRAS : 0) | (kinds.length ? FLAG_BUTTONS : 0) | (drumMaps(p).length ? FLAG_NAMES : 0) | (pats.length ? FLAG_PATTERNS : 0) | (mmap.length ? FLAG_MIDIMAP : 0), true);
   let at = 8;
   for (const { cfg, src } of groups) {
     out.set([cfg.parts | (Math.min(MAX_PARTS, cfg.unisonParts ?? 0) << 4), cfg.assign, cfg.legato | (cfg.unison ? 0x80 : 0) | (cfg.unisonShare ? 0x40 : 0), cfg.priority | (cfg.steal === false ? 0x80 : 0)], at);
@@ -530,6 +552,10 @@ export function encodePatch(source: Patch, anyway = false): Uint8Array {
   if (ranges.length) {
     out[at++] = ranges.length;
     for (const r of ranges) out.set([r.mod, r.pin, r.par, r.lo, r.hi], (at += 5) - 5);
+  }
+  if (mmap.length) {
+    out[at++] = mmap.length;
+    for (const e of mmap) out.set(e, (at += 4) - 4);
   }
   return out;
 }

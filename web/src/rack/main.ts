@@ -5,7 +5,7 @@ import { AudioHost } from '../audio';
 import { DEFS } from '../modules';
 import { cpuEstimate } from '../cpu';
 import {
-  addModule, connect, removeModule, validatePatch, paramUnit, paramValue, newPatch, NEW_PANEL,
+  addModule, connect, removeModule, validatePatch, paramUnit, paramValue, newPatch, NEW_PANEL, MIDI_MAP_MAX,
   type Endpoint, type ModuleInst, type ParamDef, type Patch,
 } from '../patch';
 import { FAMILIES, cableColor, familyOf, labelOf, paramLabel, portLabel } from './catalog';
@@ -22,7 +22,7 @@ import { DEVICE_COMPILE } from '../device-compile';
 // the rack shows every module it holds on the FM-1 too, played or not (the compile pass would leave out the silent ones)
 DEVICE_COMPILE.on = false;
 
-const NAME = 'KITTEN RACK';
+const NAME = 'Kitten Rack';
 const STORE = 'kittenrack.patches';
 const CURRENT = 'kittenrack.current';
 
@@ -30,7 +30,7 @@ const host = new AudioHost();
 let patch: Patch = initPatch();
 let rows = 3;
 let octave = 0;
-const knobEls = new Map<string, { ring: SVGPathElement; mod: SVGPathElement; text: HTMLElement; pd: ParamDef; id: number; show: () => void }>();
+const knobEls = new Map<string, { ring: SVGPathElement; mod: SVGPathElement; text: HTMLElement; pd: ParamDef; id: number; show: () => void; set: (v: number) => void; box: HTMLElement }>();
 
 const $ = <T extends HTMLElement>(sel: string): T => document.querySelector(sel) as T;
 const rack = $<HTMLDivElement>('#rack');
@@ -273,16 +273,21 @@ function knob(m: ModuleInst, pd: ParamDef, at: Spot): HTMLElement {
   name.textContent = paramLabel(pd.name);
   const val = document.createElement('span');
   val.className = 'k-val';
-  box.append(name, svg, val);
+  const cc = document.createElement('span');                // KITTEN RACK: its MIDI LEARN assignment
+  cc.className = 'k-cc';
+  box.append(name, svg, val, cc);
   const show = (): void => {
     const v = m.params[pd.name] ?? pd.default;
     const u = unitOf(pd, v);
     ring.setAttribute('d', arcPath(0, u, 16));
     tick.setAttribute('transform', `rotate(${-135 + ARC * u} 18 18)`);
     val.textContent = valueText(pd, v);
+    const e = (patch.midiMap ?? []).find((x) => x.module === m.id && x.param === pd.name);
+    cc.textContent = e ? `CC${e.cc}${e.ch ? ` c${e.ch}` : ''}` : '';
+    box.classList.toggle('mapped', !!e);
+    box.classList.toggle('learn-target', learnTarget?.id === m.id && learnTarget.param === pd.name);
   };
   show();
-  knobEls.set(`${m.id}:${pd.name}`, { ring, mod, text: val, pd, id: m.id, show });
   const set = (v: number): void => {
     m.params[pd.name] = v;
     show();
@@ -291,8 +296,13 @@ function knob(m: ModuleInst, pd: ParamDef, at: Spot): HTMLElement {
     saveCurrent();
     meters();
   };
+  knobEls.set(`${m.id}:${pd.name}`, { ring, mod, text: val, pd, id: m.id, show, set, box });
   svg.onpointerdown = (e) => {
     e.preventDefault();
+    if (learning) {                                        // MIDI LEARN: this parameter waits for a CC
+      learnPick(m, pd);
+      return;
+    }
     if (pd.toggle) {
       set((m.params[pd.name] ?? pd.default) >= 0.5 ? 0 : 1);
       return;
@@ -731,7 +741,7 @@ function linkStatus(s: string): void {
 }
 
 const linkError = (e: unknown): string => (e as Error).message
-  .replace('FM-1 not found. Is it connected and running the Matryoshka firmware?', 'no lo encuentro (¿conectado por USB, con KITTEN RACK, y cerrado el instalador?)')
+  .replace('FM-1 not found. Is it connected and running the Matryoshka firmware?', 'no lo encuentro (¿conectado por USB, con Kitten Rack, y cerrado el instalador?)')
   .replace('Web MIDI is not available in this browser (use Chrome or Edge)', 'este navegador no tiene MIDI (usá Chrome o Edge)')
   .replace('no answer from the FM-1', 'el FM-1 no contesta');
 
@@ -941,6 +951,8 @@ async function midi(): Promise<void> {
           } else if (s === 0x80 || (s === 0x90 && d[2] === 0)) {
             if (pedal) held.add(d[1]);
             else noteOff(d[1]);
+          } else if (s === 0xb0 && midiLearnCc(d[1], d[2], (d[0] & 15) + 1)) {
+            // (MIDI LEARN: assigned, or a mapped CC moved its parameters)
           } else if (s === 0xb0) {
             if (d[1] === 64) {                                            // sustain pedal: holds the notes let go meanwhile
               pedal = d[2] >= 64;
@@ -1051,7 +1063,150 @@ function boot(): void {
   host.onError = (msg) => toast(`Motor: ${msg}`);
   $('#link').onclick = () => void linkToggle();
   $('#tofm1').onclick = () => void saveToDevice();
+  $('#learn').onclick = () => learnToggle();
+  $('#midimap').onclick = () => openMidiMap();
   void midi();
+}
+
+// ---------- KITTEN RACK: MIDI LEARN (as in Ableton): LEARN on, click a knob, move a control of the MIDI controller; the CC
+// sets that parameter over its whole range, here and, in the patch (patch.midiMap, patchbin.ts FLAG_MIDIMAP), on the FM-1:
+// stored with AL FM-1 or live, it answers a controller on the FM-1's USB or TRS MIDI without the computer. A map can be kept
+// as a MIDI preset (by module type and order, so it fits other patches with the same modules).
+let learning = false;
+let learnTarget: { id: number; param: string } | null = null;
+const MAPS_KEY = 'kittenrack.midimaps';
+type PortableEntry = { cc: number; ch?: number; type: string; nth: number; param: string };
+function knobsShow(): void { for (const k of knobEls.values()) k.show(); }
+function learnToggle(on = !learning): void {
+  learning = on;
+  learnTarget = null;
+  document.body.classList.toggle('learning', learning);
+  $('#learn').classList.toggle('on', learning);
+  $('#learn').textContent = learning ? 'LEARN: ELEGÍ UN PARÁMETRO' : 'MIDI LEARN';
+  knobsShow();
+  if (learning) toast('MIDI LEARN: clic en una perilla, después mové un control de tu controlador. LEARN de nuevo termina.');
+}
+function learnPick(m: ModuleInst, pd: ParamDef): void {
+  learnTarget = { id: m.id, param: pd.name };
+  $('#learn').textContent = `LEARN: MOVÉ UN CONTROL → ${paramLabel(pd.name)}`;
+  knobsShow();
+}
+function mapChanged(): void {
+  saveCurrent();
+  knobsShow();
+  toDevice();                                            // (linked: the FM-1 takes the patch with its map)
+}
+/** a CC from a controller: assigned when LEARN waits for one; else every parameter mapped to it moves. true: taken */
+function midiLearnCc(cc: number, v: number, ch: number): boolean {
+  if (learning && learnTarget) {
+    const t = learnTarget;
+    const m = patch.modules.find((x) => x.id === t.id);
+    if (!m) return true;
+    patch.midiMap = (patch.midiMap ?? []).filter((e) => e.cc !== cc && !(e.module === t.id && e.param === t.param));
+    if (patch.midiMap.length >= MIDI_MAP_MAX) { toast(`El mapa MIDI ya tiene ${MIDI_MAP_MAX} asignaciones`); return true; }
+    patch.midiMap.push({ cc, module: t.id, param: t.param });
+    learnTarget = null;
+    $('#learn').textContent = 'LEARN: ELEGÍ UN PARÁMETRO';
+    toast(`CC ${cc} → ${labelOf(m.type)} ${paramLabel(t.param)}`);
+    mapChanged();
+    return true;
+  }
+  const hits = (patch.midiMap ?? []).filter((e) => e.cc === cc && (!e.ch || e.ch === ch));
+  if (!hits.length) return false;
+  if (linked) { link.cc(cc, v); return true; }            // (the FM-1 moves them by its map and tells us)
+  for (const e of hits) {
+    const k = knobEls.get(`${e.module}:${e.param}`);
+    if (k) k.set(ccValue(k.pd, v));
+  }
+  return true;
+}
+/** a CC's 0..127 as the parameter's value over its whole range (engine.c eng_cc_value: a choice in equal parts) */
+function ccValue(pd: ParamDef, v: number): number {
+  if (pd.choices) return Math.min(pd.max, pd.min + Math.floor((v / 127) * (pd.max - pd.min + 1)));
+  return valueOf(pd, v / 127);
+}
+function portable(): PortableEntry[] {
+  return (patch.midiMap ?? []).flatMap((e) => {
+    const m = patch.modules.find((x) => x.id === e.module);
+    if (!m) return [];
+    const nth = patch.modules.filter((x) => x.type === m.type).indexOf(m);
+    return [{ cc: e.cc, ...(e.ch ? { ch: e.ch } : {}), type: m.type, nth, param: e.param }];
+  });
+}
+function applyPortable(list: PortableEntry[]): number {
+  const out: NonNullable<Patch['midiMap']> = [];
+  for (const e of list) {
+    const m = patch.modules.filter((x) => x.type === e.type)[e.nth] ?? patch.modules.find((x) => x.type === e.type);
+    if (m && DEFS[m.type].params.some((q) => q.name === e.param)) out.push({ cc: e.cc, ...(e.ch ? { ch: e.ch } : {}), module: m.id, param: e.param });
+  }
+  patch.midiMap = out.slice(0, MIDI_MAP_MAX);
+  if (!patch.midiMap.length) delete patch.midiMap;
+  mapChanged();
+  return out.length;
+}
+function storedMaps(): Record<string, PortableEntry[]> {
+  try { return JSON.parse(localStorage.getItem(MAPS_KEY) ?? '{}') as Record<string, PortableEntry[]>; } catch { return {}; }
+}
+function openMidiMap(): void {
+  const box = $<HTMLDialogElement>('#map-box');
+  const list = $('#map-list');
+  const draw = (): void => {
+    list.replaceChildren();
+    const map = patch.midiMap ?? [];
+    if (!map.length) list.textContent = 'Sin asignaciones. Prendé MIDI LEARN, clic en una perilla y mové un control.';
+    for (const e of map) {
+      const m = patch.modules.find((x) => x.id === e.module);
+      const row = document.createElement('div');
+      row.className = 'map-row';
+      row.innerHTML = `<b>CC ${e.cc}</b><span>${m ? labelOf(m.type) : '?'} · ${paramLabel(e.param)}</span>`;
+      const ch = document.createElement('select');
+      ch.title = 'Canal MIDI';
+      ch.append(new Option('TODOS', '0'), ...Array.from({ length: 16 }, (_, i) => new Option(`CANAL ${i + 1}`, String(i + 1))));
+      ch.value = String(e.ch ?? 0);
+      ch.onchange = () => { if (Number(ch.value)) e.ch = Number(ch.value); else delete e.ch; mapChanged(); };
+      const del = document.createElement('button');
+      del.textContent = 'SACAR';
+      del.onclick = () => {
+        patch.midiMap = map.filter((x) => x !== e);
+        if (!patch.midiMap.length) delete patch.midiMap;
+        mapChanged();
+        draw();
+      };
+      row.append(ch, del);
+      list.append(row);
+    }
+    const sel = $<HTMLSelectElement>('#map-presets');
+    sel.replaceChildren(new Option('Mapas guardados…', ''), ...Object.keys(storedMaps()).sort().map((n) => new Option(n, n)));
+  };
+  $('#map-clear').onclick = () => { delete patch.midiMap; mapChanged(); draw(); };
+  $('#map-save').onclick = () => {
+    const name = $<HTMLInputElement>('#map-name').value.trim();
+    if (!name || !patch.midiMap?.length) { toast('Poné un nombre (y asigná algo antes)'); return; }
+    const all = storedMaps();
+    all[name] = portable();
+    try { localStorage.setItem(MAPS_KEY, JSON.stringify(all)); } catch { /* storage off */ }
+    toast(`Mapa MIDI "${name}" guardado`);
+    draw();
+  };
+  $<HTMLSelectElement>('#map-presets').onchange = (ev) => {
+    const name = (ev.target as HTMLSelectElement).value;
+    const m = storedMaps()[name];
+    if (!m) return;
+    const n = applyPortable(m);
+    toast(`Mapa "${name}": ${n} de ${m.length} asignaciones en este patch`);
+    draw();
+  };
+  $('#map-del').onclick = () => {
+    const name = $<HTMLSelectElement>('#map-presets').value;
+    if (!name) return;
+    const all = storedMaps();
+    delete all[name];
+    try { localStorage.setItem(MAPS_KEY, JSON.stringify(all)); } catch { /* storage off */ }
+    draw();
+  };
+  $('#map-close').onclick = () => box.close();
+  draw();
+  box.showModal();
 }
 
 boot();

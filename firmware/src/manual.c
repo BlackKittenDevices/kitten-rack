@@ -9,6 +9,8 @@ static const char *const MANUAL[] = {
     " PRESET: NEXT / PREV PATCH (BANK),",
     "   NOT WHILE THE EDITOR IS LIVE",
     "   ON SEQ / SONG: THE PATTERN",
+    "   A NEW PATCH WITH NO SEQUENCE",
+    "   KEEPS THE ONE PLAYING (SAVE IT)",
     " PLAY: TRANSPORT RUN / STOP",
     " PLAY HELD + PRESET: TEMPO",
     " SAVE: THE PATCH INTO ITS SLOT, AND",
@@ -173,6 +175,9 @@ static const char *const MANUAL[] = {
     " MOD WHEEL, BEND, AFTERTOUCH",
     " CC 120 / 123: ALL NOTES OFF",
     " CLOCK AND PROGRAM CHANGE: MENU",
+    " MIDI LEARN IN THE EDITOR: A CC",
+    "   MOVES A KNOB, SAVED WITH THE",
+    "   PATCH, ON USB AND TRS",
     "~MORE: GITHUB.COM/BLACKKITTENDEVICES",
 };
 #define MAN_N ((uint32_t)(sizeof MANUAL / sizeof MANUAL[0]))

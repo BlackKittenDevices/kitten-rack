@@ -192,5 +192,45 @@ int main(void)
             }
         check("Cassia has a MIDI-editable voices row", found);
     }
+    {   /* KITTEN RACK: MIDI LEARN: a patch's MIDI map moves its parameter from USB and TRS, over the whole range, and
+         * takes the CC away from the page knobs; an entry with a channel answers only on it */
+        uint32_t len0 = PRESET_LIST[0].len, n, e, ch, cc, mod, par, ok = 0;
+        static uint8_t mb[4096];
+        memcpy(mb, PRESET_LIST[0].data, len0);
+        check("(the factory patch upgraded)", !eng_upgrade(mb, &len0, sizeof mb));
+        n = mb[2] > 8u ? 8u : mb[2];
+        mb[7] |= ENG_FLAG_MIDIMAP;
+        mb[len0] = (uint8_t)n;
+        for (e = 0; e < n; e++) {
+            mb[len0 + 1u + 4u * e] = (uint8_t)(30u + e);   /* (30..37: no page knob, no button) */
+            mb[len0 + 2u + 4u * e] = (uint8_t)(e ? 2u : 0u);
+            mb[len0 + 3u + 4u * e] = (uint8_t)e;
+            mb[len0 + 4u + 4u * e] = 0;
+        }
+        len0 += 1u + 4u * n;
+        check("a patch with a MIDI map loads", eng_load(mb, len0) == 0 && eng_ccmap_get(0, &ch, &cc, &mod, &par));
+        cfg.ch = 0;
+        for (source = 1; source <= 2; source++) {
+            uint32_t v;
+            for (v = 0; v <= 127u; v += 127u) {
+                if (source == 2) { um_byte(0xB0); um_byte(cc); um_byte(v); }
+                else midi_enqueue(0xBu | 0xB0u << 8 | cc << 16 | v << 24, 1);
+                midi_drain();
+                ok += eng_get_param(mod, par) == eng_cc_value(mod, par, v) && mi_r == mi_w;
+            }
+        }
+        check("  the mapped CC sets its parameter (USB and TRS, 0 and 127)", ok == 4 && eng_cc_value(mod, par, 0) != eng_cc_value(mod, par, 127));
+        if (eng_ccmap_get(1, &ch, &cc, &mod, &par)) {
+            int32_t was = eng_get_param(mod, par), lo = eng_cc_value(mod, par, 0), hi = eng_cc_value(mod, par, 127);
+            int32_t other = was == hi ? lo : hi;
+            uint32_t v = was == hi ? 0u : 127u;
+            midi_enqueue(0xBu | 0xB0u << 8 | cc << 16 | v << 24, 1);
+            midi_drain();
+            check("  an entry on channel 2 ignores channel 1", eng_get_param(mod, par) == was);
+            midi_enqueue(0xBu | 0xB1u << 8 | cc << 16 | v << 24, 1);
+            midi_drain();
+            check("  and follows channel 2", ch == 2 && (lo == hi || eng_get_param(mod, par) == other));
+        }
+    }
     return failed ? 1 : 0;
 }

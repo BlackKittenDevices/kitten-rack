@@ -346,12 +346,12 @@ def main():
         if not m:
             raise SystemExit(f"--release {a.release}: use X.Y, X.Y.Z, X.Y.Z.W or X.Y-suffix, one digit each")
         num, _, sfx = a.release.partition("-")
-        # KITTEN RACK: FM-1_79Y for 0.Y (0.2 .. 0.5); from 1.0 on FM-1_79XYZ (1.0.0 = FM-1_79100), its own number on
+        # Kitten Rack: FM-1_79Y for 0.Y (0.2 .. 0.5); from 1.0 on FM-1_79XYZ (1.0.0 = FM-1_79100), its own number on
         # The Firmware Hub, the version in it as the hub asks (https://thefirmwarehub.com/kb/#identity)
         z = (num.split(".") + ["0", "0"])[2]
         PRODUCT = "FM-1_79" + m[2] if m[1] == "0" else f"FM-1_79{m[1]}{m[2]}{z}"
         num = ".".join((num.split(".") + ["0", "0"])[:max(3, len(num.split(".")))])
-        VERSION = "v" + num + ("-" + sfx.upper() if sfx else "")   # KITTEN RACK; e.g. v1.0.0, v1.1.0-RC1 (MENU > SYSTEM, the splash)
+        VERSION = "v" + num + ("-" + sfx.upper() if sfx else "")   # Kitten Rack; e.g. v1.0.0, v1.1.0-RC1 (MENU > SYSTEM, the splash)
         name = f"matryoshka-{a.release}.fwsc"
     fm1pkg_make.SDK = a.sdk
     for rel, sha in SDK_SHA256.items():          # fail early without the SDK

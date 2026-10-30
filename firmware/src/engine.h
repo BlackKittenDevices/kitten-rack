@@ -92,6 +92,11 @@ static inline uint32_t eng_notes_end(const uint8_t *p, uint32_t len, uint32_t at
  * n != 0xFF u8 len (bit 7: short words), u8 rate and n u16 / u32 words; u8 songs, per song u8 entries, 2 bytes each. 0 if it
  * runs past `len` */
 #define ENG_FLAG_PATTERNS 4u                    /* in p[7] */
+#define ENG_FLAG_MIDIMAP 8u                     /* in p[7] (KITTEN RACK): the MIDI map, after the macro ranges: u8 count, then
+                                                 * cc, channel (0 any), module, parameter (patchbin.ts midiMapList) */
+#define ENG_MAX_CCMAP 32
+int eng_ccmap_get(uint32_t k, uint32_t *ch, uint32_t *cc, uint32_t *module, uint32_t *param);   /* entry k; 0 past the last */
+int32_t eng_cc_value(uint32_t module, uint32_t param, uint32_t v);   /* a CC's value 0..127 as the parameter's, over its range */
 static inline uint32_t eng_patterns_end(const uint8_t *p, uint32_t len, uint32_t at)
 {
     uint32_t nt, t, np, k, n, ns;

@@ -1265,6 +1265,54 @@ int main(void)
         eng_set_param((uint32_t)main, FM1_P_TEMPO, bpm);
     }
 
+    {                                                       /* KITTEN RACK: the sequence goes along with PRESET */
+        static uint8_t keep[4096];
+        uint32_t klen = pv_len, i, w[3], n0;
+        int mod, mm;
+        const uint32_t *got;
+        for (i = 0; i < pv_len; i++)
+            keep[i] = pv_bin[i];
+        for (i = 0; i < sizeof KR_INIT; i++)
+            pv_bin[i] = KR_INIT[i];
+        pv_len = sizeof KR_INIT;
+        (void)eng_upgrade(pv_bin, &pv_len, sizeof pv_bin);
+        (void)eng_load(pv_bin, pv_len);
+        mod = eng_steps_module(0);
+        w[0] = 0u | 1u << 6 | 60u << 12 | 100u << 19 | NW_HOLD;   /* step 1, two steps long, C4 */
+        w[1] = 4u | 64u << 12 | 90u << 19;
+        w[2] = 8u | 67u << 12 | 90u << 19;
+        (void)eng_pattern_set_notes((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), w, 3);
+        eng_set_param((uint32_t)mod, STEPS_P_LEN, 8 << 16);
+        mm = eng_find(T_FM1);
+        eng_set_param((uint32_t)mm, FM1_P_TEMPO, 97 << 16);
+        seq_carry_take();
+        for (i = 0; i < sizeof KR_MUUG_TAPE; i++)
+            pv_bin[i] = KR_MUUG_TAPE[i];
+        pv_len = sizeof KR_MUUG_TAPE;
+        (void)eng_upgrade(pv_bin, &pv_len, sizeof pv_bin);
+        (void)eng_load(pv_bin, pv_len);
+        msg_text[0] = 0;
+        mod = eng_steps_module(0);
+        n0 = (uint32_t)eng_pattern_notes((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), &got);
+        check("(MUUG TAPE's track starts empty)", n0 == 0u);
+        check("PRESET to a patch with an empty track: the sequence comes along", seq_carry_give() == 1 &&
+              eng_pattern_notes((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), &got) == 3 && got[0] == w[0] && got[2] == w[2]);
+        mm = eng_find(T_FM1);
+        check("  with its steps and tempo, and says so", ((eng_get_param((uint32_t)mod, STEPS_P_LEN) + 32768) >> 16) == 8 &&
+              ((eng_get_param((uint32_t)mm, FM1_P_TEMPO) + 32768) >> 16) == 97 && (!strcmp(msg_text, "SECUENCIA CONSERVADA") || !strcmp(msg_text, "SEQUENCE KEPT")));
+        seq_carry_take();
+        (void)eng_load(pv_bin, pv_len);                     /* the same patch again, now with a sequence of its own */
+        mod = eng_steps_module(0);
+        w[0] = 2u | 72u << 12 | 80u << 19;
+        (void)eng_pattern_set_notes((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), w, 1);
+        check("a patch with its own sequence keeps it", seq_carry_give() == 0 &&
+              eng_pattern_notes((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), &got) == 1 && got[0] == w[0]);
+        for (i = 0; i < klen; i++)
+            pv_bin[i] = keep[i];
+        pv_len = klen;
+        (void)eng_load(pv_bin, pv_len);
+    }
+
     {                                                       /* KITTEN RACK: patching on the rack (EDIT) */
         static uint8_t orig[4096], before[4096];
         uint32_t blen = pv_len, olen, nm, nc, i, muug = 0, last, from, fp, to, tp;

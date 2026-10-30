@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
-"""KITTEN RACK: el instalador con ventana (Windows, macOS y Linux). Doble clic en este archivo.
+"""Kitten Rack: el instalador con ventana (Windows, macOS y Linux). Doble clic en este archivo.
 
   - Buscar el FM-1 y ver qué firmware tiene.
-  - Instalar KITTEN RACK (el .fwsc de esta carpeta, o la última versión publicada en GitHub), u otro .fwsc
+  - Instalar Kitten Rack (el .fwsc de esta carpeta, o la última versión publicada en GitHub), u otro .fwsc
     (por ejemplo Kitten Synths, para volver atrás). Usa el método de Felucca (fm1_install.py, al lado).
   - Abrir el editor offline: la carpeta editor/ servida en http://localhost, donde el navegador deja usar MIDI.
     Si no está, se baja de la última versión publicada.
@@ -113,7 +113,7 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
 class App:
     def __init__(self, root):
         self.root, self.q, self.busy, self.server, self.inst = root, queue.Queue(), False, None, None
-        root.title("KITTEN RACK")
+        root.title("Kitten Rack")
         root.configure(bg=BG)
         root.minsize(560, 520)
         style = ttk.Style(root)
@@ -126,7 +126,7 @@ class App:
 
         bar = tk.Frame(root, bg=ORANGE)
         bar.pack(fill="x")
-        tk.Label(bar, text="KITTEN RACK", font=head, bg=ORANGE, fg=BG, padx=16, pady=8).pack(side="left")
+        tk.Label(bar, text="Kitten Rack", font=head, bg=ORANGE, fg=BG, padx=16, pady=8).pack(side="left")
         tk.Label(bar, text="M-VAVE FM-1", font=mono, bg=ORANGE, fg=BG, padx=16).pack(side="right")
 
         st = tk.Frame(root, bg=PANEL, padx=14, pady=10)
@@ -143,7 +143,7 @@ class App:
         self.buttons = []
         for i, (txt, sub, fn) in enumerate([
                 ("BUSCAR FM-1", "qué firmware tiene", self.info),
-                ("INSTALAR KITTEN RACK", "sube el firmware al FM-1", self.install),
+                ("INSTALAR Kitten Rack", "sube el firmware al FM-1", self.install),
                 ("EDITOR OFFLINE", "en tu compu, con MIDI", self.offline),
                 ("EDITOR ONLINE", "en internet", self.online),
                 ("OTRO FIRMWARE...", "un .fwsc (volver a Kitten Synths)", self.other),
@@ -222,7 +222,7 @@ class App:
         threading.Thread(target=run, daemon=True).start()
 
     def close(self):
-        if self.busy and not messagebox.askyesno("KITTEN RACK", "Hay una tarea en curso. Si está instalando, no cierres: el FM-1 queda esperando.\n¿Cerrar igual?"):
+        if self.busy and not messagebox.askyesno("Kitten Rack", "Hay una tarea en curso. Si está instalando, no cierres: el FM-1 queda esperando.\n¿Cerrar igual?"):
             return
         if self.server:
             self.server.shutdown()
@@ -281,7 +281,7 @@ class App:
         if rc == 0 and found:
             m = re.match(r"(\S+)\s+\[(.*?)\]\s+port: (.*)", found[0])
             ident, mode, port = (m.group(1), m.group(2), m.group(3)) if m else (found[0], "", "")
-            kind = "KITTEN RACK" if ident.startswith("FM-1_7") else "Felucca / Kitten Synths / Sloop" if ident.startswith("FM-1_9") else "de fábrica" if ident.startswith("FM-1_0") else "otro"
+            kind = "Kitten Rack" if ident.startswith("FM-1_7") else "Felucca / Kitten Synths / Sloop" if ident.startswith("FM-1_9") else "de fábrica" if ident.startswith("FM-1_0") else "otro"
             loader = "update" in mode
             self.post(("dev", f"{ident}  ({kind})" + ("  EN MODO ACTUALIZACIÓN" if loader else "")))
             self.post(("log", f"FM-1 encontrado en «{port}»: {ident}, firmware {kind}."))
@@ -337,7 +337,7 @@ class App:
         if rc == 0:
             self.post(("progress", 100))
             if "kitten-rack" in os.path.basename(pkg).lower():
-                self.post(("log", "En el primer arranque KITTEN RACK escribe sus 33 patches de fábrica (si no aparecen: MENU > FACTORY RESET)."))
+                self.post(("log", "En el primer arranque Kitten Rack escribe sus 33 patches de fábrica (si no aparecen: MENU > FACTORY RESET)."))
             self.post(("dev", "actualizado (BUSCAR FM-1 para verlo)"))
             return "Listo: firmware instalado."
         self.post(("log", f"La instalación no terminó (código {rc}). No desenchufes: apretá INSTALAR de nuevo."))
