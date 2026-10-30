@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kitten Rack · PLAY</title>
+  <meta name="description" content="Kitten Rack for the M-VAVE FM-1, running in the browser: its real screens and its sound, no FM-1 needed." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 28V12L3 3l8 6h10l8-6-3 9v16z' fill='%23111'/%3E%3Cellipse cx='12' cy='17' rx='2.5' ry='3' fill='%23ff7a1a'/%3E%3Cellipse cx='20' cy='17' rx='2.5' ry='3' fill='%23ff7a1a'/%3E%3C/svg%3E" />
+  <style>@font-face{font-family:Barlow Condensed;src:url(./fonts/BarlowCondensed-SemiBold.ttf)format("truetype");font-weight:600;font-display:swap}@font-face{font-family:"FM1 5x7";src:url(./fonts/FM1-5x7.ttf)format("truetype");font-display:swap}:root{--bg:#070707;--body:#141414;--edge:#2a2a2a;--orange:#ff7a1a;--dim:#8a3c08;--bone:#e8dcc8}*{box-sizing:border-box}html,body{background:var(--bg);min-height:100%;color:var(--bone);margin:0;font-family:Barlow Condensed,sans-serif}header{background:var(--orange);color:#000;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 16px;display:flex}header h1{letter-spacing:1px;margin:0;font-size:26px}header .sp{flex:1}header a,header button,header select{text-transform:uppercase;color:var(--orange);cursor:pointer;background:#000;border:0;padding:6px 12px;font:600 15px Barlow Condensed,sans-serif;text-decoration:none}main{max-width:1180px;margin:0 auto;padding:16px}#fm1{background:var(--body);border:2px solid var(--edge);-webkit-user-select:none;user-select:none;touch-action:none;border-radius:18px;grid-template-columns:minmax(150px,1fr) minmax(240px,480px) minmax(220px,1.4fr);align-items:start;gap:16px;padding:18px;display:grid}.col{justify-items:center;gap:12px;display:grid}.encs{grid-template-columns:repeat(2,72px);justify-content:center;gap:12px 16px;display:grid}.encs.k{grid-template-columns:repeat(4,64px)}.enc{letter-spacing:.5px;justify-items:center;gap:4px;font-size:13px;display:grid}.knob{cursor:ns-resize;background:radial-gradient(circle at 40% 35%,#3a3a3a,#111 70%);border:2px solid #000;border-radius:50%;width:56px;height:56px;position:relative;box-shadow:0 2px #000}.knob:after{content:"";background:var(--orange);transform-origin:50% 23px;width:3px;height:16px;transform:rotate(var(--a,0deg));border-radius:2px;margin-left:-1.5px;position:absolute;top:5px;left:50%}#lcdbox{box-shadow:0 0 0 2px var(--edge);background:#000;border:3px solid #000;border-radius:6px}#lcd{aspect-ratio:1;width:100%;image-rendering:pixelated;display:block}.btns{grid-template-columns:repeat(6,1fr);gap:8px;width:100%;display:grid}.btn{aspect-ratio:5/6;color:var(--bone);cursor:pointer;background:#1f1f1f;border:2px solid #000;border-radius:6px;place-items:end center;padding-bottom:6px;font:600 13px Barlow Condensed;display:grid;position:relative;box-shadow:0 2px #000}.btn:before{content:"";background:#2c1404;border-radius:50%;width:10px;height:10px;margin-left:-5px;position:absolute;top:8px;left:50%}.btn.dim:before{background:#5a2706}.btn.lit:before,.btn.breath:before{background:var(--orange);box-shadow:0 0 8px var(--orange)}.btn.down{box-shadow:none;background:#2a2a2a;transform:translateY(2px)}.btn.latched{outline:2px solid var(--orange)}.octs{gap:8px;display:flex}.octs .btn{aspect-ratio:3/2;width:64px}#keys{height:150px;margin-top:18px;position:relative}.key{cursor:pointer;border:2px solid #000;border-radius:0 0 6px 6px;position:absolute}.key.w{z-index:1;background:#d9cdb8;height:150px;top:0}.key.b{z-index:2;background:#1b1b1b;height:92px;top:0}.key.on.w,.key.on.b{background:var(--orange)}.key.lit.w{box-shadow:inset 0 -10px 0 var(--orange)}.key.lit.b{box-shadow:inset 0 -8px 0 var(--orange)}.key.mid.w{box-shadow:inset 0 -10px 0 var(--dim)}.key.mid.b{box-shadow:inset 0 -8px 0 var(--dim)}#help{color:#cbbfa9;gap:6px;margin-top:18px;font-size:16px;line-height:1.4;display:grid}#help b{color:var(--orange)}#start{z-index:5;background:#000000d1;place-items:center;display:grid;position:fixed;inset:0}#start button{color:#000;background:var(--orange);cursor:pointer;border:0;padding:14px 34px;font:600 26px Barlow Condensed}#start p{color:var(--bone);text-align:center;max-width:520px;padding:0 16px;font-size:17px}@media (max-width:860px){#fm1{grid-template-columns:1fr}.col{order:2}#center{order:1}}</style>
+  <script type="module" crossorigin src="/kitten-rack/assets/play-BJMcyCiM.js"></script>
+  <link rel="modulepreload" crossorigin href="/kitten-rack/assets/modulepreload-polyfill-P2Xu9kJm.js">
+  <link rel="modulepreload" crossorigin href="/kitten-rack/assets/patchbin-DmPHckNs.js">
+  <link rel="modulepreload" crossorigin href="/kitten-rack/assets/fm1-ui-ByV2fT78.js">
+  <link rel="modulepreload" crossorigin href="/kitten-rack/assets/32-cuerda-infinita-DDnYxWQF.js">
+</head>
+<body>
+  <header>
+    <h1>Kitten Rack</h1>
+    <span>FM-1 in the browser</span>
+    <span class="sp"></span>
+    <select id="patch" title="Factory patch (PRESET does the same)"></select>
+    <button id="midi" title="Play it from a MIDI keyboard">MIDI</button>
+    <a href="./rack.html" target="_blank" rel="noopener">EDITOR</a>
+    <a href="https://github.com/BlackKittenDevices/kitten-rack" target="_blank" rel="noopener">GITHUB</a>
+  </header>
+  <main>
+    <div id="fm1">
+      <div class="col">
+        <div class="encs" id="encs-l"></div>
+        <div class="octs" id="octs"></div>
+      </div>
+      <div id="center"><div id="lcdbox"><canvas id="lcd" width="240" height="240" aria-label="FM-1 screen"></canvas></div></div>
+      <div class="col">
+        <div class="encs k" id="encs-r"></div>
+        <div class="btns" id="btns"></div>
+      </div>
+    </div>
+    <div id="keys"></div>
+    <div id="help">
+      <div><b>Knobs:</b> drag up / down, the mouse wheel, or click the left / right half. <b>Buttons:</b> click (Shift-click holds one down, e.g. PLAY + PRESET for the tempo). <b>Keys:</b> click, or the computer keyboard A W S E D F T G Y H U J K (Z / X: octave).</div>
+      <div><b>Try:</b> PRESET for the 33 factory patches · SEQ for the sequencer, PLAY to run it · SEL for the rack · HOME (on the module page) for the oscilloscope and the visuals · GLO, GLO, then K4: <b>ENGLISH / ESPAÑOL</b>.</div>
+      <div>This is the real FM-1 firmware's screens and controls compiled for the browser, with the editor's engine making the sound (the same engine, sample for sample). Patching on the rack page (EDIT) and saving work on the FM-1 itself; here, use the <a href="./rack.html" style="color:var(--orange)">editor</a>.</div>
+    </div>
+  </main>
+  <div id="start"><div style="text-align:center">
+    <p>Kitten Rack, a modular Eurorack-style firmware for the M-VAVE FM-1, running in your browser. Nothing is installed and nothing touches your FM-1.</p>
+    <button id="go">▶ PLAY</button>
+  </div></div>
+</body>
+</html>

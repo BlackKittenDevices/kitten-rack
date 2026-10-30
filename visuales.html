@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kitten Rack · VISUALES</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 28V12L3 3l8 6h10l8-6-3 9v16z' fill='%23111'/%3E%3Cellipse cx='12' cy='17' rx='2.5' ry='3' fill='%23ff7a1a'/%3E%3Cellipse cx='20' cy='17' rx='2.5' ry='3' fill='%23ff7a1a'/%3E%3C/svg%3E" />
+  <style>@font-face{font-family:Barlow Condensed;src:url(./fonts/BarlowCondensed-SemiBold.ttf)format("truetype");font-weight:600;font-display:swap}@font-face{font-family:"FM1 5x7";src:url(./fonts/FM1-5x7.ttf)format("truetype");font-display:swap}:root{--bg:#000;--orange:#ff7a1a;--dim:#8a3c08}html,body{background:var(--bg);height:100%;color:var(--orange);margin:0;font-family:Barlow Condensed,sans-serif;overflow:hidden}canvas{width:100vw;height:100vh;image-rendering:pixelated;display:block;position:fixed;inset:0}#ui{border-bottom:2px solid var(--orange);z-index:2;background:#000000c7;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 12px;transition:opacity .4s;display:flex;position:fixed;top:0;left:0;right:0}#ui.gone{opacity:0;pointer-events:none}#ui b{letter-spacing:1px;margin-right:6px;font-size:22px}button,select{text-transform:uppercase;color:var(--orange);border:1px solid var(--dim);cursor:pointer;background:#000;padding:4px 10px;font:600 15px Barlow Condensed,sans-serif}button.on{background:var(--orange);color:#000}label{align-items:center;gap:6px;font-size:14px;display:flex}input[type=range]{accent-color:var(--orange);width:110px}#state{color:var(--dim);font-family:"FM1 5x7",monospace;font-size:12px}#help{z-index:1;pointer-events:none;text-align:center;place-items:center;display:grid;position:fixed;inset:0}#help div{border:2px solid var(--orange);background:#000;padding:22px 30px;font-family:"FM1 5x7",monospace;font-size:14px;line-height:1.8}#help button{pointer-events:auto;margin-top:16px;padding:10px 24px;font-size:22px}</style>
+  <script type="module" crossorigin src="/kitten-rack/assets/visuales-D9syaVxs.js"></script>
+  <link rel="modulepreload" crossorigin href="/kitten-rack/assets/modulepreload-polyfill-P2Xu9kJm.js">
+</head>
+<body>
+  <canvas id="screen"></canvas>
+  <div id="ui">
+    <b>VISUALES</b>
+    <select id="input" title="La entrada de audio: elegí la del FM-1"></select>
+    <button id="m-scope" data-mode="scope">OSCILOSCOPIO</button>
+    <button id="m-vj" data-mode="vj">VISUAL</button>
+    <button id="m-both" data-mode="both">LOS DOS</button>
+    <button id="scene" title="Flechas: la escena anterior / la siguiente">ESCENA 1/5</button>
+    <button id="auto" class="on" title="Cambia sola cada 10 s o con un golpe después de 5 s">AUTO</button>
+    <label>DETALLE <input id="cells" type="range" min="30" max="160" step="10" value="60" /></label>
+    <button id="midi" title="Las notas y el reloj MIDI del FM-1 también hacen latir la imagen">MIDI</button>
+    <button id="full">PANTALLA COMPLETA</button>
+    <span id="state"></span>
+  </div>
+  <div id="help"><div>
+    CONECTÁ EL FM-1 POR USB Y TOCÁ<br />
+    LA IMAGEN SIGUE EL AUDIO QUE SALE POR USB<br />
+    1 OSCILOSCOPIO · 2 VISUAL · 3 LOS DOS · ← → ESCENA<br />
+    F PANTALLA COMPLETA · H ESCONDE LA BARRA<br />
+    <button id="start">EMPEZAR</button>
+  </div></div>
+</body>
+</html>

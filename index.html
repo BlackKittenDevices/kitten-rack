@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kitten Rack</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M6 28V12L3 3l8 6h10l8-6-3 9v16z' fill='%23111'/%3E%3Cellipse cx='12' cy='17' rx='2.5' ry='3' fill='%23ff7a1a'/%3E%3Cellipse cx='20' cy='17' rx='2.5' ry='3' fill='%23ff7a1a'/%3E%3C/svg%3E" />
+  <script type="module" crossorigin src="/kitten-rack/assets/rack-CEaAwZjg.js"></script>
+  <link rel="modulepreload" crossorigin href="/kitten-rack/assets/modulepreload-polyfill-P2Xu9kJm.js">
+  <link rel="modulepreload" crossorigin href="/kitten-rack/assets/patchbin-DmPHckNs.js">
+  <link rel="modulepreload" crossorigin href="/kitten-rack/assets/device-B3TwMFM0.js">
+  <link rel="modulepreload" crossorigin href="/kitten-rack/assets/32-cuerda-infinita-DDnYxWQF.js">
+  <link rel="stylesheet" crossorigin href="/kitten-rack/assets/rack-BoVEKXT-.css">
+</head>
+<body>
+  <header id="bar">
+    <h1 id="logo">Kitten Rack</h1>
+    <input id="name" class="tag" aria-label="Nombre del patch" maxlength="24" />
+    <button id="power" class="big">ENCENDER</button>
+    <button id="link" class="big" title="Conectar con el FM-1: lo que movés acá lo hace el FM-1, y al revés">FM-1</button>
+    <button id="play">▶ PLAY</button>
+    <span id="oct" class="tag">OCT +0</span>
+    <div class="meter" title="CPU estimada del FM-1 para este patch (modelo de Matryoshka)">
+      <span>CPU</span><div class="track"><div id="cpu-bar"></div></div><b id="cpu-txt">0%</b>
+    </div>
+    <span id="hp-txt" class="tag small"></span>
+    <span class="spacer"></span>
+    <button id="new">NUEVO</button>
+    <select id="presets"><option value="">Fábrica…</option></select>
+    <select id="mine"></select>
+    <button id="save">GUARDAR</button>
+    <button id="tofm1" title="Guardar este patch en un lugar del FM-1">AL FM-1</button>
+    <button id="learn" title="MIDI LEARN: clic en una perilla y después mové un control de tu controlador MIDI">MIDI LEARN</button>
+    <button id="midimap" title="Las asignaciones MIDI de este patch, y tus mapas guardados">MAPA MIDI</button>
+    <a id="visuals" class="btnlink" href="./visuales.html" target="_blank" rel="noopener" title="Las visuales del FM-1 en pantalla grande (proyector, OBS): siguen el audio USB del FM-1">VISUALES</a>
+    <button id="export">EXPORTAR</button>
+    <button id="import">IMPORTAR</button>
+  </header>
+  <main>
+    <aside id="catalog">
+      <p class="hint">Clic para atornillar un módulo en el primer lugar libre. Arrastrá los paneles por su cabeza para moverlos entre filas.</p>
+    </aside>
+    <section id="stage">
+      <div id="rack"></div>
+      <div class="rowtools">
+        <button id="addrow">+ FILA</button>
+        <button id="delrow">− FILA</button>
+        <label>ZOOM <input id="zoom" type="range" min="50" max="120" value="100" /></label>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <span id="midi">MIDI: buscando…</span>
+    <span id="about"></span>
+    <span>Teclas A–K tocan · Z/X octava · Arrastrá de un jack a otro para cablear · Arrastrá un plug para sacarlo · Clic en un cable lo saca</span>
+    <span class="credit">motor: Matryoshka (GPL-3.0)</span>
+  </footer>
+  <div id="toast"></div>
+  <dialog id="slot-box">
+    <b>Guardar en el FM-1</b>
+    <p>Elegí el lugar. Si ya hay un patch ahí, se reemplaza.</p>
+    <select id="slot-list" size="12"></select>
+    <label>Nombre <input id="slot-name" maxlength="20" /></label>
+    <div><button id="slot-ok">GUARDAR</button> <button id="slot-close">CANCELAR</button></div>
+  </dialog>
+  <dialog id="export-box">
+    <b>Patch en texto</b>
+    <p>Copialo y guardalo donde quieras. IMPORTAR acepta este texto en un archivo .json, igual que el editor de Matryoshka.</p>
+    <textarea id="export-text" rows="8" readonly></textarea>
+    <div><button id="export-copy">COPIAR</button> <button id="export-close">CERRAR</button></div>
+  </dialog>
+  <dialog id="map-box">
+    <b>Mapa MIDI</b>
+    <p>Cada control de tu controlador mueve un parámetro de este patch. El mapa viaja con el patch: con AL FM-1 queda guardado en el FM-1 y responde a tu controlador por USB o por el MIDI TRS, sin la compu.</p>
+    <div id="map-list"></div>
+    <div><button id="map-clear">BORRAR TODO</button></div>
+    <p>Guardá el mapa con un nombre para usarlo en otros patches (busca los mismos módulos).</p>
+    <div class="map-presets"><input id="map-name" maxlength="24" placeholder="Nombre del mapa" /> <button id="map-save">GUARDAR MAPA</button></div>
+    <div class="map-presets"><select id="map-presets"></select> <button id="map-del">BORRAR MAPA</button></div>
+    <div><button id="map-close">CERRAR</button></div>
+  </dialog>
+</body>
+</html>

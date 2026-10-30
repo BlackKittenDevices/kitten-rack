@@ -1,0 +1,1 @@
+(function(){let e=globalThis.postMessage.bind(globalThis);setInterval(()=>e(0),25)})();
