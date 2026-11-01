@@ -96,6 +96,7 @@ static int kr_in(int t, uint32_t cat)
             || t == T_LADDER || t == T_MUUG || t == T_VOWEL || t == T_COMB;
     }
 }
+static uint8_t kr_cat = 0xFFu;                  /* the last of FX / LFO / ENV that stepped the devices: lit while one shows */
 static int kr_step(uint32_t cat)
 {
     static const char *const NONE[] = {"SIN EFECTOS", "", "SIN ENVOLVENTES NI FILTROS", "SIN FUENTES NI MODULADORES"};
@@ -105,6 +106,7 @@ static int kr_step(uint32_t cat)
     for (k = 1; k <= pg_ndev; k++) {
         d = (pg_cur_dev + (page == 0 ? k : k - 1u)) % (pg_ndev ? pg_ndev : 1u);   /* (from another page: this one first) */
         if (d < pg_ndev && pg_dev[d].module >= 0 && kr_in(eng_type((uint32_t)pg_dev[d].module), cat)) {
+            kr_cat = (uint8_t)cat;
             (void)pages_focus(d, 0);
             if (page != 0)
                 page_set(0);
@@ -1004,6 +1006,56 @@ static void panel_edges(uint32_t p, uint32_t rel)
         play_toggle();
 }
 
+/* KITTEN RACK (the owner, 2026-11-01): a button lights while what it opened shows, as GLO and ENV do: EDIT while patching,
+ * SAVE on its page, HOME in the menu and the visualizers, SEQ on the SEQ / SONG pages, FX / LFO / ENV while a device they
+ * stepped to shows. The keys light while held or while a track sounds their note (MENU > PANEL > KEY LIGHTS), but on the
+ * SEQ page, whose keys are its steps (seq_leds) */
+static uint32_t kr_panel_lit;                       /* the patch buttons (PANEL_BTN_ID indices) lit so */
+static void kr_leds_poll(void)
+{
+    static uint32_t seen = 0xFFFFFFFFu, keys_seen = 0xFFFFFFFFu;
+    uint32_t want = 0, panel_lit = 0, n, keys = 0, m[4];
+    int dev_ok = page == 0u && pg_cur_dev < pg_ndev && pg_dev[pg_cur_dev].module >= 0;
+    if (page == PAGE_RACK && rack_editing())
+        panel_lit |= 1u << KR_EDIT_IDX;
+    if (kr_cat != 0xFFu && dev_ok && kr_in(eng_type((uint32_t)pg_dev[pg_cur_dev].module), kr_cat))
+        panel_lit |= 1u << kr_cat;
+    if (page == PAGE_SAVE)
+        want |= 1u << BTN_SAVE;
+    if (page == PAGE_MENU || viz_page())
+        want |= 1u << BTN_HOME;
+    if (page == PAGE_SEQ || page == PAGE_SONG)
+        want |= 1u << BTN_SEQ;
+    if (want != seen || panel_lit != kr_panel_lit) {
+        fm1_led_key(BTN_SAVE, (int)(want >> BTN_SAVE & 1u));
+        fm1_led_key(BTN_HOME, (int)(want >> BTN_HOME & 1u));
+        fm1_led_key(BTN_SEQ, (int)(want >> BTN_SEQ & 1u));
+        seen = want;
+        kr_panel_lit = panel_lit;
+        leds_panel();
+    }
+    if (page == PAGE_SEQ) {                         /* (its own: seq_leds) */
+        keys_seen = 0xFFFFFFFFu;
+        return;
+    }
+    if (cfg.key_leds && !booting) {
+        eng_keys_sounding(m);
+        for (n = 0; n < 27u; n++) {
+            int32_t note = 53 + (int32_t)n + 12 * octave;
+            if ((keys_now >> n & 1u) || (note >= 0 && note < 128 && (m[note >> 5] >> (note & 31) & 1u)))
+                keys |= 1u << n;
+        }
+    }
+    if (keys != keys_seen) {
+        for (n = 0; n < 27u; n++) {
+            led_bit(fm1_led, 14u + n, (int)(keys >> n & 1u));
+            led_bit(fm1_led_mid, 14u + n, 0);
+            led_bit(fm1_led_dim, 14u + n, 0);
+        }
+        keys_seen = keys;
+    }
+}
+
 /* the loop's bookkeeping before the inputs are read: what was just moved, the beat, the overload guard, the toasts
  * ending, the live ticks of modulated rows */
 static void panel_status(void)
@@ -1011,6 +1063,7 @@ static void panel_status(void)
     static uint8_t ovl_seen;
     static uint32_t shed_seen;
     sandbox_poll();                                 /* (no LIVE for 5 s: the FM-1 sounds again) */
+    kr_leds_poll();                                 /* KITTEN RACK: the buttons of what shows, the keys sounding */
     if (viz_page() && !ui_dirty && fm1_ms - viz_ms >= VIZ_FRAME_MS)
         ui_dirty = 1;                               /* KITTEN RACK: the visualizer's next frame */
     if (sb_home_due) {                              /* sandbox mode began: its page, unless the FM-1's own settings show */

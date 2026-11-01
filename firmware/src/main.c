@@ -191,7 +191,7 @@ static int slot_used(uint32_t s) { return s < M1_SLOTS && (bank_mask >> s & 1u);
 /* the settings record: version, slot, octave + 8, LED mode, knob accel, CPU in the bar, clock in, program change,
  * MIDI channel, MIDI out, the bank's format, the selected module */
 #define SET_VERSION 1u
-#define SET_LEN 23u                                 /* KITTEN RACK: byte 16 the language, 17..22 the REC tab */
+#define SET_LEN 24u                                 /* KITTEN RACK: byte 16 the language, 17..22 the REC tab, 23 the keys' lights */
 #define SET_MIN 12u                                 /* (a record from before KITTEN RACK's bank id: 12 bytes) */
 /* the patch format the bank's untouched factory slots were brought to (settings byte 10; 0 in a record from before):
  * below ENG_PATCH_VERSION, the boot rewrites them once (bank_upgrade) */
@@ -223,6 +223,7 @@ static void settings_pack(uint8_t *d)
     d[20] = cfg.rec_bars;
     d[21] = cfg.rec_count;
     d[22] = cfg.rec_quant;
+    d[23] = cfg.key_leds;
 }
 static int settings_unpack(const uint8_t *d, uint32_t len, uint32_t *slot, uint32_t *module)
 {
@@ -245,6 +246,7 @@ static int settings_unpack(const uint8_t *d, uint32_t len, uint32_t *slot, uint3
         cfg.rec_count = d[21] & 1u;
         cfg.rec_quant = d[22] & 1u;
     }
+    cfg.key_leds = len >= 24u ? d[23] & 1u : 1u;
     bank_fmt = d[10];
     *module = d[11];
     return 0;
@@ -825,7 +827,8 @@ static void leds_panel(void)
 {
     uint32_t b, mask = eng_buttons_lit();   /* (ARP on Arpeggiators: lit while they play) */
     for (b = 0; b < ENG_PANEL_BUTTONS; b++)
-        fm1_led_key(PANEL_BTN_ID[b], (int)(mask >> b & 1u) || (b == BTN_GLO_IDX && (page == PAGE_GLO || page == PAGE_RACK)) || (b == BTN_ENV_IDX && page == PAGE_ENV));   /* (GLO, ENV: lit on their pages) */
+        fm1_led_key(PANEL_BTN_ID[b], (int)(mask >> b & 1u) || (b == BTN_GLO_IDX && (page == PAGE_GLO || page == PAGE_RACK)) || (b == BTN_ENV_IDX && page == PAGE_ENV)
+                    || (kr_panel_lit >> b & 1u));   /* (GLO, ENV: lit on their pages; KITTEN RACK: EDIT, FX, LFO, ENV: kr_leds_poll) */
 }
 
 /* OCT- / OCT+ light up while the octave is shifted */

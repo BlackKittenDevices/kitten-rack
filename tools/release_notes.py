@@ -4,10 +4,9 @@
 import os
 
 v = os.environ.get("V", "X.Y.Z")
-print(f"""**New in 1.2 · Nuevo en 1.2**
-- **Live takes as played / Grabación tal cual la tocás:** QUANTIZE OFF (default) keeps each note's timing within its step, and where you let it go; fix it on SEQ (step held + ALGO), or QUANTIZE the pattern (SEQ held + OCT-). CUANTIZAR en OFF (de fábrica) guarda el tiempo de cada nota dentro de su paso y dónde la soltaste; se corrige en SEQ (paso sostenido + ALGO) o se cuantiza el patrón (SEQ sostenido + OCT-).
-- **REC as on SLOOP / REC como en SLOOP:** REC (stopped) opens the REC window, K1-K4: MODE GRID / FREE (the tempo follows you: REC on the "1" after the last bar), LENGTH 1/2/4 bars, START first note / count-in, QUANTIZE. REC (parado) abre la ventana de REC, K1-K4: MODO GRILLA / LIBRE (el tempo te sigue: REC en el "1" después del último compás), LARGO 1/2/4 compases, INICIO primera nota / cuenta, CUANTIZAR.
-- **Click** OFF / REC / ON (MENU > REC), never in the USB audio. **Undo** the take: REC held + OCT-. **Tap tempo**: PLAY held + REC taps. REC held 4 s clears the pattern on any screen. Click OFF / REC / ON (MENÚ > REC), nunca va al audio USB. Deshacer la toma: REC sostenido + OCT-. Tap tempo: PLAY sostenido + toques de REC. REC sostenido 4 s borra el patrón en cualquier pantalla.
+print(f"""**New in 1.3 · Nuevo en 1.3**
+- **Lights / Luces:** a button stays lit while what it opened shows (SEQ, SAVE, EDIT, HOME, FX, LFO, ENV, GLO); the keys light while held or played by the sequencer (MENU > PANEL > KEY LIGHTS turns that off). Un botón queda encendido mientras se ve lo que abrió; las teclas se encienden al tocarlas o cuando suena su nota en el secuenciador (se apaga en MENÚ > PANEL > KEY LIGHTS).
+- From 1.2 / De la 1.2: takes as played (QUANTIZE OFF), the REC window (MODE GRID / FREE, LENGTH, START, QUANTIZE), click (never on USB), undo, tap tempo, REC held 4 s clears the pattern anywhere. Grabación tal cual, ventana de REC, click (nunca al USB), deshacer, tap tempo, REC 4 s borra el patrón en cualquier pantalla.
 
 **English:** download `KittenRack-instalador-{v}.zip`, unzip it and open `KittenRack.pyw` (double click): it installs the firmware and opens the offline and online editor (`README.txt` inside). Back up your data first.
 Try it in the browser: https://blackkittendevices.github.io/kitten-rack/play.html · Manual: https://github.com/BlackKittenDevices/kitten-rack#readme

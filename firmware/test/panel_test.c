@@ -1514,6 +1514,33 @@ int main(void)
         (void)eng_load(pv_bin, pv_len);
     }
 
+    {                                                       /* KITTEN RACK: lit while it shows; the keys sounding */
+        page_set(0);
+        loop();
+        check("the device page: SEQ, SAVE dark", !(host_led_mask(fm1_led, 0) & (1u << BTN_SEQ | 1u << BTN_SAVE)));
+        tap(BTN_SEQ);
+        loop();
+        check("SEQ's page: SEQ lit", page == PAGE_SEQ && (host_led_mask(fm1_led, 0) >> BTN_SEQ & 1u));
+        tap(BTN_HOME);
+        loop();
+        check("  back: SEQ dark", page != PAGE_SEQ && !(host_led_mask(fm1_led, 0) >> BTN_SEQ & 1u));
+        page_set(0);
+        loop();
+        cfg.key_leds = 1;
+        panel_keys(1u << 5);
+        loop();
+        check("a key held on the device page: lit", host_led_mask(fm1_led, 14) >> 5 & 1u);
+        panel_keys(0);
+        loop();
+        cfg.key_leds = 0;
+        panel_keys(1u << 5);
+        loop();
+        check("  KEY LIGHTS off: dark", !(host_led_mask(fm1_led, 14) >> 5 & 1u));
+        panel_keys(0);
+        cfg.key_leds = 1;
+        loop();
+    }
+
     {                                                       /* KITTEN RACK: patching on the rack (EDIT) */
         static uint8_t orig[4096], before[4096];
         uint32_t blen = pv_len, olen, nm, nc, i, muug = 0, last, from, fp, to, tp;

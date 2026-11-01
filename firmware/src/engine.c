@@ -7510,6 +7510,18 @@ void eng_count_in(uint32_t beats)
     cnt_start = (uint8_t)(beats != 0);
 }
 uint32_t eng_count_left(void) { return cnt_beats; }
+/* KITTEN RACK: the keys the tracks sound now (their notes and the keys played into them), bit k of m[k >> 5] (the keys' lights) */
+void eng_keys_sounding(uint32_t *m)
+{
+    uint32_t t, j;
+    m[0] = m[1] = m[2] = m[3] = 0;
+    for (t = 0; E.loaded && t < E.ntrk; t++)
+        for (j = 0; j < E.trk_nsnd[t] && j < TRACK_POLY; j++)
+            if (E.trk_snd[t][j].cnt > 0 || E.trk_snd[t][j].thru) {
+                uint32_t k = E.trk_snd[t][j].key & 127u;
+                m[k >> 5] |= 1u << (k & 31u);
+            }
+}
 
 void eng_ctl(uint32_t which, int32_t q16)
 {

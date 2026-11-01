@@ -81,6 +81,8 @@ The FM-1 plays **patches**: a patch is a whole rack (modules, cables, knob setti
 
 **Screen language:** GLO, GLO again and **K4**: ENGLISH or ESPANOL (also in the menu: hold HOME → PANEL → LANGUAGE). It is stored at once. It changes the texts Kitten Rack writes (sequencer, rack, save, visuals, the module catalogue and its jacks); module parameters and patch names stay as they are. It comes in English from the factory.
 
+**Lights:** a button stays lit while what it opened shows (SEQ, SAVE, EDIT while patching, HOME in the menu and the visuals, FX / LFO / ENV while one of their devices shows, GLO, ENV), and the keys light while you hold them or while the sequencer plays their note. MENU → PANEL → KEY LIGHTS turns the keys' lights off.
+
 The battery shows at the bottom right (0 to 3 bars, a bolt on USB).
 
 The full manual, short, is inside the FM-1: **hold HOME**, in the menu.

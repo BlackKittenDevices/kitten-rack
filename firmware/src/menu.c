@@ -23,9 +23,9 @@ static void settings_store(void);               /* main.c: the settings record n
 enum { MT_PANEL, MT_MIDI, MT_REC, MT_SYSTEM, MT_MANUAL, MT_COUNT };   /* (MANUAL has no rows: a text) */
 static const char *const ROW_NAME[MR_COUNT] = {"LEDS", "KNOB ACCEL", "MIDI CHANNEL", "CLOCK IN", "MIDI OUT",
                                               "VERSION", "CPU", "CPU PEAK", "BANK SLOTS", "BATTERY", "UPDATE MODE", "FACTORY RESET", "LANGUAGE",
-                                              "CLICK", "CLICK LEVEL", "REC MODE", "REC LENGTH", "REC START", "QUANTIZE"};
+                                              "CLICK", "CLICK LEVEL", "REC MODE", "REC LENGTH", "REC START", "QUANTIZE", "KEY LIGHTS"};
 static const uint8_t ROW_TAB[MR_COUNT] = {MT_PANEL, MT_PANEL, MT_MIDI, MT_MIDI, MT_MIDI, MT_SYSTEM, MT_SYSTEM, MT_SYSTEM, MT_SYSTEM, MT_SYSTEM, MT_SYSTEM,
-                                          MT_SYSTEM, MT_PANEL, MT_REC, MT_REC, MT_REC, MT_REC, MT_REC, MT_REC};
+                                          MT_SYSTEM, MT_PANEL, MT_REC, MT_REC, MT_REC, MT_REC, MT_REC, MT_REC, MT_PANEL};
 static const char *const TAB_NAME[MT_COUNT] = {"PANEL", "MIDI", "REC", "SYSTEM", "MANUAL"};
 /* KITTEN RACK: the REC tab's values (the REC screen shows them too: seq_ui.c) */
 static const char *rec_value(uint32_t row)
@@ -105,6 +105,7 @@ static void menu_value(uint32_t row, char *out)
     switch (row) {
     case MR_LEDS: p = put(p, cfg.leds == 0 ? "OFF" : cfg.leds == 1 ? "DIM LOW" : "DIM HIGH"); break;
     case MR_ACCEL: p = put(p, ONOFF[cfg.accel]); break;
+    case MR_KEYLEDS: p = put(p, ONOFF[cfg.key_leds]); break;
     case MR_LANG: p = put(p, cfg.lang ? "ESPANOL" : "ENGLISH"); break;
     case MR_CLICK: case MR_CLICKLVL: case MR_RMODE: case MR_RBARS: case MR_RSTART: case MR_RQUANT: p = put(p, rec_value(row)); break;
     case MR_CPU:
@@ -289,6 +290,11 @@ static void setting_step(uint32_t row, int32_t s)       /* a setting's next / pr
         break;
     }
     case MR_ACCEL: cfg.accel = (uint8_t)up; break;
+    case MR_KEYLEDS:
+        cfg.key_leds = (uint8_t)up;
+        cfg_dirty = 1;
+        cfg_dirty_ms = fm1_ms;
+        break;
     case MR_LANG:                                   /* KITTEN RACK: the language; the whole screen again */
         if (cfg.lang != (uint8_t)up) {
             cfg.lang = (uint8_t)up;

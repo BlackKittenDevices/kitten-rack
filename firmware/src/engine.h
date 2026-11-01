@@ -418,7 +418,8 @@ int eng_click(uint32_t *at);                                              /* KIT
 uint32_t eng_beats(void);                                                 /* beats so far (count-in and transport) */
 uint32_t eng_samples(void);                                               /* samples rendered so far */
 void eng_count_in(uint32_t beats);                                        /* a count-in of `beats`, then the transport; 0 ends it */
-uint32_t eng_count_left(void);                                /* a take: exact timing or the nearest step */
+uint32_t eng_count_left(void);
+void eng_keys_sounding(uint32_t *m);                                     /* KITTEN RACK: keys the tracks sound (4 words) */                                /* a take: exact timing or the nearest step */
 void eng_steps_chord(uint32_t module, uint32_t k, const uint8_t *notes, uint32_t n, uint32_t vel);
 void eng_steps_overdub(uint32_t module, uint32_t word);
 /* the performance controls: ENG_CTL_BEND (-1..1 Q16: +-2 semitones on the Main module's pitch and its bend

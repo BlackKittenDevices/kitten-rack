@@ -34,7 +34,7 @@ static void sandbox_bar(void);
 
 /* the settings' rows (menu.c; GLO shows some of them: pages_ui.c glo_page) */
 enum { MR_LEDS, MR_ACCEL, MR_CH, MR_CLOCK, MR_MOUT, MR_VERSION, MR_CPU, MR_PEAK, MR_SLOTS, MR_BATT, MR_UPDATE, MR_DEFAULTS, MR_LANG,
-       MR_CLICK, MR_CLICKLVL, MR_RMODE, MR_RBARS, MR_RSTART, MR_RQUANT, MR_COUNT };   /* (KITTEN RACK: the REC tab) */
+       MR_CLICK, MR_CLICKLVL, MR_RMODE, MR_RBARS, MR_RSTART, MR_RQUANT, MR_KEYLEDS, MR_COUNT };   /* (KITTEN RACK: the REC tab) */
 /* the settings of the menu (menu.c); saved with the state (SAVE) */
 static struct {
     uint8_t leds;                       /* the idle buttons glow: 0 off, 1 dim low, 2 dim higher */
@@ -49,7 +49,8 @@ static struct {
      * level 1..10; a take: free (the tempo follows you, an empty pattern) or on the grid, its length 0 as it is / 1, 2, 4
      * bars (3), it starts on the first note or after a bar counted in, quantized to the steps or as played */
     uint8_t click, click_lvl, rec_free, rec_bars, rec_count, rec_quant;
-} cfg = {2, 1, 1, 0, 1, 1, 1, 0, 1, 6, 0, 0, 0, 0};
+    uint8_t key_leds;                   /* KITTEN RACK: the keys light while held or sounded by the sequencer (MENU > PANEL) */
+} cfg = {2, 1, 1, 0, 1, 1, 1, 0, 1, 6, 0, 0, 0, 0, 1};
 static uint8_t cfg_dirty;               /* KITTEN RACK: a REC setting changed: stored when nothing plays (main.c cfg_poll) */
 static uint32_t cfg_dirty_ms;
 /* KITTEN RACK: a text in the language set (cfg.lang): LG("ENGLISH", "SPANISH"). Only the texts KITTEN RACK wrote in Spanish
@@ -63,6 +64,7 @@ static void cfg_defaults(void)
     cfg.click = 1;
     cfg.click_lvl = 6;
     cfg.rec_free = cfg.rec_bars = cfg.rec_count = cfg.rec_quant = 0;
+    cfg.key_leds = 1;
 }
 static uint32_t cpu_pct;                /* the audio ISR's peak time over the last half second, in % of the 2.9 ms half buffer */
 static volatile uint8_t ui_dirty;               /* 1: the knob rows need a redraw, 2: the module changed too (title, picture) */
