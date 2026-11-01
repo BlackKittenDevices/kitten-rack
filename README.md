@@ -27,8 +27,7 @@ Kitten Rack turns the FM-1 into a **Eurorack in your hands**. A patch is a whole
 - **Visuals** on the FM-1 (oscilloscope and five animated scenes that follow the music) and full screen on a computer or projector.
 - **MIDI LEARN:** map your controller's knobs in the web editor; the map is stored in the patch and works on the FM-1 with no computer, over USB or TRS.
 - **USB audio and MIDI:** the FM-1 is a sound card (record it in any DAW, no driver) and a MIDI device.
-- **English or Spanish** screens. Orange on black.
-
+- **English or Spanish** screens.
 ## Screens
 
 **The rack and patching on the FM-1**
