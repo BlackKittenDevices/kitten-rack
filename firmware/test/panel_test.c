@@ -1375,6 +1375,24 @@ int main(void)
         loop();
         check("REC held + OCT-: the take undone, REC off, the octave as it was", eng_steps_notes((uint32_t)mod, &w) == 0 && seq_rec == 0 && octave == 0);
         check("  undo again: nothing", (rec_undo(), eng_steps_notes((uint32_t)mod, &w) == 0));
+        /* REC held 4 s on the device page: the pattern cleared (REC + OCT- brings it back) */
+        {
+            uint32_t one[1] = {2u | 60u << 12 | 100u << 19};
+            (void)eng_steps_set_notes((uint32_t)mod, one, 1);
+        }
+        panel_held |= 1u << BTN_REC;
+        panel_edges(1u << BTN_REC, 0);
+        for (i = 0; i < 45; i++) {
+            fm1_ms += 100;
+            panel_edges(0, 0);
+        }
+        panel_held &= ~(1u << BTN_REC);
+        panel_edges(0, 1u << BTN_REC);
+        loop();
+        check("REC held 4 s on the device page: the pattern cleared, REC as it was", page == 0u && eng_steps_notes((uint32_t)mod, &w) == 0 && seq_rec == 0);
+        rec_undo();
+        check("  REC + OCT- brings it back", eng_steps_notes((uint32_t)mod, &w) == 1);
+        (void)eng_steps_set_notes((uint32_t)mod, 0, 0);
         /* SEQ held + OCT-: QUANTIZE */
         {
             uint32_t two[2] = {0u | 60u << 12 | 100u << 19, 4u | 62u << 12 | 100u << 19};
@@ -1413,11 +1431,21 @@ int main(void)
         cfg.rec_bars = 2;                                   /* 2 bars: 32 steps */
         tap(BTN_REC);
         check("REC stopped, COUNT IN: it waits", seq_rec == 2u && seq_rec_wait && !eng_transport_running());
+        check("  the REC window opens over the page", rec_win && page == 0u);
+        ui_dirty = 2;
+        loop();
+        snap_to(getenv("PANEL_SNAP_REC"));
+        enc(4, -1);                                         /* K3: START back to the first note */
+        check("  K3 in the window: START FIRST NOTE, the page's knobs untouched", !cfg.rec_count && rec_win);
+        enc(4, 1);
+        enc(6, 1);                                          /* PRESET: nothing under the window */
+        check("  PRESET under the window: no patch change", rec_win && seq_rec == 2u);
         panel_keys(1u << 2);
         panel_keys(0);
         loop();
         check("  a note before PLAY only sounds", !eng_transport_running() && seq_rec_wait && eng_steps_notes((uint32_t)mod, &w) == 0);
         tap(BTN_PLAY);
+        check("  PLAY: the count-in starts, the window closes", !rec_win);
         check("  PLAY: a bar counted in, the transport waits, LENGTH 2 bars set", rec_counting && !eng_transport_running() &&
               eng_count_left() == 4u && click_gate && ((eng_get_param((uint32_t)mod, STEPS_P_LEN) + 32768) >> 16) == 32);
         for (i = 0; i < 5u * 12u * (60u * ENG_SR / (120u * 24u)) / 128u; i++)   /* (two beats and a half) */

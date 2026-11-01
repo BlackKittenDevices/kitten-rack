@@ -905,23 +905,43 @@ static void rec_quantize(void)
         ui_msg(LG("ALREADY ON THE GRID", "YA ESTA EN LA GRILLA"), 1200);
     ui_dirty = ui_dirty ? ui_dirty : 1;
 }
-/* the take's settings in the bar (REC waiting) */
-static void rec_settings_msg(int mod)
+/* KITTEN RACK: the REC window (REC waiting, any page, the owner 2026-11-01): the take's settings on K1..K4 (MENU > REC
+ * keeps them too) and what starts it; the first note (or PLAY's count-in) closes it, as REC off does */
+static void rec_win_draw(int full)
 {
-    char m[48], *p = m;
+    static const uint8_t ROW[4] = {MR_RMODE, MR_RBARS, MR_RSTART, MR_RQUANT};
+    static const char *const EN[4] = {"MODE", "LENGTH", "START", "QUANTIZE"}, *const ES[4] = {"MODO", "LARGO", "INICIO", "CUANTIZAR"};
+    int mod = eng_armed();
     const uint32_t *w;
-    int free = cfg.rec_free && mod >= 0 && eng_pattern_notes((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), &w) <= 0;
-    p = put(p, free ? LG("FREE", "LIBRE") : LG("GRID", "GRILLA"));
-    if (cfg.rec_bars && !free) {
-        *p++ = ' ';
-        *p++ = (char)('0' + (1 << (cfg.rec_bars - 1u)));
-        p = put(p, LG(" BAR", " COMP"));
+    int empty = mod >= 0 && eng_pattern_notes((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), &w) <= 0;
+    char name[TRACK_NAME_MAX + 8], line[48];
+    uint32_t k, y;
+    if (full)
+        lcd_fill(0, BAR_H, 240, 240u - BAR_H, C_BG);
+    lcd_fill(0, BAR_H + 4u, 240, 3, C_RED);
+    text_bc(&FONT_L, 10, BAR_H + 12u, LG("REC READY", "REC LISTO"), C_ACC, C_BG, 150, TA_LEFT);
+    name[0] = 0;
+    if (mod >= 0)
+        seq_name(seq_trk, name);
+    text_bc(&FONT_S, 160, BAR_H + 18u, name, C_DIM, C_BG, 72, TA_RIGHT);
+    for (k = 0; k < 4u; k++) {
+        y = BAR_H + 44u + k * 32u;
+        line[0] = 'K';
+        line[1] = (char)('1' + k);
+        line[2] = 0;
+        text_bc(&FONT_M, 10, y + 4u, line, C_BG, C_ACC, 28, TA_CENTER);
+        text_bc(&FONT_S, 46, y, cfg.lang ? ES[k] : EN[k], C_DIM, C_BG, 90, TA_LEFT);
+        text_bc(&FONT_M, 46, y + 12u, rec_value(ROW[k]), C_FG, C_BG, 186, TA_LEFT);
     }
-    p = put(p, cfg.rec_count ? LG(" COUNT", " CUENTA") : LG(" NOTE", " NOTA"));
-    p = put(p, cfg.rec_quant ? " Q ON" : " Q OFF");
-    *p = 0;
-    ui_msg(m, 1600);
+    y = BAR_H + 44u + 4u * 32u + 2u;
+    put(put(line, "CLICK "), rec_value(MR_CLICK))[0] = 0;
+    text_bc(&FONT_S, 10, y, line, C_DIM, C_BG, 220, TA_LEFT);
+    text_bc(&FONT_S, 8, 222, cfg.rec_free && !empty ? LG("NOT EMPTY: GRID   REC: OFF", "CON NOTAS: GRILLA   REC: SALIR")
+        : cfg.rec_free ? LG("PLAY FREELY, REC ON THE 1", "TOCA LIBRE, REC EN EL 1")
+        : cfg.rec_count ? LG("PLAY: COUNT IN   REC: OFF", "PLAY: CUENTA   REC: SALIR")
+        : LG("A NOTE OR PLAY STARTS   REC: OFF", "NOTA O PLAY ARRANCA   REC: SALIR"), C_HINT, C_BG, 226, TA_LEFT);
 }
+
 /* the knobs while REC waits (or counts in): K1 MODE, K2 LENGTH, K3 START, K4 QUANTIZE; 1: taken */
 static int rec_knobs(int32_t *st)
 {
@@ -1111,6 +1131,11 @@ static void rec_free_finish(void)
  * a REC setting kept once nothing plays */
 static void rec_poll(void)
 {
+    uint8_t want = (uint8_t)(seq_rec == 2u && seq_rec_wait && !ft_on && !rec_counting && page != PAGE_MENU && !sb_on);
+    if (want != rec_win) {                       /* the REC window: open while REC waits, gone once the take starts / REC off */
+        rec_win = want;
+        ui_full = 1;
+    }
     click_gate = (uint8_t)(cfg.click == 2u || (cfg.click == 1u && seq_rec == 2u) || rec_counting);
     if (rec_counting) {
         uint32_t left = eng_count_left();
@@ -1212,8 +1237,7 @@ static void kr_rec_press(void)
     if (eng_transport_running())
         put(put(m, "REC "), name)[0] = 0;
     else {
-        seq_rec_wait = 1;
-        rec_settings_msg(mod);                   /* (the take's settings; the knobs change them) */
+        seq_rec_wait = 1;                        /* (the REC window opens: the take's settings, the knobs change them) */
         ui_dirty = 2;
         return;
     }
@@ -1326,9 +1350,16 @@ static void seq_cursor_toggle(void)
 static void seq_pattern_clear(void)
 {
     static const uint32_t none[1];
-    int mod = seq_module();
+    int mod = seq_module(), k;
+    if (page != PAGE_SEQ) {                      /* KITTEN RACK: from any page, the track REC records */
+        mod = eng_armed() >= 0 ? eng_armed() : seq_melodic((int)seq_trk) ? eng_steps_module(seq_trk) : -1;
+        for (k = 0; mod < 0 && k < eng_steps_count(); k++)
+            if (seq_melodic(k))
+                mod = eng_steps_module((uint32_t)k);
+    }
     if (mod < 0)
         return;
+    rec_snapshot(mod);                           /* (REC held + OCT- brings it back) */
     (void)eng_steps_set_notes((uint32_t)mod, none, 0);
     seq_held = -1;
     seq_sync(mod);

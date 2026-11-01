@@ -128,14 +128,14 @@ A melodic track shows a **piano roll**:
 
 Other shortcuts: FX held + white key sets an accent; LFO held + white key ties the step to the one before; SEQ held + black key mutes a track.
 
-**Clear the pattern:** hold REC for 4 seconds (it counts `CLEAR PATTERN: 3, 2, 1`).
+**Clear the pattern:** hold REC for 4 seconds, on any screen (it counts `CLEAR PATTERN: 3, 2, 1`). REC held + OCT− brings it back.
 
 ### Live recording (as on SLOOP)
 
 **REC** works from any screen and doesn't take you to SEQ:
 
 - **Running:** starts recording where the sequencer is. REC again stops recording; what you recorded keeps playing.
-- **Stopped:** it waits. While it waits, the knobs set how the take goes (the bar shows them, e.g. `GRID 2 BAR NOTE Q OFF`):
+- **Stopped:** it waits and the **REC window** opens over the screen you are on, with the take's settings on the knobs. The take starting (your first note, PLAY's count-in, a free take's first note) closes it, and so does REC off:
 
 | Knob | Setting | Choices |
 | --- | --- | --- |

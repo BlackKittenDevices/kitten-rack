@@ -128,14 +128,14 @@ En una pista melódica se ve un **piano roll**:
 
 Otros atajos: FX sostenido + tecla blanca pone un acento; LFO sostenido + tecla blanca liga el paso con el anterior; SEQ sostenido + tecla negra silencia una pista.
 
-**Borrar el patrón:** REC sostenido 4 segundos (cuenta `BORRAR PATRON: 3, 2, 1`).
+**Borrar el patrón:** REC sostenido 4 segundos, en cualquier pantalla (cuenta `BORRAR PATRON: 3, 2, 1`). REC sostenido + OCT− lo trae de vuelta.
 
 ### Grabar en vivo (como SLOOP)
 
 **REC** funciona desde cualquier pantalla y no te lleva a SEQ:
 
 - **Corriendo:** empieza a grabar donde va el secuenciador. REC otra vez deja de grabar; lo grabado sigue sonando.
-- **Parado:** queda esperando. Mientras espera, las perillas eligen cómo es la toma (la barra las muestra, por ejemplo `GRILLA 2 COMP NOTA Q OFF`):
+- **Parado:** queda esperando y se abre la **ventana de REC** sobre la pantalla en la que estés, con los ajustes de la toma en las perillas. Cuando arranca la toma (tu primera nota, la cuenta de PLAY, la primera nota de una toma libre) se cierra, y también con REC off:
 
 | Perilla | Ajuste | Opciones |
 | --- | --- | --- |

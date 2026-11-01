@@ -435,8 +435,14 @@ static int panel_label(uint32_t i, char *out)
 static const char *const PANEL_BTN_NAME[ENG_PANEL_BUTTONS] = {"FX", "SEL", "ENV", "LFO", "EDIT", "GLO", "ARP"};
 
 static uint8_t pg_plain;                        /* pages_ui.c: the device page's bars are on screen as it draws them */
+static uint8_t rec_win;                         /* KITTEN RACK: the REC window over the page (seq_ui.c rec_poll, rec_win_draw) */
+static void rec_win_draw(int full);
 static void view_draw(int full)                 /* whichever page is showing */
 {
+    if (rec_win) {
+        rec_win_draw(full);
+        return;
+    }
     if ((page != 0u && page != PAGE_GLO) || sb_on)
         pg_plain = 0;
     if (page == PAGE_MENU)

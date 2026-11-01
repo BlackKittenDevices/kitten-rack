@@ -384,7 +384,7 @@ static void seq_pattern_clear(void);
 static void rec_hold_poll(void)
 {
     uint32_t t;
-    if (!rec_down_ms || !(panel_held >> BTN_REC & 1u) || page != PAGE_SEQ || (panel_held >> BTN_SEQ & 1u)) {
+    if (!rec_down_ms || !(panel_held >> BTN_REC & 1u) || page == PAGE_MENU || (panel_held >> BTN_SEQ & 1u)) {
         rec_down_ms = 0;
         return;
     }
@@ -484,6 +484,8 @@ static void panel_encoders(int32_t *st)
             seq_clear_cancel();
     if (page != PAGE_MENU && rec_knobs(st))         /* KITTEN RACK: REC waiting: K1..K4 the take's settings (seq_ui.c) */
         ui_dirty = ui_dirty ? ui_dirty : 1;
+    if (rec_win)                                    /* (the REC window: the other knobs wait, nothing under it moves) */
+        return;
     if (page == PAGE_SAVE) {                        /* KITTEN RACK: the SAVE page: SELECT / ALGO the slot */
         save_turn(st[0] + st[1]);
         return;
@@ -703,6 +705,7 @@ static int panel_key(uint32_t n, int down, int quick)
     if (down && !sb_on && (panel_held >> BTN_REC & 1u) && seq_black(n) >= 0) {   /* REC held + a black key: arm (#139) */
         seq_arm_key(n);
         rec_held_used = 1;
+        rec_down_ms = 0;                            /* (not the pattern's clear) */
         return 1;
     }
     if (down && !sb_on && (panel_held >> BTN_SEQ & 1u) && seq_black(n) >= 0) {   /* SEQ held + a black key: a mute */
@@ -917,7 +920,7 @@ static void panel_edges(uint32_t p, uint32_t rel)
     }
     if (rel & (1u << BTN_SEQ))
         seq_held_used = 0;
-    if ((rel & (1u << BTN_REC)) && !rec_held_used && page == PAGE_ENV) {   /* REC on the environment: the row's arm (#191, #198) */
+    if ((rel & (1u << BTN_REC)) && !rec_held_used && !rec_hold_used && page == PAGE_ENV) {   /* REC on the environment: the row's arm (#191, #198) */
         env_arm_toggle();
         rel &= ~(1u << BTN_REC);
         ui_dirty = ui_dirty ? ui_dirty : 1;          /* (its row) */
@@ -972,8 +975,8 @@ static void panel_edges(uint32_t p, uint32_t rel)
         }
     }
     page_hold_poll();
-    if ((p & (1u << BTN_REC)) && page == PAGE_SEQ && !(panel_held >> BTN_SEQ & 1u)) {
-        rec_down_ms = fm1_ms | 1u;                  /* KITTEN RACK: REC held 4 s clears the pattern (rec_hold_poll) */
+    if ((p & (1u << BTN_REC)) && page != PAGE_MENU && !sb_on && !(panel_held >> BTN_SEQ & 1u)) {
+        rec_down_ms = fm1_ms | 1u;                  /* KITTEN RACK: REC held 4 s clears the pattern, on any page (rec_hold_poll) */
         rec_count_shown = 0;
         rec_hold_used = 0;
     }
