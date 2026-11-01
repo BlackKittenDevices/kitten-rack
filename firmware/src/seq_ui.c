@@ -139,6 +139,8 @@ static uint8_t seq_cur;                 /* KITTEN RACK: the roll's step cursor (
 static int8_t seq_grid_cur = -1;        /* ... its column as drawn under the playhead's lane (-1 none) */
 static uint8_t seq_rec_wait;            /* KITTEN RACK: REC stopped: armed, waiting for the first note to start (kr_rec_note) */
 static uint8_t ft_on, rec_counting;     /* KITTEN RACK: a free take runs; a count-in runs (rec_note, rec_play) */
+static uint32_t carry_w[TRACK_NOTES_MAX] ENG_POOL;
+static uint16_t carry_tw[TRACK_NOTES_MAX] ENG_POOL;   /* (their timing) */
 static int seq_kbd(void)
 {
     return seq_rec == 2u && page == PAGE_SEQ && eng_armed() >= 0 && eng_steps_drummap((uint32_t)eng_armed()) < 0 && (eng_transport_running() || seq_rec_wait || ft_on || rec_counting);
@@ -1040,8 +1042,8 @@ static uint32_t rec_free_fit(uint32_t d, uint32_t spb, int32_t t0, int32_t *bpm)
 /* REC on the "1" after the last bar: the free take into the pattern, the loop plays */
 static void rec_free_finish(void)
 {
-    static uint32_t w[TRACK_NOTES_MAX];
-    static uint16_t tw[TRACK_NOTES_MAX];
+    uint32_t *w = carry_w;                       /* (the carry's buffers: PRESET's, never in use meanwhile) */
+    uint16_t *tw = carry_tw;
     int mod = ft_mod, main_mod = eng_find(T_FM1);
     uint32_t d = eng_samples() - ft_t0, spb = rec_spb(mod), bars, total, i, j, n = 0;
     int32_t t0 = main_mod >= 0 ? (eng_get_param((uint32_t)main_mod, FM1_P_TEMPO) + 32768) >> 16 : 120, bpm;
@@ -1348,8 +1350,7 @@ static void seq_knob_set(uint32_t mod, uint32_t par, int32_t v)
  * plays, with its steps, rate and swing and the tempo; seq_carry_give (after) puts them on the new patch's first track when
  * that track has no notes of its own in any pattern (a patch saved with its own sequence keeps it). A patch without a
  * track leaves the sequence waiting for the next one. What arrives is part of the running patch: SAVE keeps it there. */
-static uint32_t carry_w[TRACK_NOTES_MAX] ENG_POOL;
-static uint16_t carry_tw[TRACK_NOTES_MAX] ENG_POOL;   /* (their timing) */
+
 static uint8_t carry_n, carry_on;
 static int32_t carry_par[3], carry_tempo;
 static const uint8_t CARRY_PAR[3] = {STEPS_P_LEN, STEPS_P_RATE, STEPS_P_SWING};
