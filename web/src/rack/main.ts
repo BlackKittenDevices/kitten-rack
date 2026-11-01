@@ -943,7 +943,7 @@ async function midi(): Promise<void> {
         inp.onmidimessage = (ev) => {
           const d = ev.data;
           if (!d || !d.length) return;
-          if (linked && FM1_PORT.test(inp.name ?? '')) return;   // (linked: the FM-1 plays its own keys)
+          if (linked && (link.inputId ? inp.id === link.inputId : FM1_PORT.test(inp.name ?? ''))) return;   // (linked: the FM-1 plays its own keys; a controller still counts, whatever its name)
           const s = d[0] & 0xf0;
           if (s === 0x90 && d[2] > 0) {
             if (held.delete(d[1])) noteOff(d[1]);   // (a held note struck again starts afresh)

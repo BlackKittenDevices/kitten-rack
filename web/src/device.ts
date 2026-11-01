@@ -134,6 +134,11 @@ export class DeviceLink {
   /** what the FM-1 does on its own (#65): a knob or patch button as MIDI CC, the slot it plays now */
   onEvent: (e: DeviceEvent) => void = () => {};
 
+  /** the MIDI input the link listens on (the editor leaves only that one out while linked, not a controller) */
+  get inputId(): string | undefined {
+    return this.inp?.id;
+  }
+
   get connected(): boolean {
     return !!this.out && this.out.state === 'connected';
   }

@@ -84,7 +84,9 @@ try {
     const input = { id: 'emu-in', name: 'FM-1 (emu)', state: 'connected', type: 'input', onmidimessage: null, addEventListener: () => {}, removeEventListener: () => {} };
     const output = { id: 'emu-out', name: 'FM-1 (emu)', state: 'connected', type: 'output', send: (d) => window.__toEmu(Array.from(d)) };
     window.__fromEmu = (m) => { const ev = { data: Uint8Array.from(m) }; input.onmidimessage?.(ev); };
-    const access = { inputs: new Map([['emu-in', input]]), outputs: new Map([['emu-out', output]]), onstatechange: null, sysexEnabled: true };
+    const ctl = { id: 'ctl-in', name: 'Modular Keys'   /* (a name like the FM-1's: still a controller) */, state: 'connected', type: 'input', onmidimessage: null, addEventListener: () => {}, removeEventListener: () => {} };
+    window.__ctlCc = (cc, v) => ctl.onmidimessage?.({ data: Uint8Array.from([0xb0, cc, v]) });
+    const access = { inputs: new Map([['emu-in', input], ['ctl-in', ctl]]), outputs: new Map([['emu-out', output]]), onstatechange: null, sysexEnabled: true };
     void listeners;
     navigator.requestMIDIAccess = async () => access;
   });
@@ -172,6 +174,28 @@ try {
   p = await stored();
   const trk = p.modules.find((m) => m.type === 'steps');
   check(`four notes on the roll: the FM-1's track holds them (${trk?.notes?.length ?? 0})`, trk?.notes?.length === 4 && trk.notes.every((n) => n.note === 60));
+
+  // 7b. MIDI LEARN while linked: a controller's CC learnt onto a knob reaches the FM-1's patch, and then moves it there
+  {
+    await page.click('#learn');
+    await page.evaluate(() => document.querySelector('.panel.t-muug .knob svg')?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
+    await page.evaluate(() => window.__ctlCc(30, 0));
+    await page.waitForTimeout(300);
+    await page.click('#learn');
+    p = await stored();
+    check(`MIDI LEARN linked: the editor's patch has the map (${JSON.stringify(p.midiMap)})`, p.midiMap?.length === 1 && p.midiMap[0].cc === 30);
+    await page.waitForTimeout(2000);
+    await page.evaluate(() => window.__ctlCc(30, 127));
+    await page.waitForTimeout(1500);
+    const mu = (await stored()).modules.find((m) => m.type === 'muug');
+    await page.click('#link');
+    await page.click('#link');
+    await page.waitForFunction(() => /EN VIVO/.test(document.querySelector('#link')?.textContent ?? ''), null, { timeout: 15000 });
+    await page.waitForTimeout(2500);
+    p = await stored();
+    check(`the FM-1 holds the map after a reconnect (${JSON.stringify(p.midiMap)})`, p.midiMap?.length === 1 && p.midiMap[0].cc === 30);
+    console.log('# muug after CC 127:', JSON.stringify(mu?.params).slice(0, 120));
+  }
 
   // 8. AL FM-1: into a slot
   await page.click('#tofm1');
