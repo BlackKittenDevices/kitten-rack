@@ -130,15 +130,35 @@ Other shortcuts: FX held + white key sets an accent; LFO held + white key ties t
 
 **Clear the pattern:** hold REC for 4 seconds (it counts `CLEAR PATTERN: 3, 2, 1`).
 
-### Live recording (as in Kitten Synths)
+### Live recording (as on SLOOP)
 
 **REC** works from any screen and doesn't take you to SEQ:
 
-- **Running:** starts recording where the sequencer is.
-- **Stopped:** it waits. The first note you play starts the transport and the recording together.
-- **REC again:** stops recording; what you recorded keeps playing.
+- **Running:** starts recording where the sequencer is. REC again stops recording; what you recorded keeps playing.
+- **Stopped:** it waits. While it waits, the knobs set how the take goes (the bar shows them, e.g. `GRID 2 BAR NOTE Q OFF`):
 
-Recorded notes **keep how long you held them**: a note held for three steps stays three steps long and sounds whole until you let go. Length is measured in grid steps; for finer detail, raise the rate with K2 (1/32 or 1/64) before recording. You can fix any note afterwards with its step held and K3.
+| Knob | Setting | Choices |
+| --- | --- | --- |
+| K1 | **MODE** | **GRID**: you record on the sequencer's grid at the tempo set · **FREE**: you play freely, the tempo follows you (only on an empty pattern) |
+| K2 | **LENGTH** | **AS IS** (the track's steps) or **1, 2 or 4 bars** |
+| K3 | **START** | **FIRST NOTE**: your first note starts the transport and the take · **COUNT IN**: press PLAY, one bar of clicks (4, 3, 2, 1), then the take; notes before only sound |
+| K4 | **QUANTIZE** | **OFF** (default): every note keeps the timing you played · **ON**: notes land on the nearest step |
+
+The same settings, and the click, are in **MENU > REC** (hold HOME). They stay as you leave them.
+
+**QUANTIZE OFF records what you played as you played it**: each note keeps how late it started within its step (in 1/64 of a step) and where you let it go. The few milliseconds between pressing a key and hearing it are taken back, so what you play on the beat lands on the beat. The pattern plays back with your feel and you can still edit it step by step on SEQ:
+
+- On the roll, **hold a step and turn ALGO**: that note's timing (`LATE 25% STEP`, back to `ON THE GRID`). K1 (pitch), K2, K4 keep it; K3 (length) keeps its start.
+- **SEQ held + OCT−: QUANTIZE** the whole pattern (each note to its nearest step).
+- **REC held + OCT−: UNDO** the last take (the pattern as it was before you pressed REC, and the steps and tempo a free take set).
+
+**FREE take:** on an empty pattern, with MODE FREE, REC and play freely; the bar shows the seconds and the loop it would make (`3.2S 2 BAR 92 BPM`). **Press REC on the "1" after your last bar**: Kitten Rack picks 1, 2 or 4 bars at the tempo nearest the one set (within 3 % it keeps the tempo set), writes your notes with their timing, lengths and velocities, sets the track's steps and the tempo, and plays the loop at once. PLAY during a free take drops it; it closes by itself after 24 seconds.
+
+**Click:** MENU > REC > CLICK = **OFF**, **REC** (only while recording, the default) or **ON** (whenever the transport runs); CLICK LEVEL 1 to 10. A higher tick on the first beat of each bar. The click goes to the FM-1's output only: it is **never in the USB audio** (your DAW) nor in the take. The count-in always clicks. PLAY's light flashes on every beat.
+
+**Tap tempo:** hold **PLAY** and tap **REC** in time (two taps or more); the screen says `TAP 120 BPM`. PLAY held + PRESET still sets the tempo a bpm at a time.
+
+Recorded notes **keep how long you held them**. You can fix any note afterwards with its step held and K3.
 
 ### Trying sounds over a sequence
 
@@ -416,7 +436,7 @@ Before installing anything on an FM-1: **never firmware without Felucca's USB up
 
 ### The patch format
 
-Format 49 (Matryoshka's 48 plus Kitten Rack's modules). A sequence note is a 32-bit word: step (6 bits), length - 1 (6), note (7), velocity (7), chance (5), and bit 31, which marks a note that sounds whole to the end of its last step (recorded notes and those lengthened with K3). A patch can end with a MIDI map (flag 8 of byte 7): a count, then 4 bytes per entry: CC, channel (0 = the FM-1's), module index, parameter index. Older firmware refuses such a patch rather than misreading it.
+Format 49 (Matryoshka's 48 plus Kitten Rack's modules). A sequence note is a 32-bit word: step (6 bits), length - 1 (6), note (7), velocity (7), chance (5), and bit 31, which marks a note that sounds whole to the end of its last step (recorded notes and those lengthened with K3). A patch can end with a MIDI map (flag 8 of byte 7): a count, then 4 bytes per entry: CC, channel (0 = the FM-1's), module index, parameter index. Older firmware refuses such a patch rather than misreading it. Last, a timing section (flag 16 of byte 7): a count, then per pattern with notes off the grid its module, pattern (0 = the notes section's), the note count and a u16 per note (bits 0-5 how late it starts in 1/64 of a step, 6-11 where it ends in its last step, bit 12 that it has such an end).
 
 ---
 

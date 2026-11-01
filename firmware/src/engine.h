@@ -95,6 +95,11 @@ static inline uint32_t eng_notes_end(const uint8_t *p, uint32_t len, uint32_t at
 #define ENG_FLAG_MIDIMAP 8u                     /* in p[7] (KITTEN RACK): the MIDI map, after the macro ranges: u8 count, then
                                                  * cc, channel (0 any), module, parameter (patchbin.ts midiMapList) */
 #define ENG_MAX_CCMAP 32
+#define ENG_FLAG_TIMING 16u                     /* in p[7] (KITTEN RACK): the notes' timing, last: u8 count, then per slice
+                                                 * module, pattern (0: the notes section's), n, n u16 (engine.c TM_*) */
+#define ENG_TM_OFF(x) ((x) & 63u)               /* a note's timing: its start, 1/64 of a step after its step */
+#define ENG_TM_E(x) (((x) >> 6) & 63u)          /* with ENG_TM_END: it ends (e + 1) / 64 into its last step */
+#define ENG_TM_END 0x1000u
 int eng_ccmap_get(uint32_t k, uint32_t *ch, uint32_t *cc, uint32_t *module, uint32_t *param);   /* entry k; 0 past the last */
 int32_t eng_cc_value(uint32_t module, uint32_t param, uint32_t v);   /* a CC's value 0..127 as the parameter's, over its range */
 static inline uint32_t eng_patterns_end(const uint8_t *p, uint32_t len, uint32_t at)
@@ -400,7 +405,20 @@ int eng_listens(uint32_t m);
  * (panel.c panel_key); -1 none */
 int eng_keys_drummap(void);
 void eng_steps_rec(uint32_t module, int on);
-int eng_steps_take(uint32_t *module, uint32_t *word);
+int eng_steps_take(uint32_t *module, uint32_t *word, uint32_t *tim);   /* (tim: KITTEN RACK, the note's timing TM_*) */
+void eng_steps_overdub_tim(uint32_t module, uint32_t word, uint32_t tim);
+int eng_steps_note_tim(uint32_t module, uint32_t k, uint32_t note);       /* KITTEN RACK: a note's timing, -1 none */
+void eng_steps_note_tim_set(uint32_t module, uint32_t k, uint32_t note, uint32_t tim);
+int eng_steps_quantize(uint32_t module);                                  /* the pattern back on the grid; 0: it was */
+int eng_pattern_tims(uint32_t module, uint32_t p, const uint16_t **tw);
+int eng_steps_tims(uint32_t module, const uint16_t **tw);
+int eng_pattern_set_notes_tim(uint32_t module, uint32_t p, const uint32_t *notes, const uint16_t *tims, uint32_t n);
+void eng_rec_mode(int exact, int32_t lat);
+int eng_click(uint32_t *at);                                              /* KITTEN RACK: this render's beat for the click */
+uint32_t eng_beats(void);                                                 /* beats so far (count-in and transport) */
+uint32_t eng_samples(void);                                               /* samples rendered so far */
+void eng_count_in(uint32_t beats);                                        /* a count-in of `beats`, then the transport; 0 ends it */
+uint32_t eng_count_left(void);                                /* a take: exact timing or the nearest step */
 void eng_steps_chord(uint32_t module, uint32_t k, const uint8_t *notes, uint32_t n, uint32_t vel);
 void eng_steps_overdub(uint32_t module, uint32_t word);
 /* the performance controls: ENG_CTL_BEND (-1..1 Q16: +-2 semitones on the Main module's pitch and its bend

@@ -20,12 +20,45 @@ static void settings_store(void);               /* main.c: the settings record n
 
 /* ---- settings menu */
 
-enum { MT_PANEL, MT_MIDI, MT_SYSTEM, MT_MANUAL, MT_COUNT };   /* (MANUAL has no rows: a text) */
+enum { MT_PANEL, MT_MIDI, MT_REC, MT_SYSTEM, MT_MANUAL, MT_COUNT };   /* (MANUAL has no rows: a text) */
 static const char *const ROW_NAME[MR_COUNT] = {"LEDS", "KNOB ACCEL", "MIDI CHANNEL", "CLOCK IN", "MIDI OUT",
-                                              "VERSION", "CPU", "CPU PEAK", "BANK SLOTS", "BATTERY", "UPDATE MODE", "FACTORY RESET", "LANGUAGE"};
+                                              "VERSION", "CPU", "CPU PEAK", "BANK SLOTS", "BATTERY", "UPDATE MODE", "FACTORY RESET", "LANGUAGE",
+                                              "CLICK", "CLICK LEVEL", "REC MODE", "REC LENGTH", "REC START", "QUANTIZE"};
 static const uint8_t ROW_TAB[MR_COUNT] = {MT_PANEL, MT_PANEL, MT_MIDI, MT_MIDI, MT_MIDI, MT_SYSTEM, MT_SYSTEM, MT_SYSTEM, MT_SYSTEM, MT_SYSTEM, MT_SYSTEM,
-                                          MT_SYSTEM, MT_PANEL};
-static const char *const TAB_NAME[MT_COUNT] = {"PANEL", "MIDI", "SYSTEM", "MANUAL"};
+                                          MT_SYSTEM, MT_PANEL, MT_REC, MT_REC, MT_REC, MT_REC, MT_REC, MT_REC};
+static const char *const TAB_NAME[MT_COUNT] = {"PANEL", "MIDI", "REC", "SYSTEM", "MANUAL"};
+/* KITTEN RACK: the REC tab's values (the REC screen shows them too: seq_ui.c) */
+static const char *rec_value(uint32_t row)
+{
+    static const char *const CLICK[3] = {"OFF", "REC", "ON"}, *const BARS[4] = {"AS IS", "1 BAR", "2 BARS", "4 BARS"};
+    static const char *const BARS_ES[4] = {"COMO ESTA", "1 COMPAS", "2 COMPASES", "4 COMPASES"};
+    static char lvl[4];
+    switch (row) {
+    case MR_CLICK: return CLICK[cfg.click % 3u];
+    case MR_CLICKLVL: fmt_int(lvl, cfg.click_lvl); return lvl;
+    case MR_RMODE: return cfg.rec_free ? LG("FREE", "LIBRE") : LG("GRID", "GRILLA");
+    case MR_RBARS: return cfg.lang ? BARS_ES[cfg.rec_bars & 3u] : BARS[cfg.rec_bars & 3u];
+    case MR_RSTART: return cfg.rec_count ? LG("COUNT IN", "CUENTA") : LG("FIRST NOTE", "PRIMERA NOTA");
+    default: return cfg.rec_quant ? "ON" : "OFF";
+    }
+}
+/* a REC tab setting one step on (the menu's rows, the REC screen's knobs); kept when nothing plays (cfg_poll) */
+static void rec_step(uint32_t row, int32_t d)
+{
+    int up = d > 0;
+    switch (row) {
+    case MR_CLICK: cfg.click = (uint8_t)clampi((int32_t)cfg.click + (up ? 1 : -1), 0, 2); break;
+    case MR_CLICKLVL: cfg.click_lvl = (uint8_t)clampi((int32_t)cfg.click_lvl + (up ? 1 : -1), 1, 10); break;
+    case MR_RMODE: cfg.rec_free = (uint8_t)up; break;
+    case MR_RBARS: cfg.rec_bars = (uint8_t)clampi((int32_t)cfg.rec_bars + (up ? 1 : -1), 0, 3); break;
+    case MR_RSTART: cfg.rec_count = (uint8_t)up; break;
+    case MR_RQUANT: cfg.rec_quant = (uint8_t)up; break;
+    default: return;
+    }
+    click_lvl = cfg.click_lvl;
+    cfg_dirty = 1;
+    cfg_dirty_ms = fm1_ms;
+}
 
 static uint8_t menu_tab, menu_sel = MR_LEDS;     /* the tab and the selected row (a row number) */
 static uint32_t cpu_peak;                       /* the highest CPU % since boot */
@@ -73,6 +106,7 @@ static void menu_value(uint32_t row, char *out)
     case MR_LEDS: p = put(p, cfg.leds == 0 ? "OFF" : cfg.leds == 1 ? "DIM LOW" : "DIM HIGH"); break;
     case MR_ACCEL: p = put(p, ONOFF[cfg.accel]); break;
     case MR_LANG: p = put(p, cfg.lang ? "ESPANOL" : "ENGLISH"); break;
+    case MR_CLICK: case MR_CLICKLVL: case MR_RMODE: case MR_RBARS: case MR_RSTART: case MR_RQUANT: p = put(p, rec_value(row)); break;
     case MR_CPU:
         fmt_int(p, (int32_t)cpu_pct);
         p += str_len(p);
@@ -269,6 +303,7 @@ static void setting_step(uint32_t row, int32_t s)       /* a setting's next / pr
     }
     case MR_CLOCK: cfg.clock_in = (uint8_t)up; break;
     case MR_MOUT: cfg.midi_out = (uint8_t)up; break;
+    case MR_CLICK: case MR_CLICKLVL: case MR_RMODE: case MR_RBARS: case MR_RSTART: case MR_RQUANT: rec_step(row, s); break;
     case MR_UPDATE:
     case MR_DEFAULTS:
         if (!up)

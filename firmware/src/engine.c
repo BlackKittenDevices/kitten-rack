@@ -468,9 +468,9 @@ static volatile uint8_t thru_head, thru_tail;
 /* live recording (#135, #139): the notes being recorded (track, note, the step they landed on, velocity, samples since
  * that step began, negative before it) and the recorded ones for the main loop (eng_steps_take: module, note word) */
 #define ENG_RIN 16u
-typedef struct { uint8_t trk, note, at, vel; int32_t t; } rin_t;
+typedef struct { uint8_t trk, note, at, vel, off; int32_t t; } rin_t;   /* off: KITTEN RACK exact take, 1/64 of a step past `at` */
 #define ENG_TOOK 32u
-static uint32_t took_ring[ENG_TOOK][2];
+static uint32_t took_ring[ENG_TOOK][3];   /* module, note word, timing (KITTEN RACK: trk_tim) */
 static volatile uint8_t took_head, took_tail;
 
 /* a Steps note (track.ts noteWord): bits 0..5 the start step, 6..11 the length - 1, 12..18 the note, 19..25 the velocity,
@@ -482,6 +482,13 @@ static volatile uint8_t took_head, took_tail;
 #define NW_CODE(w) (((w) >> 26) & 31u)
 #define NW_HOLD 0x80000000u     /* KITTEN RACK: bit 31, the note plays its last step whole (recorded live, or its length set
                                  * on the FM-1): as long as it was held, not cut to the track's gate (modules.ts noteWord) */
+/* KITTEN RACK: a note's timing (trk_tim, the patch's timing section ENG_FLAG_TIMING): bits 0..5 its start, 1/64 of a step
+ * after its step; with TM_END bits 6..11 its end, (e + 1) / 64 of its last step (not the gate). 0: on the grid, as before */
+#define TM_OFF(x) ((x) & 63u)
+#define TM_E(x) (((x) >> 6) & 63u)
+#define TM_END 0x1000u
+#define TM_MASK 0x1FFFu
+#define ENG_NPEND 16u               /* notes waiting for their start (TM_OFF), all tracks */
 #define NW(at, len, note, vel, code) ((uint32_t)(at) | ((uint32_t)(len) - 1u) << 6 | (uint32_t)(note) << 12 | (uint32_t)(vel) << 19 | (uint32_t)(code) << 26)
 
 /* an Arpeggiator module as it runs (web/src/arpeggiator.ts, the same steps): its keys in press order, the step counter, the
@@ -531,6 +538,11 @@ typedef struct {
     uint8_t song_pat[ENG_SONGS][ENG_SONG_LEN];
     int8_t song_shift[ENG_SONGS][ENG_SONG_LEN];
     uint32_t trk_note[ENG_MAX_NOTES];
+    uint16_t trk_tim[ENG_MAX_NOTES];     /* KITTEN RACK: each note's timing (TM_*), alongside trk_note */
+    struct { uint8_t t, key, vel, left, hold, note, pn; int32_t wait, dur; } pend[ENG_NPEND];
+    uint8_t npend;                       /* (notes of a step that start later: their TM_OFF) */
+    uint8_t rec_exact;                   /* KITTEN RACK: a take keeps the timing played (QUANT OFF), else the nearest step */
+    int32_t rec_lat;                     /* samples between a key and its sound, taken back from a take */
     snd_t trk_snd[ENG_MAX_TRACKS][TRACK_POLY];   /* the notes each track sounds, oldest first */
     uint8_t trk_nsnd[ENG_MAX_TRACKS];
     uint8_t trk_last[ENG_MAX_TRACKS];    /* the last note a track started (a hit from the panel plays it) */
@@ -574,6 +586,12 @@ static void toggles_sync(void);
 static volatile uint32_t clk_ticks;   /* MIDI clock ticks (eng_clock_tick, the main loop) */
 static volatile uint8_t clk_ext;      /* MIDI clock drives the clock */
 static volatile uint8_t transport_on; /* the transport (eng_transport) */
+/* KITTEN RACK: the beat for the click (audio.c) and the count-in: samples rendered, the beats of this render (the last:
+ * its sample, 1 a beat, 2 a bar's first), ticks since the transport started, a count-in's beats to go and its ticks */
+static uint32_t eng_nsamples;
+static volatile uint32_t click_at;
+static volatile uint8_t click_kind, cnt_beats, cnt_start;
+static uint32_t beat_ticks, cnt_ticks, beat_count;
 static volatile uint16_t panel_buttons; /* the patch buttons held / switched on (eng_buttons) */
 
 /* the memories: slot i of a pool is taken while own[i] is 1 */
@@ -987,6 +1005,7 @@ int eng_load(const uint8_t *p, uint32_t len)
     E.armg = 0;
     E.trk_rec = E.thru_kill = 0;
     E.nthru = E.nrin = 0;
+    E.npend = 0;
     thru_tail = thru_head;                       /* (keys still waiting were for the last patch) */
     took_tail = took_head;
     E.ngrp = 0;
@@ -1011,7 +1030,7 @@ int eng_load(const uint8_t *p, uint32_t len)
 #endif
     if (len < 8u || p[0] != 0xA1 || (p[1] > ENG_PATCH_VERSION || p[1] < ENG_PATCH_COMPAT_VERSION))
         return -1;
-    if ((p[7] & ~(ENG_FLAG_EXTRAS | ENG_FLAG_MORPH_MODULES | ENG_FLAG_PATTERNS | ENG_FLAG_MIDIMAP)) || ((p[7] & ENG_FLAG_MORPH_MODULES) && (p[1] < 36u || !(p[6] & 1u))) || ((p[7] & ENG_FLAG_PATTERNS) && p[1] < 48u) || (p[1] < 34u && p[7]) || (p[1] < 33u && (p[6] & 128u)) || (p[1] < 17u && (p[6] & 4u)) || (p[1] < 18u && (p[6] & 8u)) || (p[1] < 27u && (p[6] & 16u)) || (p[1] < 30u && (p[6] & 64u)))
+    if ((p[7] & ~(ENG_FLAG_EXTRAS | ENG_FLAG_MORPH_MODULES | ENG_FLAG_PATTERNS | ENG_FLAG_MIDIMAP | ENG_FLAG_TIMING)) || ((p[7] & ENG_FLAG_MORPH_MODULES) && (p[1] < 36u || !(p[6] & 1u))) || ((p[7] & ENG_FLAG_PATTERNS) && p[1] < 48u) || (p[1] < 34u && p[7]) || (p[1] < 33u && (p[6] & 128u)) || (p[1] < 17u && (p[6] & 4u)) || (p[1] < 18u && (p[6] & 8u)) || (p[1] < 27u && (p[6] & 16u)) || (p[1] < 30u && (p[6] & 64u)))
         return -1;
     for (i = 0; i < ENG_PANEL_BUTTONS; i++)      /* (before eng_buttons below: no Toggle of the last patch acts on this one) */
         E.btn_kind[i] = (uint8_t)ENG_BTN_GATE, E.btn_n[i] = 0;
@@ -1258,6 +1277,7 @@ int eng_load(const uint8_t *p, uint32_t len)
                 uint32_t w = (uint32_t)rd32(p + at);
                 if ((p[1] < 44u && NW_AT(w) + NW_LEN(w) > TRACK_STEPS) || !NW_VEL(w)) return -3;
                 E.trk_note[E.nnotes + j] = w;
+                E.trk_tim[E.nnotes + j] = 0;
             }
             E.pat_n[t][0] = (uint8_t)n;
             E.nnotes = (uint16_t)(E.nnotes + n);
@@ -1304,6 +1324,7 @@ int eng_load(const uint8_t *p, uint32_t len)
                         if (!NW_VEL(w)) return -3;
                     }
                     E.trk_note[E.nnotes + j] = w;
+                    E.trk_tim[E.nnotes + j] = 0;
                 }
                 E.pat_n[t][k] = (uint8_t)n;
                 E.pat_len[t][k] = (uint8_t)ln;
@@ -1417,6 +1438,27 @@ int eng_load(const uint8_t *p, uint32_t len)
             E.ccmap[E.nccmap].mod = (uint8_t)mod;
             E.ccmap[E.nccmap].par = (uint8_t)par;
             E.nccmap++;
+        }
+    }
+    if (p[7] & ENG_FLAG_TIMING) {                /* KITTEN RACK: the notes' timing: per slice module, pattern, n, n u16 */
+        uint32_t nb, b;
+        if (at >= len)
+            return -3;
+        nb = p[at++];
+        for (b = 0; b < nb; b++) {
+            uint32_t mod, pp, n, t;
+            if (at + 3u > len)
+                return -3;
+            mod = p[at];
+            pp = p[at + 1u];
+            n = p[at + 2u];
+            at += 3u;
+            if (at + 2u * n > len)
+                return -3;
+            if (mod < E.nmod && E.node[mod].type == T_STEPS && pp < ENG_PATTERNS && (E.pat_has[t = E.node[mod].trk] >> pp & 1u) && n == E.pat_n[t][pp])
+                for (j = 0; j < n; j++)
+                    E.trk_tim[E.pat_first[t][pp] + j] = (uint16_t)((p[at + 2u * j] | (uint32_t)p[at + 2u * j + 1u] << 8) & TM_MASK);
+            at += 2u * n;                        /* (a slice that does not match: ignored) */
         }
     }
     /* the instances: state, the delay / reverb / string / chorus memories from the shared pools */
@@ -2615,13 +2657,14 @@ void eng_steps_rec(uint32_t module, int on)
         E.trk_rec &= (uint16_t)~(1u << E.node[module].trk);
 }
 /* a recorded note (module index, note word: one step at least, chance 100 %), 0 when none is waiting */
-int eng_steps_take(uint32_t *module, uint32_t *word)
+int eng_steps_take(uint32_t *module, uint32_t *word, uint32_t *tim)
 {
     uint8_t t = took_tail;
     if (t == took_head)
         return 0;
     *module = took_ring[t % ENG_TOOK][0];
     *word = took_ring[t % ENG_TOOK][1];
+    *tim = took_ring[t % ENG_TOOK][2];
     took_tail = (uint8_t)(t + 1u);
     return 1;
 }
@@ -2705,36 +2748,98 @@ static uint32_t trk_copy(uint32_t t, uint32_t *w)
         w[i] = E.trk_note[TRK_FIRST(t) + i];
     return TRK_N(t);
 }
-/* pattern p of track t becomes these notes (the track gets that pattern if it had none); the slices after it move */
-static int trk_put_at(uint32_t t, uint32_t p, uint32_t *w, uint32_t n)
+/* pattern p of track t becomes these notes (the track gets that pattern if it had none); the slices after it move.
+ * KITTEN RACK: tw, their timing (TM_*), or 0: each note keeps the timing of the note on its step and key it had (its
+ * end too while its length is the same), a new one is on the grid */
+static int trk_put_tim(uint32_t t, uint32_t p, uint32_t *w, const uint16_t *tw, uint32_t n)
 {
     uint32_t i, j, k, old = E.pat_n[t][p], first = E.pat_first[t][p];
-    for (i = 1; i < n; i++)                       /* insertion sort by (step, note) */
+    uint16_t tm[TRACK_NOTES_MAX + 1u];
+    uint8_t ix[TRACK_NOTES_MAX + 1u];
+    if (n > TRACK_NOTES_MAX + 1u)
+        n = TRACK_NOTES_MAX + 1u;
+    for (i = 0; i < n; i++)
+        ix[i] = (uint8_t)i;
+    for (i = 1; i < n; i++)                       /* insertion sort by (step, note), stable */
         for (j = i; j > 0 && ((NW_AT(w[j - 1]) << 7 | NW_NOTE(w[j - 1])) > (NW_AT(w[j]) << 7 | NW_NOTE(w[j]))); j--) {
             uint32_t x = w[j];
+            uint8_t y = ix[j];
             w[j] = w[j - 1];
             w[j - 1] = x;
+            ix[j] = ix[j - 1];
+            ix[j - 1] = y;
         }
+    {                                             /* the timing, in that order */
+        uint32_t q = p < ENG_PATTERNS && (E.pat_has[t] >> p & 1u) ? p : 0u, f0 = E.pat_first[t][q], n0 = E.pat_n[t][q];
+        uint32_t used[(TRACK_NOTES_MAX + 31u) / 32u] = {0}, miss[(TRACK_NOTES_MAX + 32u) / 32u] = {0};
+        /* (a pattern it had not got was made from its pattern 1: from there) */
+        for (i = 0; i < n; i++) {
+            uint32_t x = 0;
+            if (tw)
+                x = tw[ix[i]] & TM_MASK;
+            else if (p < ENG_PATTERNS) {
+                for (j = 0; j < n0; j++) {
+                    uint32_t o = E.trk_note[f0 + j];
+                    if (NW_AT(o) == NW_AT(w[i]) && NW_NOTE(o) == NW_NOTE(w[i])) {
+                        x = E.trk_tim[f0 + j];
+                        if (NW_LEN(o) != NW_LEN(w[i]))
+                            x &= 63u;             /* (its length changed: it ends as the step's gate says) */
+                        used[j >> 5] |= 1u << (j & 31u);
+                        break;
+                    }
+                }
+                if (j == n0)
+                    miss[i >> 5] |= 1u << (i & 31u);
+            }
+            tm[i] = (uint16_t)x;
+        }
+        for (i = 0; !tw && p < ENG_PATTERNS && i < n; i++) {   /* a note of a new pitch on a step: the timing of a note
+                                                   * of that step gone from the list (its pitch moved: K1, a chord moved) */
+            if (!(miss[i >> 5] >> (i & 31u) & 1u))
+                continue;
+            for (j = 0; j < n0; j++) {
+                uint32_t o = E.trk_note[f0 + j], m, gone = 1;
+                if ((used[j >> 5] >> (j & 31u) & 1u) || NW_AT(o) != NW_AT(w[i]) || !E.trk_tim[f0 + j])
+                    continue;
+                for (m = 0; m < n && gone; m++)
+                    gone = NW_AT(w[m]) != NW_AT(o) || NW_NOTE(w[m]) != NW_NOTE(o);
+                if (!gone)
+                    continue;
+                used[j >> 5] |= 1u << (j & 31u);
+                tm[i] = (uint16_t)(NW_LEN(o) == NW_LEN(w[i]) ? E.trk_tim[f0 + j] : E.trk_tim[f0 + j] & 63u);
+                break;
+            }
+        }
+    }
     for (i = k = 0; i < n; i++)                   /* one note per step and key */
-        if (!k || NW_AT(w[i]) != NW_AT(w[k - 1]) || NW_NOTE(w[i]) != NW_NOTE(w[k - 1]))
+        if (!k || NW_AT(w[i]) != NW_AT(w[k - 1]) || NW_NOTE(w[i]) != NW_NOTE(w[k - 1])) {
+            tm[k] = tm[i];
             w[k++] = w[i];
+        }
     n = k < TRACK_NOTES_MAX ? k : TRACK_NOTES_MAX;
     if (p >= ENG_PATTERNS || (uint32_t)E.nnotes - old + n > ENG_MAX_NOTES)
         return 0;
     if (n > old)                                  /* the slices after it move up or down */
-        for (i = E.nnotes; i-- > first + old;)
+        for (i = E.nnotes; i-- > first + old;) {
             E.trk_note[i + n - old] = E.trk_note[i];
+            E.trk_tim[i + n - old] = E.trk_tim[i];
+        }
     else if (n < old)
-        for (i = first + old; i < E.nnotes; i++)
+        for (i = first + old; i < E.nnotes; i++) {
             E.trk_note[i - (old - n)] = E.trk_note[i];
-    for (i = 0; i < n; i++)
+            E.trk_tim[i - (old - n)] = E.trk_tim[i];
+        }
+    for (i = 0; i < n; i++) {
         E.trk_note[first + i] = w[i];
+        E.trk_tim[first + i] = tm[i];
+    }
     E.nnotes = (uint16_t)(E.nnotes - old + n);
     E.pat_n[t][p] = (uint8_t)n;
     E.pat_has[t] |= (uint64_t)1u << p;
     pat_layout();
     return 1;
 }
+static int trk_put_at(uint32_t t, uint32_t p, uint32_t *w, uint32_t n) { return trk_put_tim(t, p, w, 0, n); }
 /* the notes of the pattern track t plays (an edit on the SEQ page): a pattern it had not got is made, from its pattern 0
  * (trk_copy read that) */
 static int trk_put(uint32_t t, uint32_t *w, uint32_t n) { return trk_put_at(t, E.trk_pat[t], w, n); }
@@ -3216,6 +3321,116 @@ void eng_steps_chord(uint32_t module, uint32_t k, const uint8_t *notes, uint32_t
         w[m++] = NW(k, 1u, notes[i] & 127u, vel, (b & 1) ? ((uint32_t)b >> 2) & 31u : 0u);
     (void)trk_put(t, w, m);
 }
+/* KITTEN RACK: a live-recorded note with its timing (TM_*, an exact take) laid over the track, as eng_steps_overdub */
+void eng_steps_overdub_tim(uint32_t module, uint32_t word, uint32_t tim)
+{
+    uint32_t w[TRACK_NOTES_MAX + 1u], n, i, m, t, f;
+    uint16_t tw[TRACK_NOTES_MAX + 1u];
+    if (!steps_inst(module) || !NW_VEL(word))
+        return;
+    t = E.node[module].trk;
+    n = trk_copy(t, w + 1);
+    f = TRK_FIRST(t);
+    w[0] = word;
+    tw[0] = (uint16_t)(tim & TM_MASK);
+    for (i = 0, m = 1; i < n; i++)
+        if (NW_AT(w[1u + i]) != NW_AT(word) || NW_NOTE(w[1u + i]) != NW_NOTE(word)) {
+            tw[m] = E.trk_tim[f + i];
+            w[m++] = w[1u + i];
+        }
+    (void)trk_put_tim(t, E.trk_pat[t], w, tw, m);
+}
+/* the timing of the note on step k and key `note` of the pattern the track plays: TM_*, -1 when there is no such note */
+int eng_steps_note_tim(uint32_t module, uint32_t k, uint32_t note)
+{
+    uint32_t i, t;
+    if (!steps_inst(module))
+        return -1;
+    t = E.node[module].trk;
+    for (i = 0; i < TRK_N(t); i++)
+        if (NW_AT(E.trk_note[TRK_FIRST(t) + i]) == k && NW_NOTE(E.trk_note[TRK_FIRST(t) + i]) == note)
+            return E.trk_tim[TRK_FIRST(t) + i];
+    return -1;
+}
+void eng_steps_note_tim_set(uint32_t module, uint32_t k, uint32_t note, uint32_t tim)
+{
+    uint32_t i, t;
+    if (!steps_inst(module))
+        return;
+    t = E.node[module].trk;
+    for (i = 0; i < TRK_N(t); i++)
+        if (NW_AT(E.trk_note[TRK_FIRST(t) + i]) == k && NW_NOTE(E.trk_note[TRK_FIRST(t) + i]) == note) {
+            E.trk_tim[TRK_FIRST(t) + i] = (uint16_t)(tim & TM_MASK);
+            return;
+        }
+}
+/* QUANTIZE: the pattern the track plays back on the grid: each note to its nearest step (the next one when it started past
+ * half of its step, round the pattern's length), ending as the gate says; 0 when nothing changed */
+int eng_steps_quantize(uint32_t module)
+{
+    uint32_t w[TRACK_NOTES_MAX + 1u], n, i, t, f, any = 0;
+    uint16_t tw[TRACK_NOTES_MAX + 1u];
+    inst_t *it = steps_inst(module);
+    int32_t len;
+    if (!it)
+        return 0;
+    t = E.node[module].trk;
+    len = eng_steps_len(module);                  /* (the length set: the effective one is the audio's) */
+    n = trk_copy(t, w);
+    f = TRK_FIRST(t);
+    for (i = 0; i < n; i++) {
+        uint32_t x = E.trk_tim[f + i];
+        tw[i] = 0;
+        if (!x)
+            continue;
+        any = 1;
+        if (TM_OFF(x) >= 32u)
+            w[i] = (w[i] & ~63u) | (uint32_t)((int32_t)(NW_AT(w[i]) + 1u) % len);
+    }
+    if (any)
+        (void)trk_put_tim(t, E.trk_pat[t], w, tw, n);
+    return (int)any;
+}
+/* the timing of a pattern's notes (as eng_pattern_notes), -1 if `module` is not a Steps module */
+int eng_pattern_tims(uint32_t module, uint32_t p, const uint16_t **tw)
+{
+    uint32_t t;
+    if (!steps_inst(module) || p >= ENG_PATTERNS)
+        return -1;
+    t = E.node[module].trk;
+    *tw = &E.trk_tim[E.pat_first[t][p]];
+    return E.pat_n[t][p];
+}
+/* the timing of the notes of the pattern the track plays (as eng_steps_notes) */
+int eng_steps_tims(uint32_t module, const uint16_t **tw)
+{
+    if (!steps_inst(module))
+        return -1;
+    *tw = &E.trk_tim[TRK_FIRST(E.node[module].trk)];
+    return TRK_N(E.node[module].trk);
+}
+/* pattern p's notes replaced with their timing (the editor's TRACK with timing, KITTEN RACK) */
+int eng_pattern_set_notes_tim(uint32_t module, uint32_t p, const uint32_t *notes, const uint16_t *tims, uint32_t n)
+{
+    uint32_t w[TRACK_NOTES_MAX], i, m = 0;
+    uint16_t tw[TRACK_NOTES_MAX];
+    if (!steps_inst(module) || n > TRACK_NOTES_MAX || p >= ENG_PATTERNS)
+        return 0;
+    for (i = 0; i < n; i++)
+        if (NW_VEL(notes[i])) {
+            tw[m] = tims[i];
+            w[m++] = notes[i];
+        }
+    return trk_put_tim(E.node[module].trk, p, w, tw, m);
+}
+/* how a take records (KITTEN RACK): exact (QUANT OFF: the timing played) or on the nearest step; the samples between a
+ * key and its sound, taken back */
+void eng_rec_mode(int exact, int32_t lat)
+{
+    E.rec_exact = (uint8_t)(exact != 0);
+    E.rec_lat = lat > 0 ? lat : 0;
+}
+
 /* a live-recorded note laid over the track (#135 overdub): it replaces a note on the same step and key */
 void eng_steps_overdub(uint32_t module, uint32_t word)
 {
@@ -5575,6 +5790,53 @@ static int32_t steps_hold(uint32_t left, int32_t gate, int32_t sl)
     return g > 1 ? g : 1;
 }
 
+static int steps_sounding(uint32_t t);
+static int32_t steps_pitch(uint32_t note);
+/* KITTEN RACK: the gate of a sounding note's last step by its hold code (snd_t.hold): 0 the track's gate, 1 whole
+ * (NW_HOLD), 2 + e: (e + 1) / 64 of the step (an exact take's end, TM_END) */
+static int32_t snd_gate(uint32_t h, int32_t gate)
+{
+    return !h ? gate : h == 1u ? ENG_ONE : (int32_t)((h - 1u) * (uint32_t)(ENG_ONE / 64));
+}
+
+/* a note of the track's pattern starts (steps_fire, or later: its timing, steps_pend_tick) */
+static void steps_go(uint32_t t, uint32_t node, inst_t *it, uint32_t key, uint32_t vel, uint32_t left, uint32_t hold, uint32_t note, uint32_t pn, int32_t dur)
+{
+    steps_start(t, node, key, vel, left, dur > 0 ? dur : 1);
+    E.trk_snd[t][E.trk_nsnd[t] - 1u].hold = (uint8_t)hold;
+    it->s.stp.pitch = steps_pitch(pn);
+    it->s.stp.vel = (int32_t)((vel << 16) / 127u);
+    E.trk_last[t] = (uint8_t)note;
+}
+
+/* KITTEN RACK: the notes waiting for their start (TM_OFF) count down a sample; those due start */
+static void steps_pend_tick(uint32_t t, uint32_t node, inst_t *it)
+{
+    uint32_t j = 0;
+    while (j < E.npend) {
+        if (E.pend[j].t != t || --E.pend[j].wait > 0) {
+            j++;
+            continue;
+        }
+        {
+            int was = steps_sounding(t);
+            steps_go(t, node, it, E.pend[j].key, E.pend[j].vel, E.pend[j].left, E.pend[j].hold, E.pend[j].note, E.pend[j].pn, E.pend[j].dur);
+            it->s.stp.gap = (uint8_t)was;
+        }
+        for (uint32_t q = j; q + 1u < E.npend; q++)
+            E.pend[q] = E.pend[q + 1u];
+        E.npend--;
+    }
+}
+static void steps_pend_drop(uint32_t t)          /* (the transport stopped: the track's notes waiting go) */
+{
+    uint32_t j, k;
+    for (j = k = 0; j < E.npend; j++)
+        if (E.pend[j].t != t)
+            E.pend[k++] = E.pend[j];
+    E.npend = (uint8_t)k;
+}
+
 static int steps_sounding(uint32_t t)
 {
     uint32_t j;
@@ -5607,7 +5869,18 @@ static void steps_thru_off(uint32_t t, uint32_t node, const inst_t *it, uint32_t
         if (E.rin[j].trk == t && E.rin[j].note == note) {
             rin_t x = E.rin[j];
             int32_t sl = it->s.stp.slen, len = x.t > 0 && sl > 0 ? (int32_t)((x.t + sl / 2) / sl) : 1;
+            uint32_t tim = 0;
             uint8_t h = took_head;
+            if (x.off & 0x80u) {                 /* KITTEN RACK: an exact take: where it ends in its last step */
+                int32_t e = 63;
+                uint32_t off = x.off & 63u;
+                len = sl > 0 && x.t > 0 ? x.t / sl + 1 : 1;
+                if (len <= TRACK_STEPS)
+                    e = sl > 0 ? (int32_t)(((int64_t)(x.t % sl) << 6) / sl) : 63;
+                if (len == 1 && e <= (int32_t)off)
+                    e = (int32_t)off + 1 > 63 ? 63 : (int32_t)off + 1;   /* (a step's 1/64 at least) */
+                tim = off | (uint32_t)clampi(e, 0, 63) << 6 | TM_END;
+            }
             len = clampi(len, 1, TRACK_STEPS);
             for (; j + 1u < E.nrin; j++)
                 E.rin[j] = E.rin[j + 1u];
@@ -5615,6 +5888,7 @@ static void steps_thru_off(uint32_t t, uint32_t node, const inst_t *it, uint32_t
             if ((uint8_t)(h - took_tail) < ENG_TOOK) {
                 took_ring[h % ENG_TOOK][0] = node;
                 took_ring[h % ENG_TOOK][1] = NW(x.at, (uint32_t)len, note, x.vel, 0u) | NW_HOLD;   /* (as long as it was held) */
+                took_ring[h % ENG_TOOK][2] = tim;
                 took_head = (uint8_t)(h + 1u);
             }
             break;
@@ -5647,16 +5921,31 @@ static void steps_thru(const node_t *nd, inst_t *it, int32_t len, int ext, int32
             x->at = (uint8_t)(dir == 3 ? (int32_t)(hash32(it->s.stp.seed ^ ((uint32_t)lp * 0x9e3779b9u) ^ 0x85ebca6bu) % (uint32_t)len) : dir == 1 ? len - 1 : 0);
             x->vel = (uint8_t)vel;
             x->t = 0;
+            x->off = E.rec_exact ? 0x80u : 0u;
         } else if (live && E.nrin < ENG_RIN) {
-            int32_t ago = it->s.stp.sst, sl = it->s.stp.slen, pos = it->s.stp.pos;
-            int next = ago * 2 >= sl;
-            int32_t target = next ? steps_next(it, len, clampi(round_q16(EF(it, STEPS_P_DIR)), 0, 3)).pos : pos;
+            /* KITTEN RACK: the key's time on the grid is the time its sound was heard: rec_lat earlier (a forward track
+             * reaches back into the step before; other directions stay in this step) */
+            int32_t sl = it->s.stp.slen, pos = it->s.stp.pos, dir = clampi(round_q16(EF(it, STEPS_P_DIR)), 0, 3);
+            int32_t ago = it->s.stp.sst - E.rec_lat, back = 0, next = 0, target;
             rin_t *x = &E.rin[E.nrin++];
+            if (ago < 0) {
+                if (dir == 0 && len > 1 && (E.rec_exact || 2 * ago < -sl)) {
+                    back = 1;
+                    ago += sl;
+                    if (ago < 0)
+                        ago = 0;
+                } else
+                    ago = 0;
+            }
+            if (!E.rec_exact && !back)
+                next = ago * 2 >= sl;
+            target = back ? (pos + len - 1) % len : next ? steps_next(it, len, dir).pos : pos;
             x->trk = (uint8_t)t;
             x->note = (uint8_t)note;
             x->at = (uint8_t)target;
             x->vel = (uint8_t)vel;
             x->t = next ? ago - sl : ago;
+            x->off = E.rec_exact ? (uint8_t)(0x80u | (uint32_t)clampi(sl > 0 ? (int32_t)(((int64_t)ago << 6) / sl) : 0, 0, 63)) : 0u;
         }
         was = steps_sounding(t);
         steps_start(t, node, (uint32_t)clampi((int32_t)note + semis, 0, 127), vel, 0, 1);
@@ -5689,7 +5978,7 @@ static void steps_fire(const node_t *nd, inst_t *it, int32_t k, int32_t len, int
         snd_t *x = &E.trk_snd[t][i];
         if (x->left > 0 && x->cnt > 0 && !it->s.stp.mute) {
             x->left--;
-            x->cnt = steps_hold(x->left, x->hold ? ENG_ONE : gate, sl);
+            x->cnt = steps_hold(x->left, snd_gate(x->hold, gate), sl);
         }
     }
     if (it->s.stp.mute)
@@ -5718,11 +6007,25 @@ static void steps_fire(const node_t *nd, inst_t *it, int32_t k, int32_t len, int
             uint32_t remaining = (uint32_t)clampi(steps_cycle(len, dir) - it->s.stp.visit, 1, 126);
             left = (NW_LEN(w) < remaining ? NW_LEN(w) : remaining) - 1u;
         }
-        steps_start(t, node, (uint32_t)key, NW_VEL(w), left, steps_hold(left, (w & NW_HOLD) ? ENG_ONE : gate, sl));
-        E.trk_snd[t][E.trk_nsnd[t] - 1u].hold = (uint8_t)((w & NW_HOLD) != 0u);
-        it->s.stp.pitch = steps_pitch((uint32_t)note);
-        it->s.stp.vel = (int32_t)((NW_VEL(w) << 16) / 127u);
-        E.trk_last[t] = (uint8_t)NW_NOTE(w);
+        {   /* KITTEN RACK: its timing: a start past the step waits (steps_pend_tick), an exact end its own gate */
+            uint32_t tim = E.trk_tim[i], hold = (tim & TM_END) ? 2u + TM_E(tim) : (w & NW_HOLD) ? 1u : 0u;
+            int32_t off = (int32_t)(((int64_t)TM_OFF(tim) * sl) >> 6), from = off > it->s.stp.sst ? off : it->s.stp.sst;
+            int32_t dur = steps_hold(left, snd_gate(hold, gate), sl) - (hold >= 2u && !left ? from : 0);
+            if (off > it->s.stp.sst && E.npend < ENG_NPEND) {
+                uint32_t q = E.npend++;
+                E.pend[q].t = (uint8_t)t;
+                E.pend[q].key = (uint8_t)key;
+                E.pend[q].vel = (uint8_t)NW_VEL(w);
+                E.pend[q].left = (uint8_t)left;
+                E.pend[q].hold = (uint8_t)hold;
+                E.pend[q].note = (uint8_t)NW_NOTE(w);
+                E.pend[q].pn = (uint8_t)note;
+                E.pend[q].wait = off - it->s.stp.sst;
+                E.pend[q].dur = dur;
+                continue;
+            }
+            steps_go(t, node, it, (uint32_t)key, NW_VEL(w), left, hold, NW_NOTE(w), (uint32_t)note, dur);
+        }
         any = 1;
     }
     if (it->s.stp.skip == k)
@@ -5787,6 +6090,8 @@ static void m_steps(const node_t *nd, inst_t *it, uint32_t n)
     len = steps_len(it, t);                      /* the pattern's own length and rate, else the track's (modules.ts shape) */
     ht = RATE_HT[TRK_P(t) && E.pat_rate[t][TRK_P(t)] != 0xFFu ? E.pat_rate[t][TRK_P(t)] : clampi(round_q16(EF(it, STEPS_P_RATE)), 0, 8)];
     step = (ht * E.tick_len) >> 1;               /* a step's samples */
+    if (!ext && !E.running && E.npend)
+        steps_pend_drop(t);                      /* (stopped: nothing waits to start) */
     if (E.nthru || E.thru_kill)
         steps_thru(nd, it, len, ext, tr[0]);
     for (i = 0; i < n; i++) {
@@ -5839,6 +6144,8 @@ static void m_steps(const node_t *nd, inst_t *it, uint32_t n)
             it->s.stp.hit = 0;
         }
         it->s.stp.sst++;
+        if (E.npend)                             /* KITTEN RACK: notes starting past their step (their timing) */
+            steps_pend_tick(t, node, it);
         if (it->s.stp.pend > 0 && --it->s.stp.pend == 0 && (dir == 0 || it->s.stp.pstep < len))
             steps_fire(nd, it, it->s.stp.pstep, len, gate, sl, tr[i]);
         for (; adv > 0; adv--) {
@@ -6957,9 +7264,17 @@ static void render_voice(int32_t *left, int32_t *right, uint32_t total)   /* the
         E.morph = E.has_b ? morph_position(n) : 0;
         {   /* the clock: MIDI ticks while external, else the Main module's tempo (whole bpm x 24 ticks a minute) */
             uint32_t bpm = E.main >= 0 ? (uint32_t)clampi((E.node[E.main].par[FM1_P_TEMPO] + 32768) >> 16, 20, 300) : TEMPO_DEFAULT, seen = 0, t;
-            uint8_t run = transport_on;
-            if (run && !E.running)
+            uint8_t run = transport_on, start = run && !E.running;
+            if (start)
                 E.tick_acc = 0;                  /* the transport starts: the tempo's ticks from here */
+            if (!run && cnt_start) {             /* KITTEN RACK: a count-in starts: its ticks from here, its first beat now */
+                cnt_start = 0;
+                E.tick_acc = 0;
+                cnt_ticks = 0;
+                click_at = off;
+                click_kind = 2;
+                beat_count++;
+            }
             E.running = run;
             t = clk_ticks;
             /* where this block's ticks fall (Steps modules start their steps there, engine.ts render): MIDI clock ticks on the
@@ -6991,6 +7306,31 @@ static void render_voice(int32_t *left, int32_t *right, uint32_t total)   /* the
                     E.ticks++;
                     E.tick_n++;
                     seen = 1;
+                }
+            }
+            if (start) {                         /* KITTEN RACK: the click's first beat (the bar's) as the transport starts */
+                cnt_beats = 0;
+                beat_ticks = 0;
+                click_at = off;
+                click_kind = 2;
+                beat_count++;
+            } else if (run && seen && E.tick_off >= 0) {
+                beat_ticks += (uint32_t)E.tick_n;
+                if (beat_ticks % 24u < (uint32_t)E.tick_n) {   /* (a beat among this block's ticks: 24 a beat, 4 a bar) */
+                    click_at = off + (uint32_t)E.tick_off;
+                    click_kind = (uint8_t)(beat_ticks % 96u < (uint32_t)E.tick_n ? 2 : 1);
+                    beat_count++;
+                }
+            } else if (!run && cnt_beats && seen && !clk_ext) {   /* a count-in: a click a beat; after the last, the transport */
+                cnt_ticks += (uint32_t)E.tick_n;
+                if (cnt_ticks % 24u < (uint32_t)E.tick_n) {
+                    if (!--cnt_beats)
+                        transport_on = 1;        /* (from the next block: its first step, the bar's click) */
+                    else {
+                        click_at = off + (uint32_t)(E.tick_off >= 0 ? E.tick_off : 0);
+                        click_kind = 1;
+                        beat_count++;
+                    }
                 }
             }
             if (!run)
@@ -7150,8 +7490,26 @@ static void render_voice(int32_t *left, int32_t *right, uint32_t total)   /* the
 
 void eng_render(int32_t *left, int32_t *right, uint32_t total)
 {
+    click_kind = 0;                              /* (KITTEN RACK: this render's beat, eng_click) */
     render_voice(left, right, total);
+    eng_nsamples += total;
 }
+/* KITTEN RACK: the beat of the render just done for the click (audio.c): 0 none, 1 a beat, 2 a bar's first (*at: its
+ * sample); the beats so far (the PLAY light); samples rendered (a free take's clock); a count-in (beats, 0 ends it) and the
+ * beats it has to go (it starts the transport after the last) */
+int eng_click(uint32_t *at)
+{
+    *at = click_at;
+    return click_kind;
+}
+uint32_t eng_beats(void) { return beat_count; }
+uint32_t eng_samples(void) { return eng_nsamples; }
+void eng_count_in(uint32_t beats)
+{
+    cnt_beats = (uint8_t)beats;
+    cnt_start = (uint8_t)(beats != 0);
+}
+uint32_t eng_count_left(void) { return cnt_beats; }
 
 void eng_ctl(uint32_t which, int32_t q16)
 {

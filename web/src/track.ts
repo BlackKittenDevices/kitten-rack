@@ -38,6 +38,23 @@ export interface StepNote {
   /** KITTEN RACK: the note plays its last step whole, as long as it was held (recorded live, or its length set on the
    * FM-1), not cut to the track's gate; bit 31 of its word (engine.c NW_HOLD) */
   hold?: boolean;
+  /** KITTEN RACK: played off the grid (an exact take, QUANT OFF; engine.c TM_*): it starts `off` / 64 of a step after its
+   * step (1..63), and with `end` it ends (end + 1) / 64 into its last step (0..63) instead of at the gate. The patch keeps
+   * them in its timing section (patchbin.ts FLAG_TIMING) */
+  off?: number;
+  end?: number;
+}
+
+/** KITTEN RACK: a note's timing as the FM-1 keeps it (engine.c TM_*): bits 0..5 off, 6..11 end, bit 12 an end; 0 none */
+export const noteTiming = (n: StepNote): number => ((n.off ?? 0) & 63) | (n.end !== undefined ? ((n.end & 63) << 6) | 0x1000 : 0);
+/** a note with the timing `t` (noteTiming) on it (none: on the grid) */
+export function withTiming(n: StepNote, t: number): StepNote {
+  const o: StepNote = { ...n };
+  delete o.off;
+  delete o.end;
+  if (t & 63) o.off = t & 63;
+  if (t & 0x1000) o.end = (t >> 6) & 63;
+  return o;
 }
 
 const int = (v: unknown, lo: number, hi: number): number | null => {
@@ -69,6 +86,9 @@ export function fixNotes(raw: unknown): StepNote[] | undefined {
     const chance = fixChance(o.chance);
     if (chance !== undefined) n.chance = chance;
     if (o.hold === true) n.hold = true;
+    const off = int(o.off, 0, 63), end = o.end === undefined ? null : int(o.end, 0, 63);
+    if (off) n.off = off;
+    if (end !== null) n.end = end;
     out.push(n);
   }
   out.sort(order);

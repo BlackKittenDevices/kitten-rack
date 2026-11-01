@@ -77,6 +77,7 @@ static uint32_t seq_roll_gen;
 static uint32_t ent_keys;               /* the keys held while they are the armed track's keyboard (bit n: key n) */
 static int8_t seq_held = -1;            /* the step whose white key is held (SELECT / the roll's K3 its chance, K1 / K2 its values), -1 none */
 static uint32_t seq_held_notes[TRACK_NOTES_MAX];   /* the track's notes before the held step's press switched it */
+static uint16_t seq_held_tims[TRACK_NOTES_MAX] ENG_POOL;   /* (KITTEN RACK: and their timing) */
 static uint8_t seq_held_n;
 static uint8_t seq_held_turned;         /* a knob turned while it is held (the press's switch is undone once) */
 static int8_t seq_shown_pos = -2;       /* the playhead as last drawn */
@@ -137,9 +138,10 @@ static int seq_armed_trk(void)
 static uint8_t seq_cur;                 /* KITTEN RACK: the roll's step cursor (ALGO moves it, SEL tapped switches the note there) */
 static int8_t seq_grid_cur = -1;        /* ... its column as drawn under the playhead's lane (-1 none) */
 static uint8_t seq_rec_wait;            /* KITTEN RACK: REC stopped: armed, waiting for the first note to start (kr_rec_note) */
+static uint8_t ft_on, rec_counting;     /* KITTEN RACK: a free take runs; a count-in runs (rec_note, rec_play) */
 static int seq_kbd(void)
 {
-    return seq_rec == 2u && page == PAGE_SEQ && eng_armed() >= 0 && eng_steps_drummap((uint32_t)eng_armed()) < 0 && (eng_transport_running() || seq_rec_wait);
+    return seq_rec == 2u && page == PAGE_SEQ && eng_armed() >= 0 && eng_steps_drummap((uint32_t)eng_armed()) < 0 && (eng_transport_running() || seq_rec_wait || ft_on || rec_counting);
 }
 
 static int32_t seq_len(int mod)
@@ -410,10 +412,14 @@ static void seq_sync(int mod);
 static void seq_held_keep(int mod)
 {
     const uint32_t *ws;
+    const uint16_t *tw;
     int i, nn = eng_steps_notes((uint32_t)mod, &ws);
     seq_held_n = (uint8_t)(nn > 0 ? nn : 0);
-    for (i = 0; i < nn; i++)
+    (void)eng_steps_tims((uint32_t)mod, &tw);
+    for (i = 0; i < nn; i++) {
         seq_held_notes[i] = ws[i];
+        seq_held_tims[i] = tw[i];
+    }
     seq_held_turned = 0;
 }
 
@@ -585,7 +591,7 @@ static uint32_t seq_grid_held(int map, int mod)
     uint32_t note = seq_grid_note(map, seq_row), w;
     if (!seq_held_turned) {
         seq_held_turned = 1;
-        (void)eng_steps_set_notes((uint32_t)mod, seq_held_notes, seq_held_n);
+        (void)eng_pattern_set_notes_tim((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), seq_held_notes, seq_held_tims, seq_held_n);
     }
     if (!(w = eng_steps_note((uint32_t)mod, (uint32_t)seq_held, note))) {
         eng_steps_toggle((uint32_t)mod, (uint32_t)seq_held, note, STEP_VEL);
@@ -628,6 +634,34 @@ static void seq_length(int32_t clicks)
     seq_sync(mod);
     fmt_int(num, len);
     put(put(put(m, LG("LENGTH ", "LARGO ")), num), len == 1 ? LG(" STEP", " PASO") : LG(" STEPS", " PASOS"))[0] = 0;
+    ui_msg(m, 1000);
+    ui_dirty = ui_dirty ? ui_dirty : 1;
+}
+
+/* KITTEN RACK: ALGO turned with a step held on the roll: the selected row's note's timing (its start, 1/64 of a step a
+ * click, 0 = on the grid; engine.c TM_*), as a take played it or by hand */
+static void seq_nudge(int32_t clicks)
+{
+    int mod = seq_module(), map = seq_map(), tim;
+    uint32_t w, off, e;
+    char m[32], num[8];
+    if (mod < 0 || seq_held < 0 || map >= 0 || !(w = seq_grid_held(map, mod)))
+        return;
+    tim = eng_steps_note_tim((uint32_t)mod, (uint32_t)seq_held, NW_NOTE(w));
+    if (tim < 0)
+        return;
+    off = (uint32_t)clampi((int32_t)ENG_TM_OFF((uint32_t)tim) + clicks, 0, 63);
+    e = ENG_TM_E((uint32_t)tim);
+    if (((uint32_t)tim & ENG_TM_END) && ((w >> 6) & 63u) == 0u && e <= off)
+        e = off + 1u > 63u ? 63u : off + 1u;   /* (a note in one step ends after it starts) */
+    eng_steps_note_tim_set((uint32_t)mod, (uint32_t)seq_held, NW_NOTE(w), off | e << 6 | ((uint32_t)tim & ENG_TM_END));
+    seq_sync(mod);
+    if (!off)
+        put(m, LG("ON THE GRID", "EN LA GRILLA"))[0] = 0;
+    else {
+        fmt_int(num, (int32_t)(off * 100u / 64u));
+        put(put(put(m, LG("LATE ", "TARDE ")), num), LG("% STEP", "% PASO"))[0] = 0;
+    }
     ui_msg(m, 1000);
     ui_dirty = ui_dirty ? ui_dirty : 1;
 }
@@ -728,6 +762,10 @@ static void seq_rec_off(void)
     seq_rec_arms = -1;
     seq_rec = 0;
     seq_rec_wait = 0;
+    if (rec_counting)                            /* (KITTEN RACK: a count-in or a free take ends with it) */
+        eng_count_in(0);
+    rec_counting = 0;
+    ft_on = 0;
     ent_keys = 0;
     ui_dirty = 2;
 }
@@ -774,6 +812,345 @@ static void seq_rec_press(void)
     ui_dirty = 2;
 }
 
+/* ---- KITTEN RACK: the take as on SLOOP (the owner, 2026-11-01). MENU > REC (and, REC waiting, the knobs K1..K4): MODE
+ * GRID / FREE, LENGTH as it is / 1, 2, 4 bars, START on the first note / a bar counted in after PLAY, QUANTIZE on (the
+ * nearest step) / off (as played: engine.c TM_*). FREE on an empty pattern: play freely, REC on the "1" after the last bar:
+ * the loop takes 1, 2 or 4 bars at the tempo nearest the one set (within 3 %: that one), plays at once, REC off. REC +
+ * OCT- undoes the last take (one level); SEQ held + OCT- puts the pattern back on the grid. */
+static void play_toggle(void);
+static void seq_knob_set(uint32_t mod, uint32_t par, int32_t v);
+#define REC_LAT 300                              /* samples from a key to its sound on the FM-1 (two I2S halves, the scan) */
+#define FT_MAX 160u                              /* a free take's notes on and off */
+#define FT_SECS 24u
+static uint32_t ft_ev[FT_MAX];                   /* samples from its first note / 2 (24 bit), note << 24, bit 31: on */
+static uint8_t ft_vel[FT_MAX];
+static uint8_t ft_n, ft_mod;
+static uint32_t ft_t0, ft_shown;
+static uint8_t cnt_shown;
+static uint32_t un_w[TRACK_NOTES_MAX] ENG_POOL;  /* undo: the pattern the take went into, as it was */
+static uint16_t un_tw[TRACK_NOTES_MAX] ENG_POOL;
+static uint8_t un_n, un_has, un_mod, un_pat;
+static int32_t un_len, un_tempo;
+static const uint8_t REC_HT[9] = {48, 32, 24, 16, 12, 8, 6, 96, 3};   /* half ticks a step (engine.c RATE_HT) */
+
+/* the steps of a bar at the track's rate (192 half ticks a bar of four beats) */
+static uint32_t rec_spb(int mod)
+{
+    int32_t r = clampi((eng_get_param((uint32_t)mod, STEPS_P_RATE) + 32768) >> 16, 0, 8);
+    return 192u / REC_HT[r];
+}
+static void rec_snapshot(int mod)
+{
+    const uint32_t *w;
+    const uint16_t *tw;
+    int main_mod = eng_find(T_FM1), n, k;
+    un_mod = (uint8_t)mod;
+    un_pat = (uint8_t)eng_pattern_playing((uint32_t)mod);
+    n = eng_pattern_notes((uint32_t)mod, un_pat, &w);
+    (void)eng_pattern_tims((uint32_t)mod, un_pat, &tw);
+    un_n = (uint8_t)(n > 0 ? n : 0);
+    for (k = 0; k < (int)un_n; k++) {
+        un_w[k] = w[k];
+        un_tw[k] = tw[k];
+    }
+    un_len = eng_get_param((uint32_t)mod, STEPS_P_LEN);
+    un_tempo = main_mod >= 0 ? eng_get_param((uint32_t)main_mod, FM1_P_TEMPO) : 0;
+    un_has = 1;
+}
+static void rec_free_drop(void)
+{
+    ft_on = 0;
+    ft_n = 0;
+}
+static void seq_rec_off(void);
+/* REC + OCT-: the pattern back as it was before the last take (and its steps and tempo, a free take set them) */
+static void rec_undo(void)
+{
+    int main_mod = eng_find(T_FM1);
+    if (seq_rec) {
+        if (rec_counting)
+            eng_count_in(0);
+        rec_counting = 0;
+        rec_free_drop();
+        seq_rec_off();
+    }
+    if (!un_has || eng_steps_module(0) < 0) {
+        ui_msg(LG("NOTHING TO UNDO", "NADA PARA DESHACER"), 1200);
+        return;
+    }
+    un_has = 0;
+    (void)eng_pattern_set_notes_tim(un_mod, un_pat, un_w, un_tw, un_n);
+    seq_knob_set(un_mod, STEPS_P_LEN, un_len);
+    if (main_mod >= 0 && un_tempo)
+        seq_knob_set((uint32_t)main_mod, FM1_P_TEMPO, un_tempo);
+    seq_sync(un_mod);
+    seq_held = -1;
+    ui_msg(LG("UNDO: TAKE REMOVED", "DESHECHO: TOMA BORRADA"), 1400);
+    ui_dirty = 2;
+}
+/* SEQ held + OCT-: the pattern on the grid (QUANTIZE: each note to its nearest step) */
+static void rec_quantize(void)
+{
+    int mod = seq_module();
+    if (mod < 0)
+        mod = eng_steps_module(0);
+    if (mod < 0)
+        return;
+    if (eng_steps_quantize((uint32_t)mod)) {
+        seq_sync(mod);
+        ui_msg(LG("QUANTIZED", "CUANTIZADO"), 1200);
+    } else
+        ui_msg(LG("ALREADY ON THE GRID", "YA ESTA EN LA GRILLA"), 1200);
+    ui_dirty = ui_dirty ? ui_dirty : 1;
+}
+/* the take's settings in the bar (REC waiting) */
+static void rec_settings_msg(int mod)
+{
+    char m[48], *p = m;
+    const uint32_t *w;
+    int free = cfg.rec_free && mod >= 0 && eng_pattern_notes((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), &w) <= 0;
+    p = put(p, free ? LG("FREE", "LIBRE") : LG("GRID", "GRILLA"));
+    if (cfg.rec_bars && !free) {
+        *p++ = ' ';
+        *p++ = (char)('0' + (1 << (cfg.rec_bars - 1u)));
+        p = put(p, LG(" BAR", " COMP"));
+    }
+    p = put(p, cfg.rec_count ? LG(" COUNT", " CUENTA") : LG(" NOTE", " NOTA"));
+    p = put(p, cfg.rec_quant ? " Q ON" : " Q OFF");
+    *p = 0;
+    ui_msg(m, 1600);
+}
+/* the knobs while REC waits (or counts in): K1 MODE, K2 LENGTH, K3 START, K4 QUANTIZE; 1: taken */
+static int rec_knobs(int32_t *st)
+{
+    static const uint8_t ROW[4] = {MR_RMODE, MR_RBARS, MR_RSTART, MR_RQUANT};
+    static const char *const EN[4] = {"MODE ", "LENGTH ", "START ", "QUANTIZE "}, *const ES[4] = {"MODO ", "LARGO ", "INICIO ", "CUANTIZAR "};
+    uint32_t k;
+    int any = 0;
+    if (seq_rec != 2u || !(seq_rec_wait || rec_counting) || ft_on)
+        return 0;
+    for (k = 0; k < 4u; k++) {
+        char m[32];
+        if (!st[2u + k])
+            continue;
+        any = 1;
+        rec_step(ROW[k], st[2u + k]);
+        put(put(m, cfg.lang ? ES[k] : EN[k]), rec_value(ROW[k]))[0] = 0;
+        ui_msg(m, 1200);
+        st[2u + k] = 0;
+    }
+    if (any)
+        eng_rec_mode(!cfg.rec_quant, REC_LAT);
+    return any;
+}
+/* the LENGTH set: the track's steps, that many bars at its rate (at most 64 steps) */
+static void rec_apply_bars(int mod)
+{
+    uint32_t steps;
+    if (!cfg.rec_bars || mod < 0)
+        return;
+    steps = (1u << (cfg.rec_bars - 1u)) * rec_spb(mod);
+    seq_knob_set((uint32_t)mod, STEPS_P_LEN, (int32_t)(steps > 64u ? 64u : steps) << 16);
+}
+/* PLAY let go while REC is on (panel.c): 1 when it was the take's (a count-in starts or ends, a free take is dropped) */
+static int rec_play(void)
+{
+    int mod = eng_armed();
+    if (ft_on) {
+        rec_free_drop();
+        seq_rec_wait = 1;
+        ui_msg(LG("FREE TAKE DROPPED", "TOMA LIBRE DESCARTADA"), 1400);
+        return 1;
+    }
+    if (rec_counting) {
+        eng_count_in(0);
+        rec_counting = 0;
+        seq_rec_wait = 1;
+        ui_msg(LG("REC READY", "REC LISTO"), 1200);
+        return 1;
+    }
+    if (seq_rec != 2u || !seq_rec_wait || eng_transport_running())
+        return 0;
+    rec_apply_bars(mod);
+    seq_rec_wait = 0;
+    if (cfg.rec_count) {                         /* a bar counted in, then the transport and the take */
+        eng_count_in(4);
+        rec_counting = 1;
+        cnt_shown = 0;
+        return 1;
+    }
+    return 0;                                    /* (PLAY starts the transport: the take from its first step) */
+}
+/* a note while REC is on: a free take's, or the one that starts the take; vel 0: let go */
+static void rec_note(uint32_t note, uint32_t vel)
+{
+    int mod = eng_armed();
+    const uint32_t *w;
+    if (ft_on) {
+        if (ft_n < FT_MAX) {
+            ft_ev[ft_n] = ((eng_samples() - ft_t0) >> 1 & 0xFFFFFFu) | (note & 127u) << 24 | (vel ? 0x80000000u : 0u);
+            ft_vel[ft_n++] = (uint8_t)(vel > 127u ? 127u : vel);
+        }
+        return;
+    }
+    if (!seq_rec_wait || !vel || mod < 0)
+        return;
+    if (cfg.rec_free && eng_pattern_notes((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), &w) <= 0) {
+        seq_rec_wait = 0;                        /* a free take: the transport waits for its end */
+        ft_on = 1;
+        ft_mod = (uint8_t)mod;
+        ft_n = 0;
+        ft_t0 = eng_samples();
+        ft_shown = fm1_ms;
+        rec_note(note, vel);
+        ui_msg(LG("FREE TAKE: REC ON THE 1", "TOMA LIBRE: REC EN EL 1"), 1500);
+        return;
+    }
+    if (cfg.rec_count)
+        return;                                  /* (it waits for PLAY: the notes only sound) */
+    seq_rec_wait = 0;
+    rec_apply_bars(mod);
+    if (!eng_transport_running())
+        play_toggle();
+    ui_msg("REC", 800);
+}
+/* the bars and tempo a free take of d samples makes (*bpm), 0 none fits; the bars nearest the tempo set, which it keeps
+ * within 3 % */
+static uint32_t rec_free_fit(uint32_t d, uint32_t spb, int32_t t0, int32_t *bpm)
+{
+    uint32_t b, best = 0;
+    int32_t bb = 0;
+    for (b = 1; b <= 4u; b <<= 1) {
+        int32_t v;
+        if (b * spb > 64u || !d)
+            continue;
+        v = (int32_t)(((uint64_t)b * 4u * 60u * ENG_SR + d / 2u) / d);
+        if (v < 20 || v > 300)
+            continue;
+        if (!best || (v > t0 ? v - t0 : t0 - v) < (bb > t0 ? bb - t0 : t0 - bb)) {
+            best = b;
+            bb = v;
+        }
+    }
+    if (best && (bb > t0 ? bb - t0 : t0 - bb) * 100 <= 3 * t0)
+        bb = t0;
+    *bpm = bb;
+    return best;
+}
+/* REC on the "1" after the last bar: the free take into the pattern, the loop plays */
+static void rec_free_finish(void)
+{
+    static uint32_t w[TRACK_NOTES_MAX];
+    static uint16_t tw[TRACK_NOTES_MAX];
+    int mod = ft_mod, main_mod = eng_find(T_FM1);
+    uint32_t d = eng_samples() - ft_t0, spb = rec_spb(mod), bars, total, i, j, n = 0;
+    int32_t t0 = main_mod >= 0 ? (eng_get_param((uint32_t)main_mod, FM1_P_TEMPO) + 32768) >> 16 : 120, bpm;
+    char m[40], *p;
+    ft_on = 0;
+    if (!(bars = rec_free_fit(d, spb, t0, &bpm))) {
+        ui_msg(LG("FREE TAKE: NO LOOP FITS", "TOMA LIBRE: NO ENTRA"), 1600);
+        rec_free_drop();
+        seq_rec_off();
+        return;
+    }
+    total = bars * spb * 64u;                    /* the loop in 1/64 of a step */
+    for (i = 0; i < ft_n && n < TRACK_NOTES_MAX; i++) {
+        uint32_t e = ft_ev[i], note = e >> 24 & 127u, t = (e & 0xFFFFFFu) << 1, end = d, at, len, off, rel, x;
+        uint64_t pos;
+        if (!(e & 0x80000000u))
+            continue;
+        for (j = i + 1u; j < ft_n; j++)
+            if (!(ft_ev[j] & 0x80000000u) && (ft_ev[j] >> 24 & 127u) == note) {
+                end = (ft_ev[j] & 0xFFFFFFu) << 1;
+                break;
+            }
+        pos = (uint64_t)t * total / d;
+        x = (uint32_t)(((uint64_t)(end > t ? end - t : 1u)) * total / d);   /* its length, 1/64 of a step */
+        if (cfg.rec_quant) {
+            at = (uint32_t)((pos + 32u) >> 6) % (total >> 6);
+            len = (x + 32u) >> 6;
+            len = len < 1u ? 1u : len > 64u ? 64u : len;
+            w[n] = NW(at, len, note, ft_vel[i] ? ft_vel[i] : 1u, 0u) | NW_HOLD;
+            tw[n++] = 0;
+            continue;
+        }
+        at = (uint32_t)(pos >> 6) % (total >> 6);
+        off = (uint32_t)pos & 63u;
+        rel = off + x;
+        len = rel / 64u + 1u;
+        e = rel & 63u;
+        if (len > 64u) {
+            len = 64u;
+            e = 63u;
+        }
+        if (len == 1u && e <= off)
+            e = off + 1u > 63u ? 63u : off + 1u;
+        w[n] = NW(at, len, note, ft_vel[i] ? ft_vel[i] : 1u, 0u) | NW_HOLD;
+        tw[n++] = (uint16_t)(off | e << 6 | ENG_TM_END);
+    }
+    seq_knob_set((uint32_t)mod, STEPS_P_LEN, (int32_t)(bars * spb) << 16);
+    if (main_mod >= 0 && bpm != t0)
+        seq_knob_set((uint32_t)main_mod, FM1_P_TEMPO, bpm << 16);
+    (void)eng_pattern_set_notes_tim((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), w, tw, n);
+    seq_sync(mod);
+    rec_free_drop();
+    seq_rec_off();
+    if (!eng_transport_running())
+        play_toggle();
+    p = m;
+    *p++ = (char)('0' + bars);
+    p = put(p, bars == 1u ? LG(" BAR ", " COMPAS ") : LG(" BARS ", " COMPASES "));
+    fmt_int(p, bpm);
+    put(p + str_len(p), " BPM")[0] = 0;
+    ui_msg(m, 2000);
+    ui_dirty = 2;
+}
+/* every pass (seq_poll): the click's gate, a count-in's beats in the bar, a free take's loop so far and its end at 24 s,
+ * a REC setting kept once nothing plays */
+static void rec_poll(void)
+{
+    click_gate = (uint8_t)(cfg.click == 2u || (cfg.click == 1u && seq_rec == 2u) || rec_counting);
+    if (rec_counting) {
+        uint32_t left = eng_count_left();
+        if (eng_transport_running() || !left) {
+            rec_counting = 0;
+            ui_msg("REC", 800);
+        } else if (left != cnt_shown) {
+            char m[4] = {(char)('0' + left), 0};
+            cnt_shown = (uint8_t)left;
+            ui_msg(m, 700);
+        }
+    }
+    if (ft_on) {
+        uint32_t d = eng_samples() - ft_t0;
+        if (d >= FT_SECS * ENG_SR)
+            rec_free_finish();
+        else if (fm1_ms - ft_shown >= 250u) {
+            int32_t t0 = eng_find(T_FM1) >= 0 ? (eng_get_param((uint32_t)eng_find(T_FM1), FM1_P_TEMPO) + 32768) >> 16 : 120, bpm;
+            uint32_t bars = rec_free_fit(d, rec_spb(ft_mod), t0, &bpm);
+            char m[40], *p = m;
+            ft_shown = fm1_ms;
+            fmt_int(p, (int32_t)(d / ENG_SR));
+            p += str_len(p);
+            *p++ = '.';
+            *p++ = (char)('0' + d % ENG_SR * 10u / ENG_SR);
+            p = put(p, "S ");
+            if (bars) {
+                *p++ = (char)('0' + bars);
+                p = put(p, LG(" BAR ", " COMP "));
+                fmt_int(p, bpm);
+                p = put(p + str_len(p), " BPM");
+            }
+            *p = 0;
+            ui_msg(m, 600);
+        }
+    }
+    if (cfg_dirty && fm1_ms - cfg_dirty_ms > 3000u && !eng_transport_running() && !seq_rec && page != PAGE_MENU) {
+        cfg_dirty = 0;
+        settings_store();
+    }
+}
+
 /* KITTEN RACK: REC as on Kitten Synths (the user, 2026-10-29), from any page, which stays: running, the sequencer records
  * where it plays (the armed track, else the selected melodic track, else the first, armed for it); stopped, REC waits
  * for the first note, which starts the transport and the take (panel.c kr_rec_note). REC again: off (the transport goes on).
@@ -783,7 +1160,15 @@ static void kr_rec_press(void)
 {
     int t = seq_armed_trk(), mod, k;
     char m[32], name[TRACK_NAME_MAX + 8];
+    if (ft_on) {                                 /* (a free take: REC on the "1" ends it) */
+        rec_free_finish();
+        return;
+    }
     if (seq_rec) {
+        if (rec_counting) {
+            eng_count_in(0);
+            rec_counting = 0;
+        }
         seq_rec_off();
         ui_msg("REC OFF", 1000);
         return;
@@ -818,13 +1203,17 @@ static void kr_rec_press(void)
     seq_trk = (uint8_t)t;
     seq_held = -1;
     seq_rec = 2;
+    eng_rec_mode(!cfg.rec_quant, REC_LAT);      /* (QUANTIZE off: the take keeps the timing played) */
+    rec_snapshot(mod);
     eng_steps_rec((uint32_t)mod, 1);
     seq_name((uint32_t)t, name);
     if (eng_transport_running())
         put(put(m, "REC "), name)[0] = 0;
     else {
         seq_rec_wait = 1;
-        put(m, LG("REC: PLAY A NOTE", "REC: TOCA UNA NOTA"))[0] = 0;
+        rec_settings_msg(mod);                   /* (the take's settings; the knobs change them) */
+        ui_dirty = 2;
+        return;
     }
     ui_msg(m, 1500);
     ui_dirty = 2;
@@ -960,6 +1349,7 @@ static void seq_knob_set(uint32_t mod, uint32_t par, int32_t v)
  * that track has no notes of its own in any pattern (a patch saved with its own sequence keeps it). A patch without a
  * track leaves the sequence waiting for the next one. What arrives is part of the running patch: SAVE keeps it there. */
 static uint32_t carry_w[TRACK_NOTES_MAX] ENG_POOL;
+static uint16_t carry_tw[TRACK_NOTES_MAX] ENG_POOL;   /* (their timing) */
 static uint8_t carry_n, carry_on;
 static int32_t carry_par[3], carry_tempo;
 static const uint8_t CARRY_PAR[3] = {STEPS_P_LEN, STEPS_P_RATE, STEPS_P_SWING};
@@ -967,15 +1357,19 @@ static void seq_carry_take(void)
 {
     int mod = eng_steps_module(0), main_mod = eng_find(T_FM1), n, k;
     const uint32_t *w;
+    const uint16_t *tw;
     if (mod < 0)
         return;                                         /* (no track: what waits, waits on) */
     n = eng_pattern_notes((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), &w);
+    (void)eng_pattern_tims((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), &tw);
     carry_on = n > 0;
     if (!carry_on)
         return;
     carry_n = (uint8_t)n;
-    for (k = 0; k < n; k++)
+    for (k = 0; k < n; k++) {
         carry_w[k] = w[k];
+        carry_tw[k] = tw[k];
+    }
     for (k = 0; k < 3; k++)
         carry_par[k] = eng_get_param((uint32_t)mod, CARRY_PAR[k]);
     carry_tempo = main_mod >= 0 ? eng_get_param((uint32_t)main_mod, FM1_P_TEMPO) : 0;
@@ -995,7 +1389,7 @@ static int seq_carry_give(void)
         seq_knob_set((uint32_t)mod, CARRY_PAR[k], carry_par[k]);
     if (main_mod >= 0 && carry_tempo)
         seq_knob_set((uint32_t)main_mod, FM1_P_TEMPO, carry_tempo);
-    (void)eng_pattern_set_notes((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), carry_w, carry_n);
+    (void)eng_pattern_set_notes_tim((uint32_t)mod, (uint32_t)eng_pattern_playing((uint32_t)mod), carry_w, carry_tw, carry_n);
     seq_sync(mod);
     ui_msg(LG("SEQUENCE KEPT", "SECUENCIA CONSERVADA"), 1200);
     return 1;
@@ -1060,7 +1454,7 @@ static void seq_clear_cancel(void)
 /* the page is left: REC on the armed track while stopped and the black keys' recording end (a live take goes on) */
 static void seq_leave(void)
 {
-    if (seq_rec == 1u || (seq_rec == 2u && !eng_transport_running() && !seq_rec_wait))
+    if (seq_rec == 1u || (seq_rec == 2u && !eng_transport_running() && !seq_rec_wait && !ft_on && !rec_counting))
         seq_rec_off();
     ent_keys = 0;
 }
@@ -1091,10 +1485,13 @@ static int seq_arm_label(char *out, int *rec)
  * away ends the take; REC's LED off the page */
 static void seq_take(void)
 {
-    uint32_t m, w, done = 0;
+    uint32_t m, w, tim, done = 0;
     int last = -1;
-    while (eng_steps_take(&m, &w)) {
-        eng_steps_overdub(m, w);
+    while (eng_steps_take(&m, &w, &tim)) {
+        if (tim)
+            eng_steps_overdub_tim(m, w, tim);   /* (KITTEN RACK: an exact take, its timing) */
+        else
+            eng_steps_overdub(m, w);
         if ((int)m != last && last >= 0)
             seq_sync(last);
         last = (int)m;
@@ -1675,6 +2072,7 @@ static void seq_poll(void)
     static int8_t kbd_was = -1;
     int mod;
     seq_take();
+    rec_poll();
     if (seq_msg_due) {
         ui_msg(seq_msg_due, seq_msg_ms ? seq_msg_ms : 800u);
         seq_msg_due = 0;

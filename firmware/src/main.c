@@ -191,7 +191,7 @@ static int slot_used(uint32_t s) { return s < M1_SLOTS && (bank_mask >> s & 1u);
 /* the settings record: version, slot, octave + 8, LED mode, knob accel, CPU in the bar, clock in, program change,
  * MIDI channel, MIDI out, the bank's format, the selected module */
 #define SET_VERSION 1u
-#define SET_LEN 17u                                 /* KITTEN RACK: byte 16 the language */
+#define SET_LEN 23u                                 /* KITTEN RACK: byte 16 the language, 17..22 the REC tab */
 #define SET_MIN 12u                                 /* (a record from before KITTEN RACK's bank id: 12 bytes) */
 /* the patch format the bank's untouched factory slots were brought to (settings byte 10; 0 in a record from before):
  * below ENG_PATCH_VERSION, the boot rewrites them once (bank_upgrade) */
@@ -217,6 +217,12 @@ static void settings_pack(uint8_t *d)
     d[14] = (uint8_t)(bank_id >> 16);
     d[15] = (uint8_t)(bank_id >> 24);
     d[16] = cfg.lang;
+    d[17] = cfg.click;
+    d[18] = cfg.click_lvl;
+    d[19] = cfg.rec_free;
+    d[20] = cfg.rec_bars;
+    d[21] = cfg.rec_count;
+    d[22] = cfg.rec_quant;
 }
 static int settings_unpack(const uint8_t *d, uint32_t len, uint32_t *slot, uint32_t *module)
 {
@@ -231,6 +237,14 @@ static int settings_unpack(const uint8_t *d, uint32_t len, uint32_t *slot, uint3
     cfg.ch = d[8] > 16u ? 0u : d[8];
     cfg.midi_out = d[9] == 0u ? 0u : 1u;
     cfg.lang = len >= 17u ? d[16] & 1u : 0u;      /* (KITTEN RACK: a record from before: English) */
+    if (len >= 23u) {                           /* (KITTEN RACK: the REC tab; a record from before keeps the defaults) */
+        cfg.click = d[17] > 2u ? 1u : d[17];
+        cfg.click_lvl = d[18] < 1u || d[18] > 10u ? 6u : d[18];
+        cfg.rec_free = d[19] & 1u;
+        cfg.rec_bars = d[20] > 3u ? 0u : d[20];
+        cfg.rec_count = d[21] & 1u;
+        cfg.rec_quant = d[22] & 1u;
+    }
     bank_fmt = d[10];
     *module = d[11];
     return 0;

@@ -2531,7 +2531,9 @@ const arp: ModuleImpl<null> = {
 /** a note a Steps track is sounding: the key it sent (its note + the transpose), steps still to go after the one it is
  * on, samples until it ends (TRACK_POLY at most; engine.c trk_snd); `thru`: a key played into the armed track (#134,
  * the note played), sounding until it is let go */
-export interface StepsSound { key: number; left: number; cnt: number; thru?: number; hold?: boolean }
+export interface StepsSound { key: number; left: number; cnt: number; thru?: number; hold?: number }   // hold: 1 its last step whole (StepNote.hold), 2 + e an exact end (StepNote.end; engine.c snd_gate)
+/** KITTEN RACK: a note of a step that starts later (StepNote.off; engine.c pend): samples to go, then as it would have */
+export interface StepsPending { key: number; vel: number; left: number; hold: number; note: number; pn: number; wait: number; dur: number }
 /** how many notes a Steps track sounds at once (a further note ends the oldest) */
 export const TRACK_POLY = 8;
 
@@ -2575,9 +2577,12 @@ export interface StepsState {
   loop: number;
   /** a step half a tick after a tick (1/64): samples to go (0: none) */
   half: number;
-  /** a swung step waiting: samples to go (0: none) and which step */
+  /** a swung step waiting: samples to go (0: none) and which step, and its delay (KITTEN RACK: samples since the step when it fires) */
   pend: number;
   pstep: number;
+  pdl?: number;
+  /** KITTEN RACK: notes waiting for their start (StepNote.off) */
+  waiting?: StepsPending[];
   /** the notes sounding; one low trig sample before a note that starts while one sounds */
   snd: StepsSound[];
   gap: boolean;
@@ -2709,15 +2714,28 @@ const steps: ModuleImpl<StepsState> = {
     const gate = q16(c.p.gate ?? 0.25);
     const ext = !!c.connected.clk;
     const { clk, reset, transpose } = c.inp;
+    if (!ext && !v.run && s.waiting?.length) s.waiting = [];   // (stopped: nothing waits to start; engine.c steps_pend_drop)
     const end = (j: number): void => {
       s.ev.push(s.snd[j].key, 0);
       s.snd.splice(j, 1);
     };
-    const fire = (k: number, i: number): void => {
+    // a note of the pattern starts (KITTEN RACK: now, or later by its timing: the waiting list)
+    const go = (key: number, vel: number, left: number, h: number, pn: number, dur: number): void => {
+      const same = s.snd.findIndex((x) => x.key === key);
+      if (same >= 0) end(same);
+      if (s.snd.length >= TRACK_POLY) end(0);
+      s.snd.push({ key, left, cnt: Math.max(1, dur), ...(h ? { hold: h } : {}) });
+      s.ev.push(key | 0x80, vel);
+      s.pitch = stepPitch(pn);
+      s.vel = vel / 127;
+    };
+    const fire = (k: number, i: number, el = 0): void => {
       const sl = ext && s.period > 0 ? s.period : ext ? 6 * v.tickLen : step;
       // a note's samples from here: through to the next step while more follow (two steps at most), else gate of a step
       // (KITTEN RACK: a held note, StepNote.hold, plays its last step whole)
-      const hold = (left: number, whole = false): number => (left > 0 ? 2 * sl : Math.max(1, Math.floor(((whole ? 65536 : gate) * sl) / 65536)));
+      // (an exact end, StepNote.end: (end + 1) / 64 of its last step; engine.c snd_gate)
+      const gateOf = (h = 0): number => (!h ? gate : h === 1 ? 65536 : (h - 1) * 1024);
+      const hold = (left: number, h = 0): number => (left > 0 ? 2 * sl : Math.max(1, Math.floor((gateOf(h) * sl) / 65536)));
       for (const x of s.snd)
         if (x.left > 0 && x.cnt > 0 && !s.mute) x.cnt = hold(--x.left, x.hold);
       if (s.mute) return;
@@ -2729,14 +2747,16 @@ const steps: ModuleImpl<StepsState> = {
         if (notePlays(s.seed, s.loop, k, j++, n.chance)) {
           const note = Math.max(0, Math.min(127, n.note + s.shift)); // (a song entry's shift)
           const key = Math.max(0, Math.min(127, note + semis));
-          const same = s.snd.findIndex((x) => x.key === key);
-          if (same >= 0) end(same);
-          if (s.snd.length >= TRACK_POLY) end(0);
           const left = Math.min(n.len, Math.max(1, stepCycle(len, dir) - s.visit)) - 1;
-          s.snd.push({ key, left, cnt: hold(left, n.hold), ...(n.hold ? { hold: true } : {}) });
-          s.ev.push(key | 0x80, n.vel);
-          s.pitch = stepPitch(note);
-          s.vel = n.vel / 127;
+          // KITTEN RACK: its timing (StepNote.off / end; engine.c steps_fire): a start past the step waits
+          const h = n.end !== undefined ? 2 + n.end : n.hold ? 1 : 0;
+          const off = Math.floor(((n.off ?? 0) * sl) / 64), from = Math.max(off, el);
+          const dur = hold(left, h) - (h >= 2 && !left ? from : 0);
+          if (off > el && (s.waiting ??= []).length < 16) {
+            s.waiting.push({ key, vel: n.vel, left, hold: h, note: n.note, pn: note, wait: off - el, dur });
+            continue;
+          }
+          go(key, n.vel, left, h, note, dur);
           any = true;
         }
       }
@@ -2817,7 +2837,16 @@ const steps: ModuleImpl<StepsState> = {
           }
         }
       }
-      if (s.pend > 0 && --s.pend === 0 && (dir === 0 || s.pstep < len)) fire(s.pstep, i);
+      if (s.waiting?.length) // KITTEN RACK: notes starting past their step (StepNote.off; engine.c steps_pend_tick)
+        for (let j = 0; j < s.waiting.length;) {
+          const x = s.waiting[j];
+          if (--x.wait > 0) { j++; continue; }
+          const was = s.snd.some((y) => y.cnt > 0);
+          go(x.key, x.vel, x.left, x.hold, x.pn, x.dur);
+          s.gap = was;
+          s.waiting.splice(j, 1);
+        }
+      if (s.pend > 0 && --s.pend === 0 && (dir === 0 || s.pstep < len)) fire(s.pstep, i, s.pdl ?? 0);
       s.ago++;
       for (; adv > 0; adv--) {
         let next = nextStep(s, len, dir);
@@ -2840,6 +2869,7 @@ const steps: ModuleImpl<StepsState> = {
         if (d > 0) {
           s.pend = d;
           s.pstep = s.pos;
+          s.pdl = d;
         } else fire(s.pos, i);
       }
       const up = !s.gap && s.snd.some((x) => x.cnt > 0) ? 1 : 0;

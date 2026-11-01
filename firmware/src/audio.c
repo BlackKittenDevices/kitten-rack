@@ -17,6 +17,37 @@ static volatile uint8_t tp_on;                     /* the device test mode (#291
 static volatile uint32_t tp_peak;                  /* the loudest sample since the last TEST_PEAK, 16 bit: before the MASTER pot (as at its
                                                     * default, so a script does not depend on where the knob is), after mute */
 static volatile uint32_t eng_us_last, eng_us_max, eng_halves;
+/* KITTEN RACK: the click (MENU > REC > CLICK): a short tick on each beat the engine reports (eng_click), higher on a bar's
+ * first, into the FM-1's output after the USB tap, so it is never in the DAW's channels nor in a take. click_gate (main
+ * loop): it sounds now; click_lvl 1..10 */
+static volatile uint8_t click_gate, click_lvl = 6;
+static uint32_t click_ph, click_inc;
+static int32_t click_left;
+#define CLICK_LEN 1100                          /* 25 ms */
+static void click_mix(int32_t *o, int32_t m)
+{
+    uint32_t at, i;
+    int kind = eng_click(&at);
+    if (kind && click_gate && at < HALF_FRAMES) {
+        click_left = CLICK_LEN + (int32_t)at;   /* (it starts at its sample) */
+        click_ph = 0;
+        click_inc = kind == 2 ? 175274812u : 116849875u;   /* 1800 / 1200 Hz: f * 2^32 / FS */
+    }
+    if (click_left <= 0)
+        return;
+    for (i = 0; i < HALF_FRAMES && click_left > 0; i++, click_left--) {
+        int32_t t, v;
+        if (click_left > CLICK_LEN)
+            continue;                           /* (before its sample) */
+        click_ph += click_inc;
+        t = (int32_t)(click_ph >> 16);
+        t = (t < 32768 ? t : 65535 - t) * 4 - 65536;          /* a triangle, +-1.0 Q16 */
+        v = (int32_t)((((int64_t)t * (click_lvl * 3277) >> 16) * (click_left * 59)) >> 16);   /* level x 5 %, falling to 0 */
+        v = ((v * m) >> 12) << 6;
+        o[2u * i] += v;
+        o[2u * i + 1u] += v;
+    }
+}
 #include "viz_tap.h"
 static int32_t eng_l[HALF_FRAMES], eng_r[HALF_FRAMES];
 #if FELUCCA_UAC
@@ -95,6 +126,8 @@ void fm1_alnk0_irq(void)                       /* via isr_alnk0 (hal/fm1_isr.S) 
 #if FELUCCA_UAC
         uac_tap(o, HALF_FRAMES);
 #endif
+        if (eng_run)                                    /* KITTEN RACK: the click, after the USB tap (only the FM-1 hears it) */
+            click_mix(o, snd_muted ? 0 : (int32_t)master_q12);
         fm1_audio_ack_half();
         all = fm1_ticks() - t0;                         /* includes the key scan and USB poll nested in the ISR */
         ovl_bits = (uint8_t)(ovl_bits << 1 | (all > OVL_TICKS));

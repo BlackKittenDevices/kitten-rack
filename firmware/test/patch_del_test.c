@@ -111,6 +111,67 @@ int main(int argc, char **argv)
         }
         printf("MIDI map through deletes: %u\n", (unsigned)mapped);
     }
+    {   /* KITTEN RACK: a patch with its notes' timing (ENG_FLAG_TIMING): a module out, the slices of its track go with it,
+         * the others follow their tracks down; the engine reads the rest */
+        uint32_t timed = 0;
+        for (k = 0; k < N_PRESETS; k++) {
+            uint32_t len0 = PRESET_LIST[k].len, e, t, nb = 0, at, need = 1;
+            int st;
+            memcpy(bin, PRESET_LIST[k].data, len0);
+            if (eng_upgrade(bin, &len0, CAP) || eng_load(bin, len0) || (st = eng_steps_module(0)) < 0)
+                continue;
+            for (t = 0; t < 16u && eng_steps_module(t) >= 0; t++)
+                if (eng_pattern_notes((uint32_t)eng_steps_module(t), 0, &(const uint32_t *){0}) > 0)
+                    need += 3u + 2u * (uint32_t)eng_pattern_notes((uint32_t)eng_steps_module(t), 0, &(const uint32_t *){0});
+            if (len0 + need > CAP || (bin[7] & ENG_FLAG_TIMING))
+                continue;
+            at = len0 + 1u;
+            for (t = 0; t < 16u && eng_steps_module(t) >= 0; t++) {   /* each track's first pattern: every note 1 + t / 64 late */
+                const uint32_t *w;
+                int n = eng_pattern_notes((uint32_t)eng_steps_module(t), 0, &w);
+                if (n <= 0)
+                    continue;
+                bin[at] = (uint8_t)eng_steps_module(t);
+                bin[at + 1u] = 0;
+                bin[at + 2u] = (uint8_t)n;
+                for (e = 0; e < (uint32_t)n; e++) {
+                    bin[at + 3u + 2u * e] = (uint8_t)(1u + t);
+                    bin[at + 4u + 2u * e] = 0;
+                }
+                at += 3u + 2u * (uint32_t)n;
+                nb++;
+            }
+            if (!nb)
+                continue;
+            bin[len0] = (uint8_t)nb;
+            bin[7] |= ENG_FLAG_TIMING;
+            len0 = at;
+            if (m1_check(bin, len0) || eng_load(bin, len0)) {
+                printf("FAIL %s with timing: check %d load %d\n", PRESET_LIST[k].name, m1_check(bin, len0), eng_load(bin, len0));
+                fails++;
+                continue;
+            }
+            for (m = 0; m < bin[2]; m++) {
+                static uint8_t b2[CAP];
+                uint32_t len = len0, ok = 1;
+                memcpy(b2, bin, len0);
+                if (pe_module_del(b2, &len, m))
+                    continue;
+                ok &= m1_check(b2, len) == 0 && eng_load(b2, len) == 0;
+                for (t = 0; ok && t < 16u && eng_steps_module(t) >= 0; t++) {
+                    const uint16_t *tw;
+                    int n = eng_pattern_tims((uint32_t)eng_steps_module(t), 0, &tw);
+                    ok &= n <= 0 || tw[0] != 0u;            /* (each track left keeps its timing) */
+                }
+                if (!ok) {
+                    printf("FAIL %s with timing - module %u\n", PRESET_LIST[k].name, (unsigned)m);
+                    fails++;
+                }
+                timed++;
+            }
+        }
+        printf("timing through deletes: %u\n", (unsigned)timed);
+    }
     printf("patch deletes %s: %u modules taken out, %u refused (Main, the Output, a poly group's)\n", fails ? "FAILED" : "ok", (unsigned)dels, (unsigned)refused);
     return fails ? 1 : 0;
 }

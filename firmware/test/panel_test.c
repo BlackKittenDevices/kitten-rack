@@ -1313,6 +1313,179 @@ int main(void)
         (void)eng_load(pv_bin, pv_len);
     }
 
+    {                                                       /* KITTEN RACK: takes as on SLOOP (2026-11-01) */
+        static uint8_t keep[4096];
+        static int32_t l[128], r[128];
+        uint32_t klen = pv_len, i, sl, sst, exp_off, base;
+        int mod, mm, tim, nn;
+        const uint32_t *w;
+        uint8_t cfg_keep[6] = {cfg.click, cfg.click_lvl, cfg.rec_free, cfg.rec_bars, cfg.rec_count, cfg.rec_quant};
+        int8_t oct_keep = (int8_t)octave;
+        for (i = 0; i < pv_len; i++)
+            keep[i] = pv_bin[i];
+        for (i = 0; i < sizeof KR_INIT; i++)
+            pv_bin[i] = KR_INIT[i];
+        pv_len = sizeof KR_INIT;
+        (void)eng_upgrade(pv_bin, &pv_len, sizeof pv_bin);
+        pv_gen++;
+        (void)eng_load(pv_bin, pv_len);
+        page_set(0);
+        mod = eng_steps_module(0);
+        mm = eng_find(T_FM1);
+        eng_arm_mask(0);
+        octave = 0;
+        base = 53u;
+        eng_set_param((uint32_t)mm, FM1_P_TEMPO, 120 << 16);
+        eng_set_param((uint32_t)mod, STEPS_P_LEN, 16 << 16);
+        eng_set_param((uint32_t)mod, STEPS_P_RATE, 4 << 16);
+        eng_set_param((uint32_t)mod, STEPS_P_SWING, 50 << 16);
+        (void)eng_steps_set_notes((uint32_t)mod, 0, 0);
+        cfg.click = 1;
+        cfg.rec_free = cfg.rec_bars = cfg.rec_count = cfg.rec_quant = 0;
+        sl = 12u * (60u * ENG_SR / (120u * 24u)) / 2u;      /* a 1/16 step at 120 bpm */
+        /* QUANTIZE off, running: the note's start as played (less the FM-1's own delay), its end */
+        tap(BTN_PLAY);
+        for (i = 0; i < 4; i++)
+            eng_render(l, r, 128);
+        tap(BTN_REC);
+        check("REC running: a take on the first melodic track, the click on (REC)", seq_rec == 2u && eng_armed() == mod && click_gate);
+        do
+            eng_render(l, r, 128);
+        while (steps_inst((uint32_t)mod)->s.stp.sst < 2500 || steps_inst((uint32_t)mod)->s.stp.sst > 2700 + 128);
+        sst = (uint32_t)steps_inst((uint32_t)mod)->s.stp.sst;
+        exp_off = (sst - REC_LAT) * 64u / sl;
+        panel_keys(1u << 4);                                /* A3, held about two steps */
+        for (i = 0; i < 2u * sl / 128u; i++)
+            eng_render(l, r, 128);
+        panel_keys(0);
+        eng_render(l, r, 128);
+        loop();
+        nn = eng_steps_notes((uint32_t)mod, &w);
+        tim = nn == 1 ? eng_steps_note_tim((uint32_t)mod, w[0] & 63u, base + 4u) : -1;
+        check("QUANTIZE OFF: the note on its step, late by what was played (1/64 of a step)", nn == 1 && tim >= 0 &&
+              ENG_TM_OFF((uint32_t)tim) + 1u >= exp_off && ENG_TM_OFF((uint32_t)tim) <= exp_off + 1u);
+        check("  and it ends where it was let go (its last step's part), held to the end", tim >= 0 && ((uint32_t)tim & ENG_TM_END) &&
+              ((w[0] >> 6) & 63u) == 2u && (w[0] & NW_HOLD));
+        /* REC + OCT-: the take undone */
+        panel_held |= 1u << BTN_REC;
+        panel_edges(1u << BTN_REC, 0);
+        panel_edges(1u << BTN_OCT_DOWN, 0);
+        panel_held &= ~(1u << BTN_REC);
+        panel_edges(0, 1u << BTN_REC);
+        loop();
+        check("REC held + OCT-: the take undone, REC off, the octave as it was", eng_steps_notes((uint32_t)mod, &w) == 0 && seq_rec == 0 && octave == 0);
+        check("  undo again: nothing", (rec_undo(), eng_steps_notes((uint32_t)mod, &w) == 0));
+        /* SEQ held + OCT-: QUANTIZE */
+        {
+            uint32_t two[2] = {0u | 60u << 12 | 100u << 19, 4u | 62u << 12 | 100u << 19};
+            (void)eng_steps_set_notes((uint32_t)mod, two, 2);
+            eng_steps_note_tim_set((uint32_t)mod, 0, 60, 10u);
+            eng_steps_note_tim_set((uint32_t)mod, 4, 62, 50u);
+            panel_held |= 1u << BTN_SEQ;
+            panel_edges(1u << BTN_SEQ, 0);
+            panel_edges(1u << BTN_OCT_DOWN, 0);
+            panel_held &= ~(1u << BTN_SEQ);
+            panel_edges(0, 1u << BTN_SEQ);
+            loop();
+            check("SEQ held + OCT-: the pattern on the grid (a late one to the next step), the page stays", eng_steps_note_tim((uint32_t)mod, 0, 60) == 0 &&
+                  eng_steps_note_tim((uint32_t)mod, 5, 62) == 0 && eng_steps_note_tim((uint32_t)mod, 4, 62) == -1 && page == 0u);
+            (void)eng_steps_set_notes((uint32_t)mod, 0, 0);
+        }
+        /* PLAY held + REC: tap tempo */
+        panel_held |= 1u << BTN_PLAY;
+        panel_edges(1u << BTN_PLAY, 0);
+        for (i = 0; i < 4; i++) {
+            fm1_ms += 400;
+            panel_held |= 1u << BTN_REC;
+            panel_edges(1u << BTN_REC, 0);
+            panel_held &= ~(1u << BTN_REC);
+            panel_edges(0, 1u << BTN_REC);
+        }
+        panel_held &= ~(1u << BTN_PLAY);
+        panel_edges(0, 1u << BTN_PLAY);
+        loop();
+        check("PLAY held + REC tapped every 0.4 s: 150 bpm, no REC, the transport goes on", ((eng_get_param((uint32_t)mm, FM1_P_TEMPO) + 32768) >> 16) == 150
+              && seq_rec == 0 && eng_transport_running());
+        eng_set_param((uint32_t)mm, FM1_P_TEMPO, 120 << 16);
+        tap(BTN_PLAY);
+        /* START COUNT IN: REC waits; PLAY counts a bar (the click on), then the transport and the take */
+        cfg.rec_count = 1;
+        cfg.rec_bars = 2;                                   /* 2 bars: 32 steps */
+        tap(BTN_REC);
+        check("REC stopped, COUNT IN: it waits", seq_rec == 2u && seq_rec_wait && !eng_transport_running());
+        panel_keys(1u << 2);
+        panel_keys(0);
+        loop();
+        check("  a note before PLAY only sounds", !eng_transport_running() && seq_rec_wait && eng_steps_notes((uint32_t)mod, &w) == 0);
+        tap(BTN_PLAY);
+        check("  PLAY: a bar counted in, the transport waits, LENGTH 2 bars set", rec_counting && !eng_transport_running() &&
+              eng_count_left() == 4u && click_gate && ((eng_get_param((uint32_t)mod, STEPS_P_LEN) + 32768) >> 16) == 32);
+        for (i = 0; i < 5u * 12u * (60u * ENG_SR / (120u * 24u)) / 128u; i++)   /* (two beats and a half) */
+            eng_render(l, r, 128);
+        loop();
+        check("  halfway: two beats to go, stopped", eng_count_left() == 2u && !eng_transport_running());
+        for (i = 0; i < 3u * 12u * (60u * ENG_SR / (120u * 24u)) / 128u + 4u; i++)
+            eng_render(l, r, 128);
+        loop();
+        check("  after the bar: the transport runs, the take on", eng_transport_running() && seq_rec == 2u && !rec_counting && !seq_rec_wait);
+        tap(BTN_REC);
+        tap(BTN_PLAY);
+        cfg.rec_count = 0;
+        cfg.rec_bars = 0;
+        /* MODE FREE on an empty pattern: two bars played at 100 bpm, REC on the "1" after them */
+        cfg.rec_free = 1;
+        eng_set_param((uint32_t)mod, STEPS_P_LEN, 16 << 16);
+        tap(BTN_REC);
+        check("REC stopped, FREE: it waits", seq_rec == 2u && seq_rec_wait);
+        {
+            uint32_t bar = 4u * 60u * ENG_SR / 100u, t0;
+            panel_keys(1u << 0);                            /* F3 on the 1 */
+            t0 = eng_samples();
+            check("  the first note: a free take, the transport still stopped", ft_on && !eng_transport_running());
+            while (eng_samples() - t0 < bar / 8u)
+                eng_render(l, r, 128);
+            panel_keys(0);
+            while (eng_samples() - t0 < bar / 2u + bar / 64u)
+                eng_render(l, r, 128);
+            panel_keys(1u << 7);                            /* C4 on beat 3, a 1/64 bar late */
+            while (eng_samples() - t0 < bar)
+                eng_render(l, r, 128);
+            panel_keys(0);
+            while (eng_samples() - t0 < 2u * bar)
+                eng_render(l, r, 128);
+            fm1_ms += 300;
+            loop();
+            tap(BTN_REC);                                   /* the "1" after two bars */
+        }
+        nn = eng_steps_notes((uint32_t)mod, &w);
+        check("  REC on the 1: 2 bars at 100 bpm, the loop plays, REC off", ((eng_get_param((uint32_t)mm, FM1_P_TEMPO) + 32768) >> 16) == 100 &&
+              ((eng_get_param((uint32_t)mod, STEPS_P_LEN) + 32768) >> 16) == 32 && eng_transport_running() && seq_rec == 0 && !ft_on);
+        check("  its notes where they were played: F3 on step 1, C4 on step 9 a 1/4 step late", nn == 2 && (w[0] & 63u) == 0u &&
+              ((w[0] >> 12) & 127u) == base && (w[1] & 63u) == 8u && ((w[1] >> 12) & 127u) == base + 7u &&
+              eng_steps_note_tim((uint32_t)mod, 0, base) >= 0 && ENG_TM_OFF((uint32_t)eng_steps_note_tim((uint32_t)mod, 0, base)) <= 1u &&
+              ENG_TM_OFF((uint32_t)eng_steps_note_tim((uint32_t)mod, 8, base + 7u)) >= 15u && ENG_TM_OFF((uint32_t)eng_steps_note_tim((uint32_t)mod, 8, base + 7u)) <= 17u);
+        tap(BTN_PLAY);
+        rec_undo();
+        check("  undo: the empty pattern, its steps and the tempo as before", eng_steps_notes((uint32_t)mod, &w) == 0 &&
+              ((eng_get_param((uint32_t)mm, FM1_P_TEMPO) + 32768) >> 16) == 120 && ((eng_get_param((uint32_t)mod, STEPS_P_LEN) + 32768) >> 16) == 16);
+        /* the REC settings: the knobs while REC waits, kept in the settings record */
+        cfg.rec_free = 0;
+        tap(BTN_REC);
+        enc(5, 1);                                          /* K4: QUANTIZE on */
+        enc(2, 1);                                          /* K1: MODE FREE */
+        check("REC waiting: K4 QUANTIZE, K1 MODE (not the page's rows)", cfg.rec_quant == 1 && cfg.rec_free == 1 && cfg_dirty);
+        tap(BTN_REC);
+        cfg.click = cfg_keep[0]; cfg.click_lvl = cfg_keep[1]; cfg.rec_free = cfg_keep[2]; cfg.rec_bars = cfg_keep[3]; cfg.rec_count = cfg_keep[4]; cfg.rec_quant = cfg_keep[5];
+        cfg_dirty = 0;
+        octave = oct_keep;
+        eng_arm_mask(0);
+        for (i = 0; i < klen; i++)
+            pv_bin[i] = keep[i];
+        pv_len = klen;
+        pv_gen++;
+        (void)eng_load(pv_bin, pv_len);
+    }
+
     {                                                       /* KITTEN RACK: patching on the rack (EDIT) */
         static uint8_t orig[4096], before[4096];
         uint32_t blen = pv_len, olen, nm, nc, i, muug = 0, last, from, fp, to, tp;

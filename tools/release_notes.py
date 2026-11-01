@@ -4,10 +4,10 @@
 import os
 
 v = os.environ.get("V", "X.Y.Z")
-print(f"""**New in 1.1 · Nuevo en 1.1**
-- **Change patch, keep the sequence / Cambiá de patch y la secuencia sigue:** a patch with no sequence of its own takes the one playing, to try sounds over it (SAVE stores it). Un patch sin secuencia propia se queda con la que suena, para probar sonidos (SAVE la guarda).
-- **MIDI LEARN** in the editor: click a knob, move a control of your controller. The map is saved in the patch and, with AL FM-1, in the FM-1: it answers the controller over USB or TRS with no computer. MIDI presets by name. En el editor: clic en una perilla, mové un control de tu controlador. El mapa queda en el patch y, con AL FM-1, en el FM-1: responde por USB o TRS sin compu. Mapas MIDI con nombre.
-- Name written as **Kitten Rack** / El nombre ahora es **Kitten Rack**.
+print(f"""**New in 1.2 · Nuevo en 1.2**
+- **Live takes as played / Grabación tal cual la tocás:** QUANTIZE OFF (default) keeps each note's timing within its step, and where you let it go; fix it on SEQ (step held + ALGO), or QUANTIZE the pattern (SEQ held + OCT-). CUANTIZAR en OFF (de fábrica) guarda el tiempo de cada nota dentro de su paso y dónde la soltaste; se corrige en SEQ (paso sostenido + ALGO) o se cuantiza el patrón (SEQ sostenido + OCT-).
+- **REC as on SLOOP / REC como en SLOOP:** REC waiting, K1-K4: MODE GRID / FREE (the tempo follows you: REC on the "1" after the last bar), LENGTH 1/2/4 bars, START first note / count-in, QUANTIZE. Esperando, K1-K4: MODO GRILLA / LIBRE (el tempo te sigue: REC en el "1" después del último compás), LARGO 1/2/4 compases, INICIO primera nota / cuenta, CUANTIZAR.
+- **Click** OFF / REC / ON (MENU > REC), never in the USB audio. **Undo** the take: REC held + OCT-. **Tap tempo**: PLAY held + REC taps. Click OFF / REC / ON (MENÚ > REC), nunca va al audio USB. Deshacer la toma: REC sostenido + OCT-. Tap tempo: PLAY sostenido + toques de REC.
 
 **English:** download `KittenRack-instalador-{v}.zip`, unzip it and open `KittenRack.pyw` (double click): it installs the firmware and opens the offline and online editor (`README.txt` inside). Back up your data first.
 Try it in the browser: https://blackkittendevices.github.io/kitten-rack/play.html · Manual: https://github.com/BlackKittenDevices/kitten-rack#readme

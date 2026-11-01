@@ -25,6 +25,7 @@ static void midi_sus_release(void)
     for (k = 0; k < 128u; k++)
         if (midi_sus_held[k]) {
             eng_note_off(k, midi_sus_held[k]);
+            kr_rec_note(k, 0);                      /* (KITTEN RACK: a free take sees it let go) */
             midi_sus_held[k] = 0;
         }
 }
@@ -88,14 +89,17 @@ static void midi_drain_mode(int quick)
             if (st == 0x90u && v) {
                 if (midi_sus_held[n]) {                 /* a held note struck again starts afresh */
                     eng_note_off(n, midi_sus_held[n]);
+                    kr_rec_note(n, 0);
                     midi_sus_held[n] = 0;
                 }
-                kr_rec_note();                          /* (KITTEN RACK: REC waiting: this note starts the take) */
+                kr_rec_note(n, v);                      /* (KITTEN RACK: REC waiting: this note starts the take; a free take) */
                 eng_note_on(n, (int32_t)(v * 65536u / 127u), chn);
             } else if (midi_sus_on && (!cfg.ch || cfg.ch == chn))
                 midi_sus_held[n] = (uint8_t)chn;        /* the pedal holds it */
-            else
+            else {
                 eng_note_off(n, chn);
+                kr_rec_note(n, 0);
+            }
         } else if (st == 0xB0u && kr_cc_map(chn, n, v)) {   /* KITTEN RACK: a CC the patch's MIDI map assigns (MIDI LEARN) */
         } else if (!cfg.ch || cfg.ch == chn) {  /* other channel messages on the MIDI channel (MENU > MIDI CHANNEL; 0 = all) */
             if (st == 0xB0u && (n == 123u || n == 120u)) {   /* all notes off, all sound off */

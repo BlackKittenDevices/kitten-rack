@@ -320,21 +320,25 @@ static void m1_arms_now(uint32_t lo, uint32_t hi) { (void)lo; (void)hi; }   /* (
 /* unasked: a track's notes after an edit on the panel (the editor follows): module, n, n u32 LE */
 static void m1_track_now(uint32_t mod)
 {
-    static uint8_t f[8u + (8u * (3u + 4u * TRACK_NOTES_MAX) + 6u) / 7u];
+    static uint8_t f[8u + (8u * (3u + 6u * TRACK_NOTES_MAX) + 6u) / 7u] ENG_POOL;
     const uint32_t *w;
-    int n = eng_steps_notes(mod, &w);
+    const uint16_t *tw;
+    int n = eng_steps_notes(mod, &w), any = 0, i;
     uint32_t o = 0, k, len, acc = 0, nb = 0;
-    if (n < 0)
+    if (n < 0 || eng_steps_tims(mod, &tw) != n)
         return;
+    for (i = 0; i < n; i++)
+        any |= tw[i];
     f[o++] = 0xF0;
     f[o++] = 0x7D;
     f[o++] = 0x4D;
     f[o++] = 0x31;
     f[o++] = R_TRACK;
     len = 3u + 4u * (uint32_t)n;
-    for (k = 0; k < len; k++) {   /* m1_pack7 of the payload, a byte at a time from the engine's words (no 514 B copy); last
-                                   * the pattern they are (format 48: the one the track plays) */
-        uint32_t b = k == 0u ? mod & 255u : k == 1u ? (uint32_t)n & 255u : k == len - 1u ? (uint32_t)eng_pattern_playing(mod) & 255u : (w[(k - 2u) >> 2] >> (8u * ((k - 2u) & 3u))) & 255u;
+    for (k = 0; k < len + (any ? 2u * (uint32_t)n : 0u); k++) {   /* m1_pack7 of the payload, a byte at a time from the engine's
+                                   * words (no 514 B copy); then the pattern they are (format 48: the one the track plays);
+                                   * KITTEN RACK: then, when any note is off the grid, n u16 their timing */
+        uint32_t b = k >= len ? (uint32_t)(tw[(k - len) >> 1] >> (8u * ((k - len) & 1u))) & 255u : k == 0u ? mod & 255u : k == 1u ? (uint32_t)n & 255u : k == len - 1u ? (uint32_t)eng_pattern_playing(mod) & 255u : (w[(k - 2u) >> 2] >> (8u * ((k - 2u) & 3u))) & 255u;
         acc |= b << nb;
         nb += 8u;
         while (nb >= 7u) {
@@ -414,10 +418,20 @@ static uint32_t m1_devices_at(void)
 }
 
 /* the offset of the macro range section (its count byte) in the current patch, 0 if the patch has none */
+static uint32_t m1_range_place(void);
 static uint32_t m1_range_section(void)
 {
     uint32_t at;
-    if (!(m1_cur[6] & 2u) || !(at = m1_notes_at()))
+    if (!(m1_cur[6] & 2u))
+        return 0;
+    at = m1_range_place();
+    return at < m1_cur_len ? at : 0;
+}
+/* where the macro ranges section starts, or goes (before the MIDI map and the timing, KITTEN RACK), 0 if malformed */
+static uint32_t m1_range_place(void)
+{
+    uint32_t at;
+    if (!(at = m1_notes_at()))
         return 0;
     if (!(at = eng_steps_end(m1_cur, m1_cur_len, at)))
         return 0;
@@ -429,7 +443,7 @@ static uint32_t m1_range_section(void)
         return 0;
     if ((m1_cur[6] & 128u) && !(at = eng_names_end(m1_cur, m1_cur_len, at)))    /* then the Drum maps' row names */
         return 0;
-    return at < m1_cur_len ? at : 0;
+    return at <= m1_cur_len ? at : 0;
 }
 
 /* `old` bytes at `at` of the current patch become `len` bytes (to be written): what follows moves */
@@ -527,6 +541,7 @@ static int m1_preset_name(uint32_t dev, const char *name)
  * added in module order or removed; the section created or dropped; what follows (device pages, button kinds, macro
  * ranges) moves. A patch that would outgrow M1_PATCH_MAX keeps its old entry. */
 static void m1_patch_patterns(void);
+static void m1_patch_timing(void);
 static void m1_patch_track(uint32_t mod)
 {
     const uint32_t *w;
@@ -569,7 +584,7 @@ static void m1_patch_track(uint32_t mod)
         m1_splice(sec, 1u, 0);
         m1_cur[6] &= (uint8_t)~16u;
     }
-    m1_edited = 1;
+    m1_edited = 1;    m1_patch_timing();                               /* (KITTEN RACK: the notes' timing follows) */
 }
 
 /* the patterns and songs as the engine has them into the binary (format 48, SAVE keeps them): the section replaced, made or
@@ -593,6 +608,7 @@ static void m1_patch_patterns(void)
     (void)eng_patterns_record(m1_cur + sec, (uint32_t)n);
     m1_cur[7] = (uint8_t)(n ? m1_cur[7] | ENG_FLAG_PATTERNS : m1_cur[7] & ~ENG_FLAG_PATTERNS);
     m1_edited = 1;
+    m1_patch_timing();
 }
 
 /* unasked: the patch's pattern and song as the FM-1 chose them (PRESET on the SEQ page, the SONG page; the editor follows) */
@@ -626,17 +642,17 @@ static void m1_song_now(uint32_t s)
     m1_send(f, w);
 }
 
-/* the stored copy follows a macro range edit: update, append or remove the entry (the section is last in the binary) */
+/* the stored copy follows a macro range edit: update, append or remove the entry (KITTEN RACK: the MIDI map and the notes'
+ * timing follow the section, so it moves them along) */
 static void m1_patch_range(uint32_t mod, uint32_t pin, uint32_t par, int on, uint32_t lo, uint32_t hi)
 {
     uint32_t sec = m1_range_section(), i, n, at;
     if (!sec) {
-        if (!on || m1_cur_len + 6u > M1_PATCH_MAX || m1_cur_len < 8u)
+        if (!on || m1_cur_len + 6u > M1_PATCH_MAX || m1_cur_len < 8u || !(sec = m1_range_place()))
             return;
-        sec = m1_cur_len;
+        m1_splice(sec, 0, 1u);
         m1_cur[6] |= 2u;
         m1_cur[sec] = 0;
-        m1_cur_len = sec + 1u;
     }
     n = m1_cur[sec];
     for (i = 0, at = sec + 1u; i < n; i++, at += 5)
@@ -647,20 +663,25 @@ static void m1_patch_range(uint32_t mod, uint32_t pin, uint32_t par, int on, uin
         for (k = 0; k < 5u; k++)
             m1_cur[at + k] = m1_cur[last + k];
         m1_cur[sec] = (uint8_t)(n - 1u);
-        m1_cur_len = last;
+        m1_splice(last, 5u, 0);
         if (n == 1u) {                                          /* the section is empty: drop it */
             m1_cur[6] &= (uint8_t)~2u;
-            m1_cur_len = sec;
+            m1_splice(sec, 1u, 0);
         }
         return;
     }
-    if (!on)
+    if (!on) {
+        if (!n) {                                               /* (made for nothing: gone again) */
+            m1_cur[6] &= (uint8_t)~2u;
+            m1_splice(sec, 1u, 0);
+        }
         return;
+    }
     if (i == n) {
         if (m1_cur_len + 5u > M1_PATCH_MAX || n >= 255u)
             return;
         m1_cur[sec] = (uint8_t)(n + 1u);
-        m1_cur_len += 5u;
+        m1_splice(at, 0, 5u);
     }
     m1_cur[at] = (uint8_t)mod;
     m1_cur[at + 1] = (uint8_t)pin;
@@ -669,10 +690,61 @@ static void m1_patch_range(uint32_t mod, uint32_t pin, uint32_t par, int on, uin
     m1_cur[at + 4] = (uint8_t)hi;
 }
 
+/* KITTEN RACK: the notes' timing as the engine has it into the binary (its last section, ENG_FLAG_TIMING): a slice for
+ * each pattern with a note off the grid; none: no section. One that would outgrow M1_PATCH_MAX keeps the old one (a slice
+ * whose count no longer matches is ignored by eng_load) */
+static void m1_patch_timing(void)
+{
+    uint32_t tim = 0, old, mod, nm, pp, need = 0, nb = 0, at, j;
+    const uint16_t *tw;
+    if (m1_cur_len < 8u || m1_check_at(m1_cur, m1_cur_len, &tim) || !tim)
+        return;
+    old = m1_cur_len - tim;
+    nm = m1_cur[2];
+    for (mod = 0; mod < nm; mod++)
+        for (pp = 0; pp < ENG_PATTERNS; pp++) {
+            int n = eng_pattern_has(mod, pp) ? eng_pattern_tims(mod, pp, &tw) : -1;
+            uint32_t any = 0;
+            for (j = 0; n > 0 && j < (uint32_t)n; j++)
+                any |= tw[j];
+            if (any && nb < 255u) {
+                need += 3u + 2u * (uint32_t)n;
+                nb++;
+            }
+        }
+    need = nb ? need + 1u : 0u;
+    if (m1_cur_len - old + need > M1_PATCH_MAX || (!need && !old))
+        return;
+    m1_splice(tim, old, need);
+    m1_cur[7] = (uint8_t)(need ? m1_cur[7] | ENG_FLAG_TIMING : m1_cur[7] & ~ENG_FLAG_TIMING);
+    m1_edited = 1;
+    if (!need)
+        return;
+    at = tim;
+    m1_cur[at++] = (uint8_t)nb;
+    for (mod = 0, nb = 0; mod < nm; mod++)
+        for (pp = 0; pp < ENG_PATTERNS; pp++) {
+            int n = eng_pattern_has(mod, pp) ? eng_pattern_tims(mod, pp, &tw) : -1;
+            uint32_t any = 0;
+            for (j = 0; n > 0 && j < (uint32_t)n; j++)
+                any |= tw[j];
+            if (!any || at + 3u + 2u * (uint32_t)n > tim + need)
+                continue;
+            m1_cur[at] = (uint8_t)mod;
+            m1_cur[at + 1u] = (uint8_t)pp;
+            m1_cur[at + 2u] = (uint8_t)n;
+            for (j = 0; j < (uint32_t)n; j++) {
+                m1_cur[at + 3u + 2u * j] = (uint8_t)tw[j];
+                m1_cur[at + 4u + 2u * j] = (uint8_t)(tw[j] >> 8);
+            }
+            at += 3u + 2u * (uint32_t)n;
+        }
+}
+
 /* f: the bytes between F0 and F7. Returns 1 if the frame was ours (and is consumed). */
 static int m1_handle(const uint8_t *f, uint32_t n)
 {
-    uint8_t d[2u + 4u * TRACK_NOTES_MAX + 8u];         /* (the largest frame: TRACK) */
+    static uint8_t d[3u + 6u * TRACK_NOTES_MAX + 8u] ENG_POOL;   /* (the largest frame: TRACK, with its timing) */
     uint32_t len;
     if (n < 4u || f[0] != 0x7D || f[1] != 0x4D || f[2] != 0x31)
         return 0;
@@ -844,7 +916,14 @@ static int m1_handle(const uint8_t *f, uint32_t n)
             int pat = len >= 3u + 4u * d[1] ? d[2u + 4u * d[1]] : eng_pattern_playing(d[0]);
             for (i = 0; i < n; i++)
                 w[i] = (uint32_t)d[2 + 4 * i] | (uint32_t)d[3 + 4 * i] << 8 | (uint32_t)d[4 + 4 * i] << 16 | (uint32_t)d[5 + 4 * i] << 24;
-            if (pat >= 0 && eng_pattern_set_notes(d[0], (uint32_t)pat, w, n))
+            if (len >= 3u + 6u * d[1] && n == d[1]) {      /* KITTEN RACK: then n u16, the notes' timing */
+                uint16_t tw[TRACK_NOTES_MAX];
+                const uint8_t *q = d + 3u + 4u * n;
+                for (i = 0; i < n; i++)
+                    tw[i] = (uint16_t)(q[2u * i] | (uint32_t)q[2u * i + 1u] << 8);
+                if (pat >= 0 && eng_pattern_set_notes_tim(d[0], (uint32_t)pat, w, tw, n))
+                    m1_patch_track(d[0]);
+            } else if (pat >= 0 && eng_pattern_set_notes(d[0], (uint32_t)pat, w, n))
                 m1_patch_track(d[0]);
             m1_ui_changed();
         }

@@ -445,6 +445,91 @@ static int patterns_test(const char *kit_path, const char *song_path)
     return 0;
 }
 
+/* KITTEN RACK: the notes' timing (ENG_FLAG_TIMING, the last section) on the FM-1: the steps-timing kit as the encoder wrote
+ * it, kept through step edits (and a pitch moved), the binary's section following the engine, the editor's TRACK with timing,
+ * TRACK_NOW sending it, QUANTIZE dropping the section, a macro range added before it, a truncated section refused */
+static uint32_t tim_section(void)
+{
+    uint32_t at = 0;
+    return m1_check_at(m1_cur, m1_cur_len, &at) == 0 && (m1_cur[7] & ENG_FLAG_TIMING) ? at : 0u;
+}
+static int timing_test(const char *path)
+{
+    static uint8_t keep[M1_PATCH_MAX];
+    long nk;
+    uint8_t *kit = slurp(path, &nk), pl[3u + 6u * 4u];
+    const uint32_t *w;
+    const uint16_t *tw;
+    uint32_t t0, i, sec, klen;
+    int n;
+    CHECK((kit[7] & ENG_FLAG_TIMING) && m1_valid(kit, (uint32_t)nk) && !m1_valid(kit, (uint32_t)nk - 1u));
+    m1_set_current(kit, (uint32_t)nk);
+    CHECK(eng_load(m1_cur, m1_cur_len) == 0);
+    t0 = (uint32_t)eng_steps_module(0);
+    n = eng_pattern_tims(t0, 0, &tw);
+    CHECK(n == 8 && tw[0] == (10u | 40u << 6 | ENG_TM_END) && tw[4] == 0u && tw[6] == (63u << 6 | ENG_TM_END) && tw[7] == 32u);
+    CHECK(eng_steps_note_tim(t0, 3, 67) == (int)(20u | 30u << 6 | ENG_TM_END) && eng_steps_note_tim(t0, 5, 60) == -1);
+    sec = tim_section();
+    CHECK(sec && m1_cur_len - sec == 1u + 3u + 2u * 8u);
+    /* a step edit elsewhere: the timing stays with its notes, the section follows (one note more) */
+    m1_patch_step(t0, 13, 1u);
+    CHECK(eng_pattern_tims(t0, 0, &tw) == 9 && eng_steps_note_tim(t0, 3, 67) == (int)(20u | 30u << 6 | ENG_TM_END));
+    CHECK((sec = tim_section()) && m1_cur_len - sec == 1u + 3u + 2u * 9u && m1_valid(m1_cur, m1_cur_len));
+    memcpy(keep, m1_cur, m1_cur_len);
+    klen = m1_cur_len;
+    CHECK(eng_load(keep, klen) == 0 && eng_steps_note_tim(t0, 0, 60) == (int)(10u | 40u << 6 | ENG_TM_END));   /* (a reload: SAVE's) */
+    /* a pitch moved (K1 on the step): the note keeps its timing */
+    m1_patch_stepval(t0, 0, 62, 100);
+    CHECK(eng_steps_note_tim(t0, 0, 62) == (int)(10u | 40u << 6 | ENG_TM_END));
+    /* TRACK_NOW: the timing after the pattern byte */
+    nreplies = 0;
+    m1_track_now(t0);
+    CHECK(nreplies == 1);
+    {
+        uint8_t got[3u + 6u * TRACK_NOTES_MAX];
+        uint32_t len = m1_unpack7(replies[0] + 5, reply_len[0] - 6u, got, sizeof got);
+        n = eng_steps_notes(t0, &w);
+        CHECK(len == 3u + 6u * (uint32_t)n && got[3u + 4u * (uint32_t)n] == (uint8_t)(10u | 40u << 6) && got[4u + 4u * (uint32_t)n] == (uint8_t)((10u | 40u << 6 | ENG_TM_END) >> 8));
+    }
+    /* the editor's TRACK with timing: two notes, the second late */
+    pl[0] = (uint8_t)t0;
+    pl[1] = 2;
+    pl[2] = 0x40; pl[3] = 0xC0; pl[4] = 0xFB; pl[5] = 0x03;    /* note 60 at step 0, 2 steps */
+    pl[6] = 0x04; pl[7] = 0x30; pl[8] = 0x24; pl[9] = 0x03;    /* note 67 at step 4 */
+    pl[10] = 0;
+    pl[11] = 0; pl[12] = 0;
+    pl[13] = 17; pl[14] = 0x10;                                /* off 17, an end at 0 */
+    CHECK(send_frame(C_TRACK, pl, 15u) == 1);
+    CHECK(eng_pattern_tims(t0, 0, &tw) == 2 && tw[0] == 0u && tw[1] == (17u | ENG_TM_END));
+    CHECK((sec = tim_section()) && m1_cur_len - sec == 1u + 3u + 2u * 2u);
+    /* QUANTIZE: on the grid, the section gone; the late note (17 / 64) stays on its step */
+    CHECK(eng_steps_quantize(t0) == 1);
+    m1_patch_notes(t0);
+    CHECK(!(m1_cur[7] & ENG_FLAG_TIMING) && m1_valid(m1_cur, m1_cur_len) && eng_steps_note_tim(t0, 4, 67) == 0 && eng_steps_quantize(t0) == 0);
+    /* past half a step: to the next one */
+    eng_steps_note_tim_set(t0, 4, 67, 40u);
+    CHECK(eng_steps_quantize(t0) == 1 && eng_steps_note_tim(t0, 5, 67) == 0 && eng_steps_note_tim(t0, 4, 67) == -1);
+    /* a macro range added after the timing came back: it goes before the MIDI map and the timing */
+    eng_steps_note_tim_set(t0, 0, 60, 5u);
+    m1_patch_notes(t0);
+    CHECK(tim_section());
+    m1_patch_range(0, 0, 0, 1, 10, 200);
+    CHECK(m1_valid(m1_cur, m1_cur_len) && (m1_cur[6] & 2u) && tim_section() && eng_load(m1_cur, m1_cur_len) == 0 && eng_steps_note_tim(t0, 0, 60) == 5);
+    m1_patch_range(0, 0, 0, 0, 0, 0);
+    CHECK(m1_valid(m1_cur, m1_cur_len) && !(m1_cur[6] & 2u) && tim_section());
+    /* a cut section is refused; one that names nothing matching is ignored */
+    CHECK(!m1_valid(m1_cur, m1_cur_len - 1u));
+    sec = tim_section();
+    m1_cur[sec + 3u] = 7;                                      /* (its count no longer the slice's) */
+    m1_cur_len = sec + 4u + 2u * 7u;
+    for (i = sec + 4u; i < m1_cur_len; i++)
+        m1_cur[i] = 1;
+    CHECK(m1_valid(m1_cur, m1_cur_len) && eng_load(m1_cur, m1_cur_len) == 0 && eng_steps_note_tim(t0, 0, 60) == 0);
+    free(kit);
+    printf("timing ok\n");
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     if (argc >= 2 && !strcmp(argv[1], "--old"))
@@ -790,6 +875,8 @@ int main(int argc, char **argv)
         printf("track notes ok\n");
     }
     if (argc > 13 && patterns_test(argv[12], argv[13]))         /* format 48: the patterns and songs */
+        return 1;
+    if (argc > 14 && timing_test(argv[14]))                     /* KITTEN RACK: the notes' timing */
         return 1;
     {   /* the presets (#195): PUT, PRESETS, GET, DEL, the full store, PRESET_STORED */
         uint8_t pl[4 + 16 + 1 + 4 * 88], fr[8 + (8 * sizeof pl + 6) / 7], got[sizeof pl];

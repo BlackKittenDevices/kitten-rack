@@ -657,6 +657,25 @@ static int pe_module_del(uint8_t *p, uint32_t *len, uint32_t k)
         }
         p[cw] = (uint8_t)kept;
     }
+    if (p[7] & ENG_FLAG_TIMING) {                       /* KITTEN RACK: the notes' timing: module, pattern, n, n u16 */
+        uint32_t nb = p[r++], cw = w++, kept = 0, b, n;
+        for (b = 0; b < nb; b++) {
+            n = p[r + 2u];
+            if (p[r] == k) {
+                r += 3u + 2u * n;
+                continue;
+            }
+            p[w] = (uint8_t)pe_ren(p[r], k);
+            p[w + 1u] = p[r + 1u];
+            p[w + 2u] = (uint8_t)n;
+            for (i = 0; i < 2u * n; i++)
+                p[w + 3u + i] = p[r + 3u + i];
+            w += 3u + 2u * n;
+            r += 3u + 2u * n;
+            kept++;
+        }
+        p[cw] = (uint8_t)kept;
+    }
 #undef PE_CP
     if (r != *len)
         return -1;                                      /* (cannot happen with a binary that walks: the caller's copy is lost) */

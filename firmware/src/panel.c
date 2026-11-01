@@ -419,15 +419,46 @@ static void page_hold_poll(void)
 }
 
 static void play_toggle(void);
-/* KITTEN RACK: a note while REC waits (kr_rec_press): the transport starts, so the take begins on this note */
-static void kr_rec_note(void)
+/* KITTEN RACK: a note played or let go (vel 0) while REC is on (seq_ui.c rec_note): waiting, it starts the take (or a free
+ * take); a free take keeps them */
+static void kr_rec_note(uint32_t note, uint32_t vel)
 {
-    if (!seq_rec_wait)
+    if (seq_rec)
+        rec_note(note, vel);
+}
+
+/* KITTEN RACK: PLAY held + REC tapped: the tempo from the taps (two or more, each within 2 s of the last: the mean of the
+ * last three gaps) */
+static void tap_tempo(void)
+{
+    static uint32_t taps[4];
+    static uint8_t n;
+    int main_mod = eng_find(T_FM1);
+    char m[24];
+    if (main_mod < 0)
         return;
-    seq_rec_wait = 0;
-    if (!eng_transport_running())
-        play_toggle();
-    ui_msg("REC", 800);
+    if (eng_clock_is_external()) {
+        ui_msg("TEMPO: MIDI CLOCK", 1000);
+        return;
+    }
+    if (n && fm1_ms - taps[(n - 1u) & 3u] > 2000u)
+        n = 0;
+    taps[n & 3u] = fm1_ms;
+    n = (uint8_t)(n < 200u ? n + 1u : 4u + (n & 3u));
+    if (n < 2u) {
+        ui_msg(LG("TAP AGAIN", "TAP OTRA VEZ"), 1200);
+        return;
+    }
+    {
+        uint32_t k = n - 1u, gaps = k < 3u ? k : 3u, span = taps[k & 3u] - taps[(k - gaps) & 3u];
+        int32_t bpm = span ? (int32_t)((60000u * gaps + span / 2u) / span) : 120;
+        bpm = clampi(bpm, 20, 300);
+        seq_knob_set((uint32_t)main_mod, FM1_P_TEMPO, bpm << 16);
+        fmt_int(put(m, "TAP "), bpm);
+        put(m + str_len(m), " BPM")[0] = 0;
+        ui_msg(m, 1200);
+        ui_dirty = ui_dirty ? ui_dirty : 1;
+    }
 }
 
 static void play_toggle(void)                       /* PLAY: the transport (the Main module's run output and clock) */
@@ -451,6 +482,8 @@ static void panel_encoders(int32_t *st)
     for (k = 0; k < 7u; k++)                        /* a turn while the track's clear asks: not cleared (#231) */
         if (st[k])
             seq_clear_cancel();
+    if (page != PAGE_MENU && rec_knobs(st))         /* KITTEN RACK: REC waiting: K1..K4 the take's settings (seq_ui.c) */
+        ui_dirty = ui_dirty ? ui_dirty : 1;
     if (page == PAGE_SAVE) {                        /* KITTEN RACK: the SAVE page: SELECT / ALGO the slot */
         save_turn(st[0] + st[1]);
         return;
@@ -526,6 +559,8 @@ static void panel_encoders(int32_t *st)
         int roll = seq_module() >= 0 && seq_map() < 0;
         if (st[1] && roll && seq_held < 0)           /* KITTEN RACK: the roll: ALGO moves the step cursor (seq_cursor_step) */
             seq_cursor_step(st[1]);
+        else if (st[1] && roll)                      /* KITTEN RACK: a step held on the roll: ALGO its note's timing (seq_nudge) */
+            seq_nudge(st[1]);
         else if (st[1] && eng_steps_count())
             seq_select((uint32_t)((seq_trk + (uint32_t)eng_steps_count() * 8u + (uint32_t)st[1]) % (uint32_t)eng_steps_count()));
         st[1] = 0;
@@ -695,7 +730,7 @@ static int panel_key(uint32_t n, int down, int quick)
             : eng_drummap_repeat((uint32_t)map) ? key_note[n] : KEY_SILENT;
         key_sounding |= bit;
         if (key_eng[n] != KEY_SILENT)
-            kr_rec_note();
+            kr_rec_note(key_eng[n], vel);
         if (key_eng[n] != KEY_SILENT)
             eng_note_on(key_eng[n], vel == 127u ? ENG_ONE : (int32_t)((vel << 16) / 127u), cfg.ch ? cfg.ch : 1u);   /* the panel plays on the device's channel */
         if (key_eng[n] != KEY_SILENT)
@@ -706,6 +741,8 @@ static int panel_key(uint32_t n, int down, int quick)
         key_sounding &= ~bit;
         if (key_eng[n] != KEY_SILENT)
             eng_note_off(key_eng[n], cfg.ch ? cfg.ch : 1u);
+        if (key_eng[n] != KEY_SILENT)
+            kr_rec_note(key_eng[n], 0);
         if (key_eng[n] != KEY_SILENT)
             midi_send(0x80u, key_eng[n], 0u);
         if (seq_kbd())
@@ -791,6 +828,23 @@ static void panel_edges(uint32_t p, uint32_t rel)
                                                      * the FM-1's own (OCT, HOME, PLAY, GLO) */
         p &= SB_OWN_BTNS;
         rel &= SB_OWN_BTNS;
+    }
+    if ((p & (1u << BTN_REC)) && (panel_held >> BTN_PLAY & 1u)) {   /* KITTEN RACK: PLAY held + REC: tap tempo */
+        tap_tempo();
+        rec_held_used = 1;
+        play_turned = 1;
+        p &= ~(1u << BTN_REC);
+    }
+    if ((p & (1u << BTN_OCT_DOWN)) && (panel_held >> BTN_REC & 1u) && !sb_on) {   /* KITTEN RACK: REC held + OCT-: undo the take */
+        rec_undo();
+        rec_held_used = 1;
+        rec_down_ms = 0;
+        p &= ~(1u << BTN_OCT_DOWN);
+    }
+    if ((p & (1u << BTN_OCT_DOWN)) && (panel_held >> BTN_SEQ & 1u) && !sb_on) {   /* KITTEN RACK: SEQ held + OCT-: quantize */
+        rec_quantize();
+        seq_held_used = 1;
+        p &= ~(1u << BTN_OCT_DOWN);
     }
     if ((p & ~(1u << BTN_REC)) || (rel & (1u << BTN_SEQ)))   /* the track's clear asks: another button, or SEQ let go, */
         seq_clear_cancel();                                   /* and it is not cleared (#231) */
@@ -943,7 +997,7 @@ static void panel_edges(uint32_t p, uint32_t rel)
     }
     if (p & (1u << BTN_PLAY))                       /* PLAY acts on release, unless PRESET turned the tempo meanwhile */
         play_turned = 0;
-    if ((rel & (1u << BTN_PLAY)) && !play_turned)
+    if ((rel & (1u << BTN_PLAY)) && !play_turned && !rec_play())   /* (KITTEN RACK: REC's count-in, a free take) */
         play_toggle();
 }
 
@@ -975,6 +1029,21 @@ static void panel_status(void)
         if (page == 0 && !knob_touched)
             ui_msg(m, 1000);
         knob_touched = button_touched = 0;
+    }
+    {                                               /* KITTEN RACK: PLAY's light flashes on every beat (and a count-in's) */
+        static uint32_t beats_seen, flash_ms;
+        uint32_t b = eng_beats();
+        if (b != beats_seen) {
+            beats_seen = b;
+            if (eng_transport_running() || eng_count_left()) {
+                fm1_led_breath[8] &= (uint8_t)~2u;
+                fm1_led[8] |= 2u;
+                flash_ms = fm1_ms | 1u;
+            }
+        } else if (flash_ms && fm1_ms - (flash_ms & ~1u) >= 70u) {
+            flash_ms = 0;
+            leds_play();
+        }
     }
     {                                               /* the beat on the player screen while the transport runs */
         static uint32_t beat_seen;

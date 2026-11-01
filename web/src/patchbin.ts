@@ -70,7 +70,7 @@
 import { DEFS, DRUM_ROWS, drumRowName, PANEL_BUTTONS } from './modules';
 import { KIND_CODE, kindOf, mainOf, switches, toggleEngaged, toggleTargets } from './buttons';
 import { EDITOR_ONLY, flawOf, hasMorph, MAX_MODULES, MAX_PARTS, PANEL_LABEL_KEYS, PANEL_LABEL_MAX, panelLabel, SOURCES, TRACK_NAME_MAX, trackName, type ParamDef, type Patch } from './patch';
-import { isShortNote, noteWord, shortWord, type StepNote } from './track';
+import { isShortNote, noteTiming, noteWord, shortWord, type StepNote } from './track';
 import { deviceView, keysInto, MAX_POLY, type DeviceGroup } from './poly';
 import { devicesOf, NAME_MAX, type Device } from './pages';
 import { allModules, assemblyById, ROW_NAMES_MAX } from './assembly';
@@ -184,6 +184,26 @@ export const FLAG_PATTERNS = 1024;
  * module index, parameter index per entry (engine.c ENG_FLAG_MIDIMAP). Written only when the patch has one; it keeps the
  * format number (a firmware without it refuses the flag: patch_check.h) */
 export const FLAG_MIDIMAP = 2048;
+/** KITTEN RACK: the notes' timing (flag bit 12 = p[7] bit 4, the last section; engine.c ENG_FLAG_TIMING): u8 count, then
+ * per slice with a note off the grid u8 module index, u8 pattern (0: the notes section's, k: pattern k + 1), u8 n, n u16
+ * LE (track.ts noteTiming), in the order the notes are written. Written only when a note is off the grid */
+export const FLAG_TIMING = 4096;
+/** the timing section's bytes after its count, and the count, of a device form patch */
+export function timingRecord(p: Patch): { count: number; bytes: number[] } {
+  const bytes: number[] = [];
+  let count = 0;
+  p.modules.forEach((m, i) => {
+    if (m.type !== 'steps') return;
+    const slices: (readonly StepNote[] | undefined)[] = [m.notes, ...(m.patterns ?? []).map((x) => x?.notes)];
+    slices.forEach((notes, k) => {
+      if (!notes?.length || !notes.some((n) => noteTiming(n)) || count >= 255) return;
+      count++;
+      bytes.push(i, k, notes.length);
+      for (const n of notes) { const t = noteTiming(n); bytes.push(t & 0xff, t >> 8); }
+    });
+  });
+  return { count, bytes };
+}
 /** a pattern's words are short ones (track.ts shortWord): every note fits one */
 export const shortPattern = (notes: readonly StepNote[] | undefined): boolean => (notes ?? []).every(isShortNote);
 
@@ -398,6 +418,8 @@ function sizeOf(p: Patch, dg: DeviceGroup[], devs: Device[], source?: Patch): nu
   if (maps) size += 1 + maps * (1 + DRUM_ROWS * TRACK_NAME_MAX);
   const mm = source ? midiMapList(source, p).length : 0;
   if (mm) size += 1 + 4 * mm;
+  const tm = timingRecord(p);
+  if (tm.count) size += 1 + tm.bytes.length;
   return size + devicesSize(devs, p, source);
 }
 
@@ -420,6 +442,7 @@ export function encodePatch(source: Patch, anyway = false): Uint8Array {
   const kinds = buttonRecord(source, p);
   const pats = patternRecord(source, p);
   const mmap = midiMapList(source, p);
+  const tm = timingRecord(p);
   const size = sizeOf(p, groups, devs, source) + kinds.length;
   const ver = formatOf(source, p);
   const out = new Uint8Array(size);
@@ -429,7 +452,7 @@ export function encodePatch(source: Patch, anyway = false): Uint8Array {
   out[2] = p.modules.length;
   out[3] = groups.length;
   dv.setUint16(4, p.cables.length, true);
-  dv.setUint16(6, (morph ? FLAG_MORPH | FLAG_MORPH_MODULES : 0) | (ranges.length ? FLAG_RANGE : 0) | (routes.length ? FLAG_INPUT_MAP : 0) | (valued.length ? FLAG_NOTES : 0) | (devs.length ? FLAG_DEVICES | FLAG_EXTRAS : 0) | (kinds.length ? FLAG_BUTTONS : 0) | (drumMaps(p).length ? FLAG_NAMES : 0) | (pats.length ? FLAG_PATTERNS : 0) | (mmap.length ? FLAG_MIDIMAP : 0), true);
+  dv.setUint16(6, (morph ? FLAG_MORPH | FLAG_MORPH_MODULES : 0) | (ranges.length ? FLAG_RANGE : 0) | (routes.length ? FLAG_INPUT_MAP : 0) | (valued.length ? FLAG_NOTES : 0) | (devs.length ? FLAG_DEVICES | FLAG_EXTRAS : 0) | (kinds.length ? FLAG_BUTTONS : 0) | (drumMaps(p).length ? FLAG_NAMES : 0) | (pats.length ? FLAG_PATTERNS : 0) | (mmap.length ? FLAG_MIDIMAP : 0) | (tm.count ? FLAG_TIMING : 0), true);
   let at = 8;
   for (const { cfg, src } of groups) {
     out.set([cfg.parts | (Math.min(MAX_PARTS, cfg.unisonParts ?? 0) << 4), cfg.assign, cfg.legato | (cfg.unison ? 0x80 : 0) | (cfg.unisonShare ? 0x40 : 0), cfg.priority | (cfg.steal === false ? 0x80 : 0)], at);
@@ -556,6 +579,11 @@ export function encodePatch(source: Patch, anyway = false): Uint8Array {
   if (mmap.length) {
     out[at++] = mmap.length;
     for (const e of mmap) out.set(e, (at += 4) - 4);
+  }
+  if (tm.count) {
+    out[at++] = tm.count;
+    out.set(tm.bytes, at);
+    at += tm.bytes.length;
   }
   return out;
 }

@@ -130,15 +130,35 @@ Otros atajos: FX sostenido + tecla blanca pone un acento; LFO sostenido + tecla 
 
 **Borrar el patrón:** REC sostenido 4 segundos (cuenta `BORRAR PATRON: 3, 2, 1`).
 
-### Grabar en vivo (como Kitten Synths)
+### Grabar en vivo (como SLOOP)
 
 **REC** funciona desde cualquier pantalla y no te lleva a SEQ:
 
-- **Corriendo:** empieza a grabar donde va el secuenciador.
-- **Parado:** queda esperando. La primera nota que toques arranca el transporte y la grabación a la vez.
-- **REC otra vez:** deja de grabar; lo grabado sigue sonando.
+- **Corriendo:** empieza a grabar donde va el secuenciador. REC otra vez deja de grabar; lo grabado sigue sonando.
+- **Parado:** queda esperando. Mientras espera, las perillas eligen cómo es la toma (la barra las muestra, por ejemplo `GRILLA 2 COMP NOTA Q OFF`):
 
-Las notas grabadas **guardan cuánto las sostuviste**: si mantuviste una nota tres pasos, queda de tres pasos y suena entera hasta soltar. El largo se mide en pasos de la grilla; para más detalle, subí el ritmo con K2 (1/32 o 1/64) antes de grabar. Después podés corregir cualquier nota con su paso apretado y K3.
+| Perilla | Ajuste | Opciones |
+| --- | --- | --- |
+| K1 | **MODO** | **GRILLA**: grabás sobre la grilla del secuenciador al tempo puesto · **LIBRE**: tocás libre y el tempo te sigue (solo con el patrón vacío) |
+| K2 | **LARGO** | **COMO ESTÁ** (los pasos del track) o **1, 2 o 4 compases** |
+| K3 | **INICIO** | **PRIMERA NOTA**: tu primera nota arranca el transporte y la toma · **CUENTA**: apretás PLAY, un compás de click (4, 3, 2, 1) y después la toma; lo que toques antes solo suena |
+| K4 | **CUANTIZAR** | **OFF** (de fábrica): cada nota queda con el tiempo que la tocaste · **ON**: las notas caen en el paso más cercano |
+
+Los mismos ajustes, y el click, están en **MENÚ > REC** (HOME sostenido). Quedan como los dejes.
+
+**Con CUANTIZAR en OFF se graba tal cual tocaste**: cada nota guarda cuánto tarde arrancó dentro de su paso (en 1/64 de paso) y dónde la soltaste. Los milisegundos entre que apretás una tecla y la escuchás se descuentan, así lo que tocás en el tiempo queda en el tiempo. El patrón suena con tu groove y lo seguís corrigiendo paso por paso en SEQ:
+
+- En el roll, **sostené un paso y girá ALGO**: el tiempo de esa nota (`TARDE 25% PASO`, hasta `EN LA GRILLA`). K1 (altura), K2 y K4 lo conservan; K3 (largo) conserva el arranque.
+- **SEQ sostenido + OCT−: CUANTIZAR** todo el patrón (cada nota a su paso más cercano).
+- **REC sostenido + OCT−: DESHACER** la última toma (el patrón como estaba antes de apretar REC, y los pasos y el tempo que haya puesto una toma libre).
+
+**Toma LIBRE:** con el patrón vacío y MODO LIBRE, apretá REC y tocá libre; la barra muestra los segundos y el loop que armaría (`3.2S 2 COMP 92 BPM`). **Apretá REC en el "1" después de tu último compás**: Kitten Rack elige 1, 2 o 4 compases al tempo más cercano al puesto (si está a menos de 3 % deja el tempo puesto), escribe tus notas con su tiempo, largos y velocidades, ajusta los pasos del track y el tempo, y el loop suena enseguida. PLAY durante una toma libre la descarta; se cierra sola a los 24 segundos.
+
+**Click:** MENÚ > REC > CLICK = **OFF**, **REC** (solo mientras grabás, de fábrica) u **ON** (siempre que corre el transporte); CLICK LEVEL de 1 a 10. Un tick más agudo en el primer tiempo de cada compás. El click sale solo por la salida del FM-1: **nunca va al audio USB** (tu DAW) ni a la toma. La cuenta siempre suena. La luz de PLAY titila en cada tiempo.
+
+**Tap tempo:** sostené **PLAY** y tocá **REC** a tiempo (dos toques o más); la pantalla dice `TAP 120 BPM`. PLAY sostenido + PRESET sigue cambiando el tempo de a 1 bpm.
+
+Las notas grabadas **guardan cuánto las sostuviste**. Después podés corregir cualquier nota con su paso apretado y K3.
 
 ### Probar sonidos sobre una secuencia
 
@@ -411,7 +431,7 @@ Antes de instalar algo en un FM-1: **nunca un firmware sin la actualización por
 
 ### El formato de patch
 
-Formato 49 (el de Matryoshka 48 más los módulos de Kitten Rack). Una nota de secuencia es una palabra de 32 bits: paso (6 bits), largo - 1 (6), nota (7), velocidad (7), chance (5) y el bit 31, que marca una nota que suena entera hasta el final de su último paso (las grabadas y las que se alargan con K3). Un patch puede terminar con un mapa MIDI (flag 8 del byte 7): una cantidad y después 4 bytes por asignación: CC, canal (0 = el del FM-1), índice de módulo, índice de parámetro. Un firmware anterior rechaza ese patch en vez de leerlo mal.
+Formato 49 (el de Matryoshka 48 más los módulos de Kitten Rack). Una nota de secuencia es una palabra de 32 bits: paso (6 bits), largo - 1 (6), nota (7), velocidad (7), chance (5) y el bit 31, que marca una nota que suena entera hasta el final de su último paso (las grabadas y las que se alargan con K3). Un patch puede terminar con un mapa MIDI (flag 8 del byte 7): una cantidad y después 4 bytes por asignación: CC, canal (0 = el del FM-1), índice de módulo, índice de parámetro. Un firmware anterior rechaza ese patch en vez de leerlo mal. Al final, una sección de tiempos (flag 16 del byte 7): una cantidad y, por cada patrón con notas fuera de la grilla, su módulo, el patrón (0 = el de la sección de notas), la cantidad de notas y un u16 por nota (bits 0-5 cuánto tarde arranca en 1/64 de paso, 6-11 dónde termina en su último paso, bit 12 que tiene ese final).
 
 ---
 

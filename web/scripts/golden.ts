@@ -2213,6 +2213,24 @@ tests['steps-hold'].modules.find((m) => m.type === 'steps')!.notes = [
 events['steps-hold'] = [[128 * 5, 'run', 0]];
 ends['steps-hold'] = 128 * 500;
 
+// KITTEN RACK: notes off the grid (an exact take, StepNote.off / end; engine.c TM_*): late starts (one past a swung
+// step's delay, one earlier than it), exact ends in the same step and two steps on, a chord whose notes start apart,
+// a grid note beside them; swing on, the transport stopped and run again while notes wait
+tests['steps-timing'] = structuredClone(tests['steps-hold']);
+tests['steps-timing'].name = 'steps-timing';
+{
+  const st = tests['steps-timing'].modules.find((m) => m.type === 'steps')!;
+  st.params.swing = 62;
+  st.notes = [
+    { at: 0, len: 1, note: 60, vel: 100, hold: true, off: 10, end: 40 }, { at: 1, len: 1, note: 62, vel: 90, hold: true, off: 3, end: 50 },
+    { at: 3, len: 1, note: 64, vel: 100, hold: true, off: 40, end: 20 }, { at: 3, len: 3, note: 67, vel: 110, hold: true, off: 20, end: 30 },
+    { at: 4, len: 1, note: 65, vel: 100 }, { at: 6, len: 2, note: 69, vel: 120, hold: true, off: 60, end: 5 },
+    { at: 9, len: 1, note: 71, vel: 100, hold: true, end: 63 }, { at: 11, len: 1, note: 72, vel: 100, off: 32 },
+  ];
+}
+events['steps-timing'] = [[128 * 5, 'run', 0], [128 * 300, 'stop', 0], [128 * 330, 'run', 0]];
+ends['steps-timing'] = 128 * 500;
+
 // ties (#128), now longer notes (#133): the steps-notes voices with notes held through tied steps (migrated: a held note
 // through two ties, a tie after an off step plays nothing, a tie on the first step is dropped), swing on; the second
 // track on an external clock

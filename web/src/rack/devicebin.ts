@@ -8,10 +8,10 @@ import { DEFS } from '../modules';
 import { PANEL_BUTTONS } from '../modules';
 import {
   GROUP_REC, PANEL_BYTES, TYPE_ORDER, BYPASS_BIT, FLAG_MORPH, FLAG_MORPH_MODULES, FLAG_RANGE, FLAG_MIDIMAP, FLAG_INPUTS, FLAG_INPUT_MAP, FLAG_NOTES,
-  FLAG_DEVICES, FLAG_EXTRAS, FLAG_BUTTONS, FLAG_NAMES, FLAG_PATTERNS, Q, maskBytes, paramsAt,
+  FLAG_DEVICES, FLAG_EXTRAS, FLAG_BUTTONS, FLAG_NAMES, FLAG_PATTERNS, FLAG_TIMING, Q, maskBytes, paramsAt,
 } from '../patchbin';
 import { MAX_PARTS, PANEL_LABEL_KEYS, PANEL_LABEL_MAX, SOURCES, type MainPanel, type ModuleInst, type Patch, type Cable } from '../patch';
-import { wordNote, type Pattern, type SongEntry, type StepNote } from '../track';
+import { withTiming, wordNote, type Pattern, type SongEntry, type StepNote } from '../track';
 import { KIND_CODE } from '../buttons';
 import { packInOrder } from './layout';
 
@@ -267,6 +267,19 @@ export function decodeDevicePatch(b: Uint8Array, name = 'FM-1'): Patch {
       const m = mods[b[at + 2]];
       const pd = DEFS[m?.type ?? '']?.params[b[at + 3]];
       if (m && pd) midiMap.push({ cc: b[at] & 127, ...(b[at + 1] ? { ch: b[at + 1] } : {}), module: m.id, param: pd.name });
+    }
+  }
+  if (flags & FLAG_TIMING) {   // KITTEN RACK: the notes' timing (patchbin.ts timingRecord); a slice that does not match is ignored
+    const nb = b[at++];
+    for (let k = 0; k < nb; k++) {
+      if (at + 3 > b.length) throw new DecodeError('cut short');
+      const m = mods[b[at]], slice = b[at + 1], n = b[at + 2];
+      at += 3;
+      if (at + 2 * n > b.length) throw new DecodeError('cut short');
+      const holder = m?.type !== 'steps' ? undefined : slice === 0 ? m : m.patterns?.[slice - 1] ?? undefined;
+      const notes = holder?.notes;
+      if (notes && notes.length === n) holder!.notes = notes.map((x, j) => withTiming(x, b[at + 2 * j] | (b[at + 2 * j + 1] << 8)));
+      at += 2 * n;
     }
   }
   if (at !== b.length) throw new DecodeError(`${b.length - at} bytes left over`);

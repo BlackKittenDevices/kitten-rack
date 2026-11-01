@@ -150,8 +150,17 @@ int main(int argc, char **argv)
 #endif
         } else if (!strcmp(kind, "take")) {
             uint32_t m, w;
+#ifdef ENG_FLAG_TIMING /* (KITTEN RACK: a take's timing) */
+            uint32_t tim;
+            while (eng_steps_take(&m, &w, &tim))
+                if (tim)
+                    eng_steps_overdub_tim(m, w, tim);
+                else
+                    eng_steps_overdub(m, w);
+#else
             while (eng_steps_take(&m, &w))
                 eng_steps_overdub(m, w);
+#endif
         }
     }
     for (i = 0; i < total; i++) {
