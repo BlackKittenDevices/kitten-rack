@@ -2,7 +2,7 @@
 // changelog.html: the released versions of CHANGELOG.md (changelog.ts), one section per release with the anchor
 // #v1.2.0 and a button that copies the release's link, for announcing it; its group headings (### On the FM-1) have
 // anchors under it, #v1.3.0-on-the-fm-1.
-import changelogMd from '../../CHANGELOG.md?raw';
+import changelogMd from '../../docs/CHANGELOG-matryoshka.md?raw';
 import { inlineWordmarks } from './brand';
 import { parseChangelog, releaseAnchor, renderBody } from './changelog';
 

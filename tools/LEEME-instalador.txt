@@ -72,7 +72,7 @@ El editor, en vivo con el FM-1
   módulos, notas). ROLL en el módulo PATTERN abre el piano roll. AL FM-1 guarda en un lugar del banco.
   Para instalar firmware, primero desconectá el editor (botón FM-1) o cerrá su pestaña.
 
-El manual completo: README.md en https://github.com/BlackKittenDevices/kitten-rack
+El manual completo: docs/MANUAL.es.md en https://github.com/BlackKittenDevices/kitten-rack
 
 Sin ventana (modo texto)
   python instalar_kitten_rack.py                       instala

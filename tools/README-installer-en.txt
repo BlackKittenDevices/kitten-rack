@@ -72,7 +72,7 @@ The editor, live with the FM-1
   (knobs, cables, modules, notes). ROLL on the Steps module opens the piano roll. AL FM-1 stores into a
   bank slot. To install firmware, first disconnect the editor (FM-1 button) or close its tab.
 
-The full manual: README.md at https://github.com/BlackKittenDevices/kitten-rack
+The full manual: docs/MANUAL.md at https://github.com/BlackKittenDevices/kitten-rack
 
 Without the window (text mode)
   python instalar_kitten_rack.py                         installs

@@ -46,7 +46,7 @@ describe('parseChangelog', () => {
   });
 
   it('reads the repository\'s CHANGELOG.md: every heading but Unreleased is a dated release', () => {
-    const md = readFileSync(new URL('../../CHANGELOG.md', import.meta.url), 'utf8');
+    const md = readFileSync(new URL('../../docs/CHANGELOG-matryoshka.md', import.meta.url), 'utf8');
     const r = parseChangelog(md);
     expect(r.map((x) => x.version)).toContain('1.0.0');
     for (const x of r) expect(x.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);

@@ -12,6 +12,6 @@ print(f"""**New in 1.3 · Nuevo en 1.3**
 Try it in the browser: https://blackkittendevices.github.io/kitten-rack/play.html · Manual: https://github.com/BlackKittenDevices/kitten-rack#readme
 
 **Español:** bajá `KittenRack-instalador-{v}.zip`, descomprimilo y abrí `KittenRack.pyw` (doble clic): instala el firmware y abre el editor offline y el online (instrucciones en `LEEME.txt`). Respaldá tus datos antes.
-Manual: https://github.com/BlackKittenDevices/kitten-rack/blob/main/README.es.md
+Manual: https://github.com/BlackKittenDevices/kitten-rack/blob/main/docs/MANUAL.es.md
 
 Felucca update loader · USB MIDI + USB audio (UAC1, 16-bit stereo, 44.1 kHz) · GPL-3.0""")
