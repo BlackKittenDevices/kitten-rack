@@ -106,7 +106,7 @@ On the first boot Kitten Rack writes its 33 factory patches. To go back to anoth
 
 ## Credits and license
 
-Kitten Rack starts from [Matryoshka](https://github.com/glvno/matryoshka) by michael glaviano (1.5.1), which comes from [Modular-1](https://github.com/WiggisModular/Modular-1) by WiggisModular, and uses the hardware layer and the update loader of [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita / Hügelton Instruments. The VCF Muug comes from [FMini-1](https://github.com/ruppert/fmini-1) by Guilherme Ruppert.
+Kitten Rack starts from [Matryoshka](https://github.com/glvno/matryoshka) by michael glaviano (1.5.1), which comes from [Modular-1](https://github.com/WiggisModular/Modular-1) by WiggisModular, and uses the hardware layer and the update loader of [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita / Hügelton Instruments. Inspered in the software VCV RACK. The VCF Muug comes from [FMini-1](https://github.com/ruppert/fmini-1) by Guilherme Ruppert.
 
 All the code is **GPL-3.0-only**: see [LICENSE](LICENSE) and [LICENSING.md](LICENSING.md) (third-party parts in [LICENSES/](LICENSES)). Changes by version: [CHANGELOG.md](CHANGELOG.md). For developers: the [manual's last chapter](docs/MANUAL.md#12-for-developers) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
