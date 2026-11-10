@@ -368,6 +368,9 @@ typedef struct {
         struct { int32_t vel[DRUMMAP_NOUT / 2]; uint32_t held[4]; uint8_t gate, gap, fell; } dm;   /* fell: let go since the last
                                                     * block; held: with repeat on (#184), the keys down (bit k & 31 of held[k >> 5]) */
         struct { int32_t count, c1, r1; } cdv;
+        /* KITTEN RACK (format 50): the Seq 960 (modules.ts Seq960State): rising edge memories, clk's edge distance, the gate's
+         * samples left; ticks since the step, the step (-1: the next is the first), the key on keys out (-1 none) */
+        struct { int32_t c1, r1, since, period, gleft; int16_t cnt; int8_t pos, key; uint8_t run; } s960;
         struct { int32_t v, c1; } sh;
         /* KITTEN RACK (format 49) */
         struct { int32_t vac, y1, y2, t1; } lpg;                 /* vac Q30, y1 y2 Q24 */
@@ -754,6 +757,10 @@ static void init_state(const node_t *nd, inst_t *it, uint32_t mod, uint32_t v)
         break;
     case T_CLKDIV:
         it->s.cdv.count = -1;
+        break;
+    case T_SEQ960:
+        it->s.s960.pos = it->s.s960.key = -1;
+        it->s.s960.since = -1;
         break;
     case T_SELECT:
         it->s.sel.k = -1;
@@ -1154,7 +1161,7 @@ int eng_load(const uint8_t *p, uint32_t len)
         nd->ksrc = nd->type == T_DRUMMAP ? p[at] : 0u;   /* (checked once every module is read) */
         at += d->ndata;
         /* the memories of delay, reverb, chorus, granular and the output exist once (patch.ts SHARED_TYPES) */
-        nd->grp = nd->type == T_DELAY || nd->type == T_REVERB || nd->type == T_CHORUS || nd->type == T_GRAIN || nd->type == T_OUTPUT || nd->type == T_ARP || nd->type == T_STEPS || nd->type == T_DRUMMAP ? 0u : member[i];
+        nd->grp = nd->type == T_DELAY || nd->type == T_REVERB || nd->type == T_CHORUS || nd->type == T_GRAIN || nd->type == T_OUTPUT || nd->type == T_ARP || nd->type == T_STEPS || nd->type == T_DRUMMAP || nd->type == T_SEQ960 ? 0u : member[i];
         nd->ninst = E.grp[nd->grp].parts;
         if (nd->type == T_FM1 && E.main < 0)
             E.main = (int8_t)i;
@@ -1172,10 +1179,10 @@ int eng_load(const uint8_t *p, uint32_t len)
         }
     }
     for (i = 1; i <= E.ngrp; i++)                /* a group's note source must be an arpeggiator or a Steps module of the patch */
-        if (E.grp[i].src && (E.grp[i].src > E.nmod || (E.node[E.grp[i].src - 1u].type != T_ARP && E.node[E.grp[i].src - 1u].type != T_STEPS)))
+        if (E.grp[i].src && (E.grp[i].src > E.nmod || (E.node[E.grp[i].src - 1u].type != T_ARP && E.node[E.grp[i].src - 1u].type != T_STEPS && E.node[E.grp[i].src - 1u].type != T_SEQ960)))
             return -3;
     for (i = 0; i < E.nmod; i++)                 /* a Drum map's keys: the keys, or a Steps module or an Arpeggiator of the patch */
-        if (E.node[i].ksrc >= 2u && (E.node[i].ksrc - 2u >= E.nmod || (E.node[E.node[i].ksrc - 2u].type != T_STEPS && E.node[E.node[i].ksrc - 2u].type != T_ARP)))
+        if (E.node[i].ksrc >= 2u && (E.node[i].ksrc - 2u >= E.nmod || (E.node[E.node[i].ksrc - 2u].type != T_STEPS && E.node[E.node[i].ksrc - 2u].type != T_ARP && E.node[E.node[i].ksrc - 2u].type != T_SEQ960)))
             return -3;
     if (at + 4u * ncab > len)
         return -3;
@@ -1409,7 +1416,7 @@ int eng_load(const uint8_t *p, uint32_t len)
             return -3;
         for (i = 0; i < nr; i++, at += 5) {
             uint32_t mod = p[at], pin = p[at + 1], par = p[at + 2];
-            if (mod >= E.nmod || pin > 1u || par >= DEFS[E.node[mod].type].npar || !(E.node[mod].map[pin] >> par & 1u))
+            if (mod >= E.nmod || pin > 1u || par >= 32u || par >= DEFS[E.node[mod].type].npar || !(E.node[mod].map[pin] >> par & 1u))
                 continue;                        /* not a destination of that pin: ignored */
             if (E.nranges >= ENG_MAX_RANGES)
                 return -3;
@@ -1776,7 +1783,7 @@ int eng_range(uint32_t module, uint32_t input, uint32_t param, uint32_t *lo, uin
 int eng_set_range(uint32_t module, uint32_t input, uint32_t param, int on, uint32_t lo, uint32_t hi)
 {
     range_t *r;
-    if (module >= E.nmod || input > 1u || param >= DEFS[E.node[module].type].npar)
+    if (module >= E.nmod || input > 1u || param >= 32u || param >= DEFS[E.node[module].type].npar)
         return 0;
     r = range_find(module, input, param);
     if (!on) {
@@ -6289,6 +6296,123 @@ static void m_seq(const node_t *nd, inst_t *it, uint32_t n)
     it->s.seq.gleft = gleft;
 }
 
+/* KITTEN RACK: the Seq 960 (modules.ts seq960, seq960Next): three rows of eight steps, a stage switch a step (play, skip,
+ * stop, reset), on clk's rising edges or the transport; its keys go out as a Steps track's (steps_key, steps_keys) */
+static const uint8_t SEQ960_TPS[6] = {24, 12, 8, 6, 4, 3};
+static int32_t seq960_next(int32_t pos, const int32_t *mode)
+{
+    int32_t p = pos, t;
+    int jumped = 0;
+    if (pos >= 0 && mode[pos] == 2)
+        return -2;
+    for (t = 0; t < 16; t++) {
+        p = p < 0 ? 0 : p + 1 >= 8 ? 0 : p + 1;
+        if (mode[p] == 3) {
+            if (jumped)
+                return -2;
+            jumped = 1;
+            p = -1;
+            continue;
+        }
+        if (mode[p] == 1)
+            continue;
+        return p;
+    }
+    return -2;
+}
+
+static void m_seq960(const node_t *nd, inst_t *it, uint32_t n)
+{
+    const esig_t *clk = it->in[SEQ960_I_CLK], *reset = it->in[SEQ960_I_RESET], *hold = it->in[SEQ960_I_HOLD];
+    esig_t *oa = it->out[SEQ960_O_A], *ob = it->out[SEQ960_O_B], *oc = it->out[SEQ960_O_C], *og = it->out[SEQ960_O_GATE];
+    uint32_t node = (uint32_t)(nd - E.node), i, k;
+    int32_t mode[8], rng[3], krow, vsrc, glen, tps, ext = (nd->conn >> SEQ960_I_CLK) & 1u;
+    for (k = 0; k < 8u; k++)
+        mode[k] = clampi(round_q16(EF(it, SEQ960_P_M1 + k)), 0, 3);
+    for (k = 0; k < 3u; k++)
+        rng[k] = 1 << clampi(round_q16(EF(it, SEQ960_P_RA + k)), 0, 2);
+    tps = SEQ960_TPS[clampi(round_q16(EF(it, SEQ960_P_RATE)), 0, 5)];
+    krow = clampi(round_q16(EF(it, SEQ960_P_KROW)), 0, 2);
+    vsrc = clampi(round_q16(EF(it, SEQ960_P_VEL)), 0, 3);
+    glen = EF(it, SEQ960_P_GATE);
+    if (!ext && it->s.s960.run && !E.running) {  /* the transport stopped: the note ends */
+        if (it->s.s960.key >= 0)
+            steps_key(node, (uint32_t)it->s.s960.key, 0);
+        it->s.s960.key = -1;
+        it->s.s960.gleft = 0;
+    }
+    fill(it->out[SEQ960_O_KEYS], 0, n);
+    for (i = 0; i < n; i++) {
+        int32_t adv = 0, p, g;
+        if (ext) {
+            if (it->s.s960.since >= 0 && it->s.s960.since < (1 << 23))
+                it->s.s960.since++;
+            if (clk[i] >= 32768 && it->s.s960.c1 < 32768) {
+                if (it->s.s960.since > 0)
+                    it->s.s960.period = it->s.s960.since;
+                it->s.s960.since = 0;
+                adv++;
+            }
+            it->s.s960.c1 = clk[i];
+        } else {
+            if (i == 0 && E.running && !it->s.s960.run) {
+                it->s.s960.cnt = 0;
+                it->s.s960.pos = -1;
+                adv++;
+            }
+            if (E.running && (int32_t)i == E.tick_off) {
+                int32_t q;
+                for (q = 0; q < E.tick_n; q++)
+                    if (++it->s.s960.cnt >= tps) {
+                        it->s.s960.cnt = 0;
+                        adv++;
+                    }
+            }
+        }
+        if (reset[i] >= 32768 && it->s.s960.r1 < 32768) {
+            it->s.s960.pos = -1;
+            it->s.s960.cnt = 0;
+        }
+        it->s.s960.r1 = reset[i];
+        if (hold[i] >= 32768)
+            adv = 0;
+        for (; adv > 0; adv--) {
+            int32_t np = seq960_next(it->s.s960.pos, mode), sl, semis, vel;
+            if (np < 0)
+                continue;
+            it->s.s960.pos = (int8_t)np;
+            sl = ext ? (it->s.s960.period > 0 ? it->s.s960.period : 6 * E.tick_len) : tps * E.tick_len;
+            if (glen >= 65536)
+                it->s.s960.gleft = 2 * sl;
+            else {
+                int32_t gl = (int32_t)(((int64_t)glen * sl) >> 16);
+                it->s.s960.gleft = gl > 1 ? gl : 1;
+            }
+            if (it->s.s960.key >= 0)
+                steps_key(node, (uint32_t)it->s.s960.key, 0);
+            semis = (EF(it, SEQ960_P_A1 + 8 * krow + np) * rng[krow] * 12 + 32768) >> 16;
+            vel = vsrc == 0 ? 100 : clampi(64 + ((EF(it, SEQ960_P_A1 + 8 * (vsrc - 1) + np) * 63 + 32768) >> 16), 1, 127);
+            it->s.s960.key = (int8_t)clampi(60 + semis, 0, 127);
+            steps_key(node, (uint32_t)it->s.s960.key | 0x80u, (uint32_t)vel);
+        }
+        p = it->s.s960.pos < 0 ? 0 : it->s.s960.pos;
+        oa[i] = EF(it, SEQ960_P_A1 + p) * rng[0];
+        ob[i] = EF(it, SEQ960_P_B1 + p) * rng[1];
+        oc[i] = EF(it, SEQ960_P_C1 + p) * rng[2];
+        g = it->s.s960.gleft > 0;
+        og[i] = g ? ENG_ONE : 0;
+        for (k = 0; k < 8u; k++)
+            it->out[SEQ960_O_T1 + k][i] = g && it->s.s960.pos == (int32_t)k ? ENG_ONE : 0;
+        if (it->s.s960.gleft > 0 && --it->s.s960.gleft == 0) {
+            if (it->s.s960.key >= 0)
+                steps_key(node, (uint32_t)it->s.s960.key, 0);
+            it->s.s960.key = -1;
+        }
+    }
+    it->s.s960.run = E.running;
+}
+
+
 static void m_clkdiv(const node_t *nd, inst_t *it, uint32_t n)
 {
     const esig_t *clock = it->in[CLKDIV_I_CLOCK], *reset = it->in[CLKDIV_I_RESET];
@@ -6635,17 +6759,18 @@ static void apply_cv(const node_t *nd, inst_t *it, uint32_t n, const inst_t *pre
         return;
     }
     for (j = 0; j < d->npar; j++) {
-        int32_t v = nd->morph && E.morph > 0 && nd->type != T_FM1 ? morph_of(d, j, par[j], (uint32_t)parb[j], E.morph, nd->over >> j & 1u) : par[j];
+        uint32_t bit = j < 32u ? 1u << j : 0u;   /* (the masks hold parameters 0..31: the Seq 960's further ones take no routes) */
+        int32_t v = nd->morph && E.morph > 0 && nd->type != T_FM1 ? morph_of(d, j, par[j], (uint32_t)parb[j], E.morph, (nd->over & bit) != 0u) : par[j];
         uint32_t touched = 0;
         int32_t mod = 0, rv = 0;
         const range_t *rg = 0;
-        if (!(mapped >> j & 1u)) {
+        if (!(mapped & bit)) {
             eff[j] = v;
             continue;
         }
         for (s = 0; s < 2u; s++)
-            if ((have >> s & 1u) && (nd->map[s] >> j & 1u)) {
-                if (nd->ranged[s] >> j & 1u) {   /* a macro range: the input's value lands between its ends (replacing the base) */
+            if ((have >> s & 1u) && (nd->map[s] & bit)) {
+                if (nd->ranged[s] & bit) {   /* a macro range: the input's value lands between its ends (replacing the base) */
                     const range_t *r = range_find((uint32_t)(nd - E.node), s, j);
                     if (r) {
                         rg = r;
@@ -6656,7 +6781,7 @@ static void apply_cv(const node_t *nd, inst_t *it, uint32_t n, const inst_t *pre
                 mod += mean[s];
                 touched = 1;
             }
-        if (side) for (s = 0; s < d->nin; s++) if (nd->input_map[s] >> j & 1u) {
+        if (side) for (s = 0; s < d->nin; s++) if (nd->input_map[s] & bit) {
             mod += extra[s];
             touched = 1;
         }
@@ -7170,6 +7295,7 @@ static void process(const node_t *nd, inst_t *it, uint32_t n)
     case T_PD: m_pd(nd, it, n); break;
     case T_CHORUS: m_chorus(nd, it, n); break;
     case T_SEQ: m_seq(nd, it, n); break;
+    case T_SEQ960: m_seq960(nd, it, n); break;
     case T_STEPS: m_steps(nd, it, n); break;
     case T_DRUMMAP: m_drummap(nd, it, n); break;
     case T_CLKDIV: m_clkdiv(nd, it, n); break;

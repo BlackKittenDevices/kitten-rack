@@ -20,7 +20,7 @@ Por <a href="https://github.com/BlackKittenDevices">Black Kitten Devices</a> · 
 
 Kitten Rack convierte el FM-1 en un **Eurorack en tus manos**. Un patch es un rack entero: módulos con sus perillas, jacks y cables, donde cualquier salida va a cualquier entrada. Lo armás, lo tocás, lo secuenciás y lo guardás, en el FM-1 o en el editor web, y los dos suenan exactamente igual.
 
-- **Más de 50 módulos:** VCOs (clásico, wavetable, phase distortion), un ladder estilo Minimoog que autooscila, un low pass gate estilo Buchla, Turing, Marbles, Euclídeo, caos de Lorenz, funciones estilo Maths, eco de cinta, reverb de resorte, granular y más.
+- **Más de 50 módulos:** VCOs (clásico, wavetable, phase distortion), un ladder estilo Minimoog que autooscila, un low pass gate estilo Buchla, un secuenciador estilo Moog 960 que toca tus voces, Turing, Marbles, Euclídeo, caos de Lorenz, funciones estilo Maths, eco de cinta, reverb de resorte, granular y más.
 - **Cableado en el equipo:** agregás y sacás módulos y cables en el mismo FM-1 (EDIT), y ves el rack entero con sus cables (GLO).
 - **Un secuenciador que graba lo que tocás:** hasta 64 patrones de 64 pasos por patch, piano roll, grilla de batería y canciones. Las tomas en vivo guardan tu tiempo (o caen en la grilla), con click que nunca llega a tu DAW, cuenta previa, tomas libres donde el tempo te sigue, deshacer y tap tempo.
 - **33 patches de fábrica** propios: teclados de los 60, máquinas generativas que tocan solas, drones y ruido.
@@ -81,7 +81,7 @@ Un botón queda encendido mientras se ve lo que abrió, y las teclas se enciende
 | Familia | Módulos |
 | --- | --- |
 | Fuentes | VCO, VCO WT (wavetable), VCO CZ (phase distortion), Ruido, Cuerda (Karplus), Resonador (modal) |
-| Generativos | Turing, Marbles, Euclídeo, Bernoulli, Caos (Lorenz), Random, S&H, Seq 8, Steps (el secuenciador), Arpegiador |
+| Generativos | Turing, Marbles, Euclídeo, Bernoulli, Caos (Lorenz), Random, S&H, Seq 8, Seq 960 (estilo Moog 960: 3 x 8 pasos, salida keys), Steps (el secuenciador), Arpegiador |
 | Filtros | VCF Muug (ladder Minimoog), LPG (estilo Buchla), VCF Ladder, VCF Multi, Formante, Comb, Wavefolder |
 | VCA y mezcla | VCA, Ring mod, Mix 4, Xfade, Pan, Selector, Compresor |
 | Moduladores | Función (estilo Maths), ADSR, Env L/R, Env 8, Env DX, LFO, Slew, Pulso, Macro |

@@ -341,7 +341,7 @@ Más de 50 módulos por familias. Todos andan en el editor y en el FM-1.
 | Familia | Módulos |
 | --- | --- |
 | Fuentes | VCO, VCO WT (wavetable), VCO CZ (phase distortion), Ruido, Cuerda (Karplus), Resonador (modal) |
-| Generativos | Turing, Marbles, Euclídeo, Bernoulli, Caos (Lorenz), Random, S&H, Seq 8, Steps (el secuenciador), Arpegiador |
+| Generativos | Turing, Marbles, Euclídeo, Bernoulli, Caos (Lorenz), Random, S&H, Seq 8, Seq 960 (estilo Moog 960), Steps (el secuenciador), Arpegiador |
 | Filtros | VCF Muug (escalera Minimoog que autooscila), LPG (estilo Buchla), VCF Ladder, VCF Multi, Formante, Comb, Wavefolder |
 | VCA y mezcla | VCA, Ring mod, Mix 4, Xfade, Pan, Selector, Compresor |
 | Moduladores | Función (estilo Maths), ADSR, Env L/R, Env 8, Env DX, LFO, Slew, Pulso, Macro |
@@ -351,6 +351,14 @@ Más de 50 módulos por familias. Todos andan en el editor y en el FM-1.
 Fijos en cada patch: **MIDI-CV** (el teclado y el MIDI: pitch, gate, velocidad, bend, mod, aftertouch) y **OUT** (la salida).
 
 Límites del FM-1: un solo delay, una sola reverb y un solo chorus por patch, y un tope de CPU que el editor estima (barra CPU arriba).
+
+### Seq 960 (como el 960 de Moog)
+
+Tres filas de ocho perillas (**A**, **B**, **C**) y una llave por paso: **PLAY** (suena), **SKIP** (se saltea), **STOP** (la secuencia se queda ahí hasta un RESET o hasta que PLAY arranque de nuevo) y **RESET** (vuelve al paso 1 en el acto).
+
+- **Reloj:** el transporte (PLAY del FM-1) a la velocidad de **RATE** (1/4, 1/8, 1/8T, 1/16, 1/16T, 1/32), o cualquier gate en **CLK** (un LFO, un Reloj/Div, un Euclídeo). **RESET** lo manda al paso 1, **HOLD** (alto) lo congela.
+- **Salidas:** **A**, **B**, **C** (el valor de cada fila; **RA / RB / RC** eligen 1, 2 o 4 octavas), **GATE** (lo largo que diga **GATE**; en 1 liga con el paso siguiente) y **T1…T8** (un disparo en cada paso: para envolventes, baterías u otros módulos).
+- **KEYS:** las notas de la fila que elijas en **KROW** (A, B o C: C4 más la perilla en semitonos) a la entrada **keys** de una voz (Voces / un ensamble) o de un Drum map, sin usar las teclas del FM-1. **VEL:** FIJA (100) o sacada de la fila A, B o C.
 
 ---
 

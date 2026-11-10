@@ -81,6 +81,7 @@ static const char *rk_short(int t)
     case T_LPG: return "LPG";        case T_FUNC: return "FUNCTION"; case T_RING: return "RING";
     case T_TURING: return "TURING";  case T_EUCLID: return "EUCLID";  case T_MARBLES: return "MARBLES";
     case T_BERN: return "BERNOULLI"; case T_CHAOS: return "CHAOS";   case T_MUUG: return "MUUG";
+    case T_SEQ960: return "SEQ 960";
     default: return 0;
     }
 }

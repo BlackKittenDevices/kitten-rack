@@ -119,7 +119,7 @@ export function keySource(p: Patch, alloc: ModuleInst): ModuleInst | null {
   const cable = p.cables.find((c) => c.to.module === alloc.id && c.to.port === 'keys');
   const from = cable && p.modules.find((m) => m.id === cable.from.module);
   if (!from) return null;
-  if (from.type === 'fm1' || from.type === 'steps') return from;
+  if (from.type === 'fm1' || from.type === 'steps' || from.type === 'seq960') return from;   // (KITTEN RACK: the Seq 960's keys)
   if (from.type === 'arp' && arpFeed(p, from)) return from;
   return null;
 }
@@ -131,7 +131,7 @@ export const keyed = (p: Patch, alloc: ModuleInst): boolean => keySource(p, allo
  * at all) */
 export function arpOf(p: Patch, alloc: ModuleInst): ModuleInst | null {
   const s = keySource(p, alloc);
-  return s?.type === 'arp' || s?.type === 'steps' ? s : null;
+  return s?.type === 'arp' || s?.type === 'steps' || s?.type === 'seq960' ? s : null;
 }
 
 /** where a Drum map's keys come from (#137): the Main module, a Steps track (its keys out) or an Arpeggiator that Main or
@@ -140,7 +140,7 @@ export function keysInto(p: Patch, m: ModuleInst): ModuleInst | null {
   const c = p.cables.find((x) => x.to.module === m.id && x.to.port === 'keys');
   const from = c && p.modules.find((x) => x.id === c.from.module);
   if (!from || c.from.port !== 'keys') return null;
-  return from.type === 'fm1' || from.type === 'steps' || (from.type === 'arp' && arpFeed(p, from)) ? from : null;
+  return from.type === 'fm1' || from.type === 'steps' || from.type === 'seq960' || (from.type === 'arp' && arpFeed(p, from)) ? from : null;
 }
 
 /** the Drum map a Steps track plays: cabled from its keys out, or through the Arpeggiator it feeds (the roll's rows). With

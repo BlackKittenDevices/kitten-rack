@@ -327,6 +327,7 @@ export class Engine {
     this.arpHears = this.armedKeys.length ? new Set(this.arps.filter((a) => mainKeysTo.has(a.node.id)).map((a) => a.node.id)) : null;
     this.arpById = new Map(this.arps.map((a) => [a.node.id, a]));
     this.tracks = this.order.filter((n) => n.type === 'steps');
+    this.seqs = this.order.filter((n) => n.type === 'seq960');
     // tracks whose keys in a cable from Main's keys feeds: those keys pass through them while no track is armed (#138)
     this.fed = this.tracks.filter((node) => source.cables.some((c) => c.to.module === node.id && c.to.port === 'keys' && c.from.port === 'keys' && source.modules.find((m) => m.id === c.from.module)?.type === 'fm1')).map((node) => node.inst[0].state as StepsState);
     this.maps = this.order.filter((n) => n.type === 'drummap').flatMap((node) => {
@@ -385,6 +386,8 @@ export class Engine {
 
   /** the Steps modules, in processing order (their keys go out in this order: engine.c the same) */
   private tracks: Node[] = [];
+  /** KITTEN RACK: the Seq 960 modules (their keys out, as the tracks': trackKeys) */
+  private seqs: Node[] = [];
 
   /**
    * The notes the Steps tracks started and ended in the last block, into the groups they play (DeviceGroup.src), in
@@ -393,7 +396,7 @@ export class Engine {
    * still sounds is legato, as the allocator's legato setting says.
    */
   private trackKeys(): void {
-    for (const node of this.tracks) {
+    for (const node of [...this.tracks, ...this.seqs]) {   // (KITTEN RACK: and the Seq 960s' keys out)
       const st = node.inst[0].state as StepsState;
       if (!st.ev.length) continue;
       const gs = this.groups.filter((g) => this.effSrc(g.src) === node.id);

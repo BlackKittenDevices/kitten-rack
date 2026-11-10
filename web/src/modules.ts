@@ -2091,6 +2091,145 @@ const seq: ModuleImpl<SeqState> = {
   },
 };
 
+/**
+ * KITTEN RACK: Seq 960, after Moog's 960 sequential controller. Three rows (A, B, C) of eight knobs (-1..1, times the row's
+ * range: 1, 2 or 4 octaves), one stage switch a step (SEQ960_MODES: play, skip it, stop on it, back to step 1). It steps on
+ * a rising edge in clk, else with the transport (PLAY): the first step when it starts, then one every `rate`
+ * (SEQ960_TICKS, of the 24 ppqn clock). A stop step holds the sequence there (reset, or the transport starting again, takes
+ * it back to the start); a reset step sends it to step 1 at once; skip steps are passed over. hold (high): no steps.
+ * reset: the next step is the first. Outputs: a, b, c (the step's values), gate (gate x the step's length; 1: tied to the
+ * next), t1..t8 (step k's gate while it plays), keys: the notes of row `krow` (C4 + the value in semitones, rounded) with
+ * velocity `vel` (fixed 100, or 64 + 63 x a row's value), handed to the instrument's allocator like a Steps track's
+ * (engine.ts trackKeys; engine.c steps_key / steps_keys). Integer maths as engine.c m_seq960. It runs once (SHARED_TYPES);
+ * its knobs are not on the pins (PIN_EXEMPT: 39 parameters).
+ */
+export const SEQ960_MODES = ['play', 'skip', 'stop', 'reset'];
+export const SEQ960_RATES = ['1/4', '1/8', '1/8T', '1/16', '1/16T', '1/32'];
+export const SEQ960_TICKS = [24, 12, 8, 6, 4, 3];
+const SEQ960_RANGES = ['1 oct', '2 oct', '4 oct'];
+interface Seq960State {
+  pos: number;
+  cnt: number;
+  c1: number;
+  r1: number;
+  run: boolean;
+  since: number;
+  period: number;
+  gleft: number;
+  /** the key sounding on keys out (-1 none) */
+  key: number;
+  /** keys out this block (key | 0x80 on, velocity; key, 0 off): engine.ts trackKeys */
+  ev: number[];
+}
+/** the step after `pos` (-1: before the first) by the stage switches; -2: none to go to (stopped, or every step skipped) */
+export function seq960Next(pos: number, mode: number[]): number {
+  if (pos >= 0 && mode[pos] === 2) return -2;
+  let p = pos, jumped = false;
+  for (let t = 0; t < 16; t++) {
+    p = p < 0 ? 0 : p + 1 >= 8 ? 0 : p + 1;
+    if (mode[p] === 3) {
+      if (jumped) return -2;
+      jumped = true;
+      p = -1;
+      continue;
+    }
+    if (mode[p] === 1) continue;
+    return p;
+  }
+  return -2;
+}
+const seq960: ModuleImpl<Seq960State> = {
+  def: {
+    type: 'seq960',
+    label: 'Seq 960',
+    inputs: [gate('clk'), gate('reset'), gate('hold')],
+    outputs: [control('a'), control('b'), control('c'), gate('gate'), ...[1, 2, 3, 4, 5, 6, 7, 8].map((k) => gate(`t${k}`)), keys('keys')],
+    params: [
+      ...['a', 'b', 'c'].flatMap((r) => [1, 2, 3, 4, 5, 6, 7, 8].map((k) => param(`${r}${k}`, -1, 1, 0, { step: 0.01 }))),
+      ...[1, 2, 3, 4, 5, 6, 7, 8].map((k) => param(`m${k}`, 0, 3, 0, { step: 1, choices: SEQ960_MODES })),
+      param('rate', 0, SEQ960_RATES.length - 1, 3, { step: 1, choices: SEQ960_RATES }),
+      param('ra', 0, 2, 0, { step: 1, choices: SEQ960_RANGES }),
+      param('rb', 0, 2, 0, { step: 1, choices: SEQ960_RANGES }),
+      param('rc', 0, 2, 0, { step: 1, choices: SEQ960_RANGES }),
+      param('krow', 0, 2, 0, { step: 1, choices: ['A', 'B', 'C'] }),
+      param('vel', 0, 3, 0, { step: 1, choices: ['fixed', 'A', 'B', 'C'] }),
+      param('gate', 0.05, 1, 0.5, { step: 0.01 }),
+    ],
+  },
+  init: () => ({ pos: -1, cnt: 0, c1: 0, r1: 0, run: false, since: -1, period: 0, gleft: 0, key: -1, ev: [] }),
+  process(c, s) {
+    const q16 = (x: number | undefined): number => Math.round((x ?? 0) * 65536);
+    const v = c.voice;
+    const val: number[][] = ['a', 'b', 'c'].map((r) => [1, 2, 3, 4, 5, 6, 7, 8].map((k) => q16(c.p[`${r}${k}`])));
+    const mode = [1, 2, 3, 4, 5, 6, 7, 8].map((k) => Math.max(0, Math.min(3, Math.round(c.p[`m${k}`] ?? 0))));
+    const rng = ['ra', 'rb', 'rc'].map((r) => 1 << Math.max(0, Math.min(2, Math.round(c.p[r] ?? 0))));
+    const tps = SEQ960_TICKS[Math.max(0, Math.min(SEQ960_TICKS.length - 1, Math.round(c.p.rate ?? 3)))];
+    const krow = Math.max(0, Math.min(2, Math.round(c.p.krow ?? 0))), vsrc = Math.max(0, Math.min(3, Math.round(c.p.vel ?? 0)));
+    const glen = q16(c.p.gate ?? 0.5);
+    const ext = !!c.connected.clk;
+    const { clk, reset, hold } = c.inp;
+    const off = (): void => {
+      if (s.key >= 0) s.ev.push(s.key, 0);
+      s.key = -1;
+    };
+    if (!ext && s.run && !v.run) { // the transport stopped: the note ends
+      off();
+      s.gleft = 0;
+    }
+    for (let i = 0; i < c.n; i++) {
+      let adv = 0;
+      if (ext) {
+        if (s.since >= 0 && s.since < 8388608) s.since++;
+        if (clk[i] >= 0.5 && s.c1 < 0.5) {
+          if (s.since > 0) s.period = s.since;
+          s.since = 0;
+          adv++;
+        }
+        s.c1 = clk[i];
+      } else {
+        if (i === 0 && v.run && !s.run) {
+          s.cnt = 0;
+          s.pos = -1;
+          adv++;
+        }
+        if (v.run && i === v.tick)
+          for (let t = 0; t < v.ticks; t++)
+            if (++s.cnt >= tps) {
+              s.cnt = 0;
+              adv++;
+            }
+      }
+      if (reset[i] >= 0.5 && s.r1 < 0.5) {
+        s.pos = -1;
+        s.cnt = 0;
+      }
+      s.r1 = reset[i];
+      if (hold[i] >= 0.5) adv = 0;
+      for (; adv > 0; adv--) {
+        const np = seq960Next(s.pos, mode);
+        if (np < 0) continue;
+        s.pos = np;
+        const sl = ext ? (s.period > 0 ? s.period : 6 * v.tickLen) : tps * v.tickLen;
+        s.gleft = glen >= 65536 ? 2 * sl : Math.max(1, Math.floor((glen * sl) / 65536));
+        off();
+        const semis = Math.floor((val[krow][np] * rng[krow] * 12 + 32768) / 65536);
+        const vel = vsrc === 0 ? 100 : Math.max(1, Math.min(127, 64 + Math.floor((val[vsrc - 1][np] * 63 + 32768) / 65536)));
+        s.key = Math.max(0, Math.min(127, 60 + semis));
+        s.ev.push(s.key | 0x80, vel);
+      }
+      const p = s.pos < 0 ? 0 : s.pos;
+      c.out.a[i] = (val[0][p] * rng[0]) / 65536;
+      c.out.b[i] = (val[1][p] * rng[1]) / 65536;
+      c.out.c[i] = (val[2][p] * rng[2]) / 65536;
+      const g = s.gleft > 0 ? 1 : 0;
+      c.out.gate[i] = g;
+      for (let k = 0; k < 8; k++) c.out[`t${k + 1}`][i] = g && s.pos === k ? 1 : 0;
+      if (s.gleft > 0 && --s.gleft === 0) off();
+    }
+    s.run = v.run;
+  },
+};
+
 /** a clock divider: `out` passes every `div`-th clock pulse (its width is the clock's), `d2` `d4` `d8` every 2nd, 4th, 8th; `reset` restarts the count so the next pulse is a downbeat */
 const clkdiv: ModuleImpl<{ count: number; c1: number; r1: number }> = {
   def: {
@@ -3941,7 +4080,9 @@ const muug: ModuleImpl<MuugState> = {
 
 const ALL = [fm1, osc, lfo, noise, constant, scale, adsr, vca, filter, mixer, delay, reverb, output, glide, shape, env, string, wavetable, chorus, seq, clkdiv, sh, quant, pulse, pan, xfade, vowel, phaser, crush, ladder, dyn, math, logic, grain, comb, modal, shift, part, random, alloc, scope, arp, steps, macro, drummap, pd, env8, select, rateenv, ratio, esp,
   // KITTEN RACK (format 49)
-  lpg, func, ring, turing, euclid, marbles, bern, chaos, muug];
+  lpg, func, ring, turing, euclid, marbles, bern, chaos, muug,
+  // KITTEN RACK (format 50)
+  seq960];
 
 /**
  * Every module except the FM-1 panel (the input) and the output has two parameter inputs, p1 and p2, each with an
@@ -3949,7 +4090,7 @@ const ALL = [fm1, osc, lfo, noise, constant, scale, adsr, vca, filter, mixer, de
  * effective value is its base + (block mean of p1 x att1 + block mean of p2 x att2, for the inputs that control it) x
  * (max - min), clamped.
  */
-export const PIN_EXEMPT = new Set(['fm1', 'output', 'alloc', 'scope', 'arp', 'drummap']);
+export const PIN_EXEMPT = new Set(['fm1', 'output', 'alloc', 'scope', 'arp', 'drummap', 'seq960']);
 export const PIN_NAMES = ['p1', 'p2'] as const;
 for (const m of ALL)
   if (!PIN_EXEMPT.has(m.def.type) && m.def.params.length) {

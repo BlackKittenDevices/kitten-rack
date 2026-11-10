@@ -343,7 +343,7 @@ Over 50 modules by family. All of them work in the editor and on the FM-1.
 | Family | Modules |
 | --- | --- |
 | Sources | VCO, VCO WT (wavetable), VCO CZ (phase distortion), Noise, String (Karplus), Resonator (modal) |
-| Generative | Turing, Marbles, Euclidean, Bernoulli, Chaos (Lorenz), Random, S&H, Seq 8, Steps (the sequencer), Arpeggiator |
+| Generative | Turing, Marbles, Euclidean, Bernoulli, Chaos (Lorenz), Random, S&H, Seq 8, Seq 960 (Moog 960 style), Steps (the sequencer), Arpeggiator |
 | Filters | VCF Muug (a Minimoog ladder that self-oscillates), LPG (Buchla style), VCF Ladder, VCF Multi, Formant, Comb, Wavefolder |
 | VCA and mix | VCA, Ring mod, Mix 4, Xfade, Pan, Selector, Compressor |
 | Modulators | Function (Maths style), ADSR, Env L/R, Env 8, Env DX, LFO, Slew, Pulse, Macro |
@@ -353,6 +353,14 @@ Over 50 modules by family. All of them work in the editor and on the FM-1.
 In every patch: **MIDI-CV** (the keyboard and MIDI: pitch, gate, velocity, bend, mod, aftertouch) and **OUT** (the output).
 
 FM-1 limits: one delay, one reverb and one chorus per patch, and a CPU ceiling the editor estimates (the CPU bar at the top).
+
+### Seq 960 (after Moog's 960)
+
+Three rows of eight knobs (**A**, **B**, **C**) and a stage switch on each step: **PLAY** (it plays), **SKIP** (it is passed over), **STOP** (the sequence stops there until RESET or PLAY starts again) and **RESET** (back to step 1 at once).
+
+- **Clock:** the transport (PLAY on the FM-1) at **RATE** (1/4, 1/8, 1/8T, 1/16, 1/16T, 1/32), or any gate into **CLK** (an LFO, a Clock/Div, a Euclidean). **RESET** sends it to step 1, **HOLD** (high) freezes it.
+- **Outputs:** **A**, **B**, **C** (each row's value; **RA / RB / RC** set 1, 2 or 4 octaves), **GATE** (as long as **GATE** says; 1 ties to the next step) and **T1…T8** (a trigger on each step: fire envelopes, drums or other modules).
+- **KEYS:** the notes of the row you pick in **KROW** (A, B or C: C4 plus the knob in semitones) into a voice's **keys** input (Voces / an assembly) or a Drum map, without the FM-1's keys. **VEL:** FIXED (100) or taken from row A, B or C.
 
 ---
 

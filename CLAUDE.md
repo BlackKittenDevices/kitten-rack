@@ -13,7 +13,7 @@ A Eurorack-style modular firmware for the **M-VAVE FM-1**, a fork of Matryoshka 
 - `firmware/src/`: `engine.c` (fixed point) ↔ `web/src/modules.ts` / `engine.ts` (reference): keep both in step, add a golden kit (`web/scripts/golden.ts`) per new behaviour. Device UI: `panel.c`, `seq_ui.c`, `rack_ui.c`, `save_ui.c`, `viz_ui.c`, `manual.c`. Patch edits from the device: `patch_edit.h`, `patch_check.h`.
 - `web/rack.html` + `web/src/rack/`: the rack editor (live link with the FM-1). `web/play.html` + `web/src/play/`: the browser player (the firmware UI as wasm, `npm run fm1-wasm`, + the engine), The Firmware Hub's play key (`fmhub.json`). `web/visuales.html` + `web/src/visuals/`: the big-screen visuals (FM-1 USB audio in, BroadcastChannel `kitten-rack-visuales` out). The rest of `web/` is Matryoshka's app; kept because the engine, formats, protocol and tests live there.
 - A note's timing (an exact take, QUANTIZE OFF): `engine.c` `trk_tim` / `TM_*` alongside `trk_note`, the binary's last section `ENG_FLAG_TIMING` (proto.c `m1_patch_timing` rewrites it), TRACK frames carry it after the pattern byte; TS `StepNote.off` / `.end`, `patchbin.ts timingRecord`. REC's settings: `cfg.rec_*` / `cfg.click` (MENU > REC, settings bytes 17..22).
-- Factory bank: `web/scripts/rack-factory.ts` (33 patches). Patch format 49. Note word: at(6) len-1(6) note(7) vel(7) chance(5), bit 31 = hold the last step whole (`NW_HOLD`).
+- Factory bank: `web/scripts/rack-factory.ts` (33 patches). Patch format 50 (49 for patches without a Seq 960: TYPE_FORMATS). Note word: at(6) len-1(6) note(7) vel(7) chance(5), bit 31 = hold the last step whole (`NW_HOLD`).
 
 ## Checks before pushing
 

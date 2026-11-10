@@ -340,6 +340,51 @@ kit('kr-spring', (add, wire) => {
   wire(osc, 'out', vca, 'in'); wire(env, 'out', vca, 'cv');
   wire(vca, 'out', rv, 'in'); wire(rv, 'out', out, 'l');
 });
+// KITTEN RACK (format 50): the Seq 960 on the transport (its rows, stage switches play / skip / stop / reset, the gate and
+// a step's trigger), into a voice by its keys (the notes of row B, velocity from row C), and on an LFO square in clk
+const S960_ROWS = {
+  a1: 0.1, a2: -0.3, a3: 0.55, a4: 0.2, a5: -0.75, a6: 0.4, a7: 0.9, a8: -0.1,
+  b1: 0, b2: 0.25, b3: 0.42, b4: -0.17, b5: 0.58, b6: -0.5, b7: 0.33, b8: 0.08,
+  c1: 1, c2: 0.3, c3: -0.4, c4: 0.7, c5: -1, c6: 0.1, c7: 0.5, c8: -0.6,
+};
+tests['kr-seq960'] = make('kr-seq960', (add, wire) => {
+  add('fm1', 0, 0, { tempo: 150 });
+  const s = add('seq960', 0, 0, { ...S960_ROWS, m3: 1, m6: 3, ra: 1, rb: 2, rate: 4, gate: 0.6 });
+  const out = add('output', 0, 0, { level: 1 }), mx = add('mixer', 0, 0);
+  wire(s, 'a', out, 'l'); wire(s, 'gate', mx, 'in1'); wire(s, 't2', mx, 'in2'); wire(s, 'c', mx, 'in3'); wire(mx, 'out', out, 'r');
+});
+events['kr-seq960'] = [[128 * 3, 'run', 0], [128 * 300, 'stop', 0], [128 * 340, 'run', 0]];
+ends['kr-seq960'] = 128 * 500;
+tests['kr-seq960-stop'] = make('kr-seq960-stop', (add, wire) => {
+  add('fm1', 0, 0, { tempo: 170 });
+  const s = add('seq960', 0, 0, { ...S960_ROWS, m2: 1, m5: 2, rb: 1, rate: 5, gate: 1 });
+  const out = add('output', 0, 0, { level: 1 });
+  wire(s, 'b', out, 'l'); wire(s, 't5', out, 'r');
+});
+events['kr-seq960-stop'] = [[0, 'run', 0]];
+ends['kr-seq960-stop'] = 128 * 400;
+tests['kr-seq960-keys'] = make('kr-seq960-keys', (add, wire) => {
+  add('fm1', 0, 0, { tempo: 140 });
+  const s = add('seq960', 0, 0, { ...S960_ROWS, m4: 1, m8: 3, rb: 1, krow: 1, vel: 3, rate: 3, gate: 0.4 });
+  const al = add('alloc', 0, 0, { voices: 2 }), o = add('osc', 0, 0, { wave: 1, level: 0.7 });
+  const e = add('adsr', 0, 0, { a: 0.003, d: 0.1, s: 0.5, r: 0.04 }), v = add('vca', 0, 0), out = add('output', 0, 0, { level: 0.6 });
+  wire(s, 'keys', al, 'keys'); wire(al, 'pitch', o, 'pitch'); wire(al, 'gate', e, 'gate'); wire(al, 'vel', v, 'cv');
+  wire(o, 'out', v, 'in'); wire(v, 'out', out, 'l'); wire(e, 'env', out, 'r');
+});
+{
+  const t = tests['kr-seq960-keys'];
+  makeAssembly(t, t.modules.filter((m) => ['alloc', 'osc', 'adsr', 'vca'].includes(m.type)).map((m) => m.id), 'voice').poly = {};
+}
+events['kr-seq960-keys'] = [[128 * 2, 'run', 0], [128 * 280, 'stop', 0], [128 * 320, 'run', 0]];
+ends['kr-seq960-keys'] = 128 * 450;
+tests['kr-seq960-clk'] = make('kr-seq960-clk', (add, wire) => {
+  const clk = add('lfo', 0, 0, { wave: 3, rate: 12, depth: 1 }), rst = add('lfo', 0, 0, { wave: 3, rate: 1.1, depth: 1 });
+  const s = add('seq960', 0, 0, { ...S960_ROWS, m7: 2, rc: 2, gate: 0.3 });
+  const out = add('output', 0, 0, { level: 1 }), mx = add('mixer', 0, 0);
+  wire(clk, 'out', s, 'clk'); wire(rst, 'out', s, 'reset');
+  wire(s, 'c', out, 'l'); wire(s, 'gate', mx, 'in1'); wire(s, 't1', mx, 'in2'); wire(mx, 'out', out, 'r');
+});
+ends['kr-seq960-clk'] = 128 * 500;
 for (const k of ['kr-tape', 'kr-tape-pp', 'kr-spring', 'kr-muug', 'kr-muug-sing', 'kr-turing', 'kr-turing-gates', 'kr-euclid', 'kr-marbles', 'kr-marbles-cv', 'kr-bern', 'kr-bern-latch', 'kr-chaos', 'kr-chaos-slow', 'kr-func', 'kr-lpg'])
   ends[k] = 128 * 600;
 kit('waves', (add, wire) => {

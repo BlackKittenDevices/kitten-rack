@@ -2,6 +2,10 @@
 
 Kitten Rack's versions. Each release on GitHub has an installer, the `.fwsc` and the offline editor. The history of Matryoshka, which Kitten Rack starts from, is in [docs/CHANGELOG-matryoshka.md](docs/CHANGELOG-matryoshka.md).
 
+## 1.4.0-rc1 — 2026-11-10 (test version)
+
+- **Seq 960**, after Moog's 960 sequential controller: three rows of eight steps (A, B, C, 1 / 2 / 4 octaves each), a stage switch per step (PLAY / SKIP / STOP / RESET), the transport or a clock in CLK, RESET and HOLD inputs, outputs A, B, C, GATE, T1..T8 and KEYS: the notes of row A, B or C (KROW) into a voice or a Drum map without the FM-1's keys, velocity fixed or from a row (VEL). Patch format 50 (only patches that use it).
+
 ## 1.3.0 — 2026-11-01
 
 - A button stays lit while what it opened shows (SEQ, SAVE, EDIT, HOME, FX, LFO, ENV, GLO); the keys light while held or played by the sequencer (MENU > PANEL > KEY LIGHTS turns that off).

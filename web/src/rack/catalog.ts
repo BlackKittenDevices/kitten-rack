@@ -30,6 +30,7 @@ export const FAMILIES: Family[] = [
       { type: 'random', label: 'Random' },
       { type: 'sh', label: 'S&H' },
       { type: 'seq', label: 'Seq 8' },
+      { type: 'seq960', label: 'Seq 960' },
       { type: 'steps', label: 'Steps' },
       { type: 'arp', label: 'Arpegiador' },
     ],
