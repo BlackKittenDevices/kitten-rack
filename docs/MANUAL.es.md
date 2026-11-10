@@ -360,6 +360,7 @@ Tres filas de ocho perillas (**A**, **B**, **C**) y una llave por paso: **PLAY**
 - **Salidas:** **A**, **B**, **C** (el valor de cada fila; **RA / RB / RC** eligen 1, 2 o 4 octavas), **GATE** (lo largo que diga **GATE**; en 1 liga con el paso siguiente) y **T1…T8** (un disparo en cada paso: para envolventes, baterías u otros módulos).
 - **KEYS:** las notas de la fila que elijas en **KROW** (A, B o C: C4 más la perilla en semitonos) a la entrada **keys** de una voz (Voces / un ensamble) o de un Drum map, sin usar las teclas del FM-1. **VEL:** FIJA (100) o sacada de la fila A, B o C.
 - **Un patch para probarlo:** [`docs/patches/seq-960-prueba.json`](patches/seq-960-prueba.json): IMPORTAR en el editor, PLAY, y AL FM-1 a un lugar libre. La fila A toca las notas, la B mueve el filtro, la C da la velocidad, T1 y T5 disparan un bombo, el paso 6 está en SKIP.
+- **Dos más:** [`960-bateria-lead.json`](patches/960-bateria-lead.json) (el Seq 960 toca una batería por un Drum map: la fila A elige bombo, caja, hat cerrado o abierto; las teclas tocan un lead Muug que REC graba) y [`960-bajo-lead.json`](patches/960-bajo-lead.json) (el Seq 960 toca un bajo; las teclas tocan un lead sincronizado que REC graba).
 
 ---
 

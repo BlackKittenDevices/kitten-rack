@@ -2,13 +2,14 @@
 // Golden vectors for the firmware engine: for each test patch, the binary patch (.m1p), the note events (.ev) and the
 // reference output of web/src/engine.ts (.f32, float32 stereo interleaved) at the FM-1's rate (DEVICE_SR, 44118 Hz), written to build/golden/.
 // Run from web/:  npx vite-node scripts/golden.ts   (tools/golden.sh does this and runs the C comparison)
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { Engine } from '../src/engine';
 import { deviceBudget, encodePatch, FLAG_INPUTS, PANEL_BYTES, recordSize, toQ16 } from '../src/patchbin';
 import { cpuEstimate } from '../src/cpu';
 import { DEFS, DEVICE_SR } from '../src/modules';
 import { attFrame, chunkFrames, commitFrame, paramFrame, sandboxFrame, slotEraseFrame, slotFrame, slotInfoFrame } from '../src/protocol';
 import { make, FM1_PRESETS, type Build } from '../src/presets';
+import { validatePatch } from '../src/patch';
 import { addModule, defaultParams, emptyPatch, fixMatrix, paramUnit, setMorphTarget, SOURCES, stepByte, type Patch, type PolyCfg } from '../src/patch';
 import { migrateSteps, overdub, type StepNote } from '../src/track';
 import { makeAssembly } from '../src/assembly';
@@ -385,6 +386,12 @@ tests['kr-seq960-clk'] = make('kr-seq960-clk', (add, wire) => {
   wire(s, 'c', out, 'l'); wire(s, 'gate', mx, 'in1'); wire(s, 't1', mx, 'in2'); wire(mx, 'out', out, 'r');
 });
 ends['kr-seq960-clk'] = 128 * 500;
+// the example patches (docs/patches): the Seq 960 plays a drum kit or a bass line (the keys play and record a lead)
+for (const [k, f] of [['kr-960-drums', '960-bateria-lead'], ['kr-960-bass', '960-bajo-lead']]) {
+  tests[k] = validatePatch(JSON.parse(readFileSync(new URL(`../../docs/patches/${f}.json`, import.meta.url), 'utf8')), DEFS);
+  events[k] = [[128 * 2, 'run', 0], [128 * 300, 'stop', 0], [128 * 320, 'run', 0]];   // (the Seq 960's part: the keys' lead is a factory voice)
+  ends[k] = 128 * 460;
+}
 for (const k of ['kr-tape', 'kr-tape-pp', 'kr-spring', 'kr-muug', 'kr-muug-sing', 'kr-turing', 'kr-turing-gates', 'kr-euclid', 'kr-marbles', 'kr-marbles-cv', 'kr-bern', 'kr-bern-latch', 'kr-chaos', 'kr-chaos-slow', 'kr-func', 'kr-lpg'])
   ends[k] = 128 * 600;
 kit('waves', (add, wire) => {

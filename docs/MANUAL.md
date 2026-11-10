@@ -362,6 +362,7 @@ Three rows of eight knobs (**A**, **B**, **C**) and a stage switch on each step:
 - **Outputs:** **A**, **B**, **C** (each row's value; **RA / RB / RC** set 1, 2 or 4 octaves), **GATE** (as long as **GATE** says; 1 ties to the next step) and **T1…T8** (a trigger on each step: fire envelopes, drums or other modules).
 - **KEYS:** the notes of the row you pick in **KROW** (A, B or C: C4 plus the knob in semitones) into a voice's **keys** input (Voces / an assembly) or a Drum map, without the FM-1's keys. **VEL:** FIXED (100) or taken from row A, B or C.
 - **A patch to try it:** [`docs/patches/seq-960-prueba.json`](patches/seq-960-prueba.json): IMPORTAR it in the editor, press PLAY, send it to a free slot with AL FM-1. Row A plays the notes, B moves the filter, C sets the velocity, T1 and T5 fire a kick, step 6 is on SKIP.
+- **Two more:** [`960-bateria-lead.json`](patches/960-bateria-lead.json) (the Seq 960 plays a drum kit through a Drum map: row A picks kick, snare, closed or open hat; the keys play a Muug lead that REC records) and [`960-bajo-lead.json`](patches/960-bajo-lead.json) (the Seq 960 plays a bass line; the keys play a sync lead that REC records).
 
 ---
 
