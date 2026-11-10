@@ -338,7 +338,7 @@ The FM-1 and the editor answer any MIDI controller, over USB (and the FM-1 also 
 
 ## 10. The modules
 
-Over 50 modules by family. All of them work in the editor and on the FM-1.
+56 modules by family. All of them work in the editor and on the FM-1.
 
 | Family | Modules |
 | --- | --- |
@@ -361,6 +361,7 @@ Three rows of eight knobs (**A**, **B**, **C**) and a stage switch on each step:
 - **Clock:** the transport (PLAY on the FM-1) at **RATE** (1/4, 1/8, 1/8T, 1/16, 1/16T, 1/32), or any gate into **CLK** (an LFO, a Clock/Div, a Euclidean). **RESET** sends it to step 1, **HOLD** (high) freezes it.
 - **Outputs:** **A**, **B**, **C** (each row's value; **RA / RB / RC** set 1, 2 or 4 octaves), **GATE** (as long as **GATE** says; 1 ties to the next step) and **T1…T8** (a trigger on each step: fire envelopes, drums or other modules).
 - **KEYS:** the notes of the row you pick in **KROW** (A, B or C: C4 plus the knob in semitones) into a voice's **keys** input (Voces / an assembly) or a Drum map, without the FM-1's keys. **VEL:** FIXED (100) or taken from row A, B or C.
+- **A patch to try it:** [`docs/patches/seq-960-prueba.json`](patches/seq-960-prueba.json): IMPORTAR it in the editor, press PLAY, send it to a free slot with AL FM-1. Row A plays the notes, B moves the filter, C sets the velocity, T1 and T5 fire a kick, step 6 is on SKIP.
 
 ---
 
@@ -446,7 +447,7 @@ Before installing anything on an FM-1: **never firmware without Felucca's USB up
 
 ### The patch format
 
-Format 49 (Matryoshka's 48 plus Kitten Rack's modules). A sequence note is a 32-bit word: step (6 bits), length - 1 (6), note (7), velocity (7), chance (5), and bit 31, which marks a note that sounds whole to the end of its last step (recorded notes and those lengthened with K3). A patch can end with a MIDI map (flag 8 of byte 7): a count, then 4 bytes per entry: CC, channel (0 = the FM-1's), module index, parameter index. Older firmware refuses such a patch rather than misreading it. Last, a timing section (flag 16 of byte 7): a count, then per pattern with notes off the grid its module, pattern (0 = the notes section's), the note count and a u16 per note (bits 0-5 how late it starts in 1/64 of a step, 6-11 where it ends in its last step, bit 12 that it has such an end).
+Format 50 (Matryoshka's 48 plus Kitten Rack's modules; 50 only for patches with a Seq 960, the rest are still written as 49). A sequence note is a 32-bit word: step (6 bits), length - 1 (6), note (7), velocity (7), chance (5), and bit 31, which marks a note that sounds whole to the end of its last step (recorded notes and those lengthened with K3). A patch can end with a MIDI map (flag 8 of byte 7): a count, then 4 bytes per entry: CC, channel (0 = the FM-1's), module index, parameter index. Older firmware refuses such a patch rather than misreading it. Last, a timing section (flag 16 of byte 7): a count, then per pattern with notes off the grid its module, pattern (0 = the notes section's), the note count and a u16 per note (bits 0-5 how late it starts in 1/64 of a step, 6-11 where it ends in its last step, bit 12 that it has such an end).
 
 ---
 

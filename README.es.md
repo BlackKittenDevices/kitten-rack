@@ -3,7 +3,7 @@
 <h1 align="center">Kitten Rack</h1>
 
 <p align="center"><b>Un sintetizador modular adentro del M-VAVE FM-1.</b><br>
-Más de 50 módulos estilo Eurorack que se cablean en el mismo FM-1, un secuenciador que graba lo que tocás, visuales, MIDI LEARN y audio por USB.<br>
+56 módulos estilo Eurorack que se cablean en el mismo FM-1, un secuenciador que graba lo que tocás, visuales, MIDI LEARN y audio por USB.<br>
 Por <a href="https://github.com/BlackKittenDevices">Black Kitten Devices</a> · firmware libre · GPL-3.0</p>
 
 <p align="center">
@@ -20,7 +20,7 @@ Por <a href="https://github.com/BlackKittenDevices">Black Kitten Devices</a> · 
 
 Kitten Rack convierte el FM-1 en un **Eurorack en tus manos**. Un patch es un rack entero: módulos con sus perillas, jacks y cables, donde cualquier salida va a cualquier entrada. Lo armás, lo tocás, lo secuenciás y lo guardás, en el FM-1 o en el editor web, y los dos suenan exactamente igual.
 
-- **Más de 50 módulos:** VCOs (clásico, wavetable, phase distortion), un ladder estilo Minimoog que autooscila, un low pass gate estilo Buchla, un secuenciador estilo Moog 960 que toca tus voces, Turing, Marbles, Euclídeo, caos de Lorenz, funciones estilo Maths, eco de cinta, reverb de resorte, granular y más.
+- **56 módulos:** VCOs (clásico, wavetable, phase distortion), un ladder estilo Minimoog que autooscila, un low pass gate estilo Buchla, un secuenciador estilo Moog 960 que toca tus voces, Turing, Marbles, Euclídeo, caos de Lorenz, funciones estilo Maths, eco de cinta, reverb de resorte, granular y más.
 - **Cableado en el equipo:** agregás y sacás módulos y cables en el mismo FM-1 (EDIT), y ves el rack entero con sus cables (GLO).
 - **Un secuenciador que graba lo que tocás:** hasta 64 patrones de 64 pasos por patch, piano roll, grilla de batería y canciones. Las tomas en vivo guardan tu tiempo (o caen en la grilla), con click que nunca llega a tu DAW, cuenta previa, tomas libres donde el tempo te sigue, deshacer y tap tempo.
 - **33 patches de fábrica** propios: teclados de los 60, máquinas generativas que tocan solas, drones y ruido.

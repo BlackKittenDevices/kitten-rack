@@ -1,5 +1,5 @@
 {
-  "what": "A Eurorack-style modular synth: over 50 modules (VCOs, a Moog-style ladder, a low pass gate, Turing, Marbles, chaos, effects) patched with cables on the FM-1 itself, a 64-step sequencer with live recording, 33 factory patches, visuals, USB audio and MIDI.",
+  "what": "A Eurorack-style modular synth: 56 modules (VCOs, a Moog-style ladder, a Moog 960-style sequencer that plays your voices, a low pass gate, Turing, Marbles, chaos, effects) patched with cables on the FM-1 itself, a 64-step sequencer with live recording, 33 factory patches, visuals, USB audio and MIDI.",
   "kinds": [
     "synth"
   ],

@@ -1,0 +1,871 @@
+{
+ "version": 2,
+ "name": "seq 960 prueba",
+ "modules": [
+  {
+   "id": 1,
+   "type": "fm1",
+   "x": 40,
+   "y": 0,
+   "params": {
+    "morph": 0,
+    "tempo": 118
+   },
+   "panel": {
+    "kinds": {
+     "fx": "nothing",
+     "lfo": "nothing",
+     "edit": "nothing",
+     "arp": "nothing"
+    }
+   }
+  },
+  {
+   "id": 2,
+   "type": "output",
+   "x": 520,
+   "y": 2070,
+   "params": {
+    "level": 0.63
+   }
+  },
+  {
+   "id": 3,
+   "type": "seq960",
+   "x": 40,
+   "y": 414,
+   "params": {
+    "a1": 0,
+    "a2": 0.25,
+    "a3": 0.5833333333333334,
+    "a4": 0.8333333333333334,
+    "a5": 1,
+    "a6": 0.5833333333333334,
+    "a7": 0.25,
+    "a8": -0.16666666666666666,
+    "b1": -0.6,
+    "b2": 0.1,
+    "b3": -0.2,
+    "b4": 0.5,
+    "b5": -0.4,
+    "b6": 0.8,
+    "b7": 0,
+    "b8": 0.3,
+    "c1": 1,
+    "c2": 0.2,
+    "c3": 0.5,
+    "c4": 0.1,
+    "c5": 0.9,
+    "c6": 0.3,
+    "c7": 0.6,
+    "c8": 0,
+    "m1": 0,
+    "m2": 0,
+    "m3": 0,
+    "m4": 0,
+    "m5": 0,
+    "m6": 1,
+    "m7": 0,
+    "m8": 0,
+    "rate": 3,
+    "ra": 0,
+    "rb": 0,
+    "rc": 0,
+    "krow": 0,
+    "vel": 3,
+    "gate": 0.45
+   }
+  },
+  {
+   "id": 4,
+   "type": "alloc",
+   "x": 40,
+   "y": 828,
+   "params": {
+    "voices": 1,
+    "assign": 0,
+    "legato": 0,
+    "priority": 0,
+    "unison": 0,
+    "channel": 0,
+    "low": 0,
+    "high": 127,
+    "steal": 1,
+    "stack": 0
+   }
+  },
+  {
+   "id": 5,
+   "type": "osc",
+   "x": 280,
+   "y": 828,
+   "params": {
+    "wave": 2,
+    "pw": 0.5,
+    "coarse": -12,
+    "fine": 0,
+    "pm": 0,
+    "level": 0.7,
+    "fb": 0,
+    "unison": 1,
+    "detune": 10,
+    "blend": 0.5,
+    "stack": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "pw"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "pw"
+    ],
+    "k3": [
+     "coarse"
+    ],
+    "k4": [
+     "fine"
+    ]
+   }
+  },
+  {
+   "id": 6,
+   "type": "osc",
+   "x": 520,
+   "y": 828,
+   "params": {
+    "wave": 3,
+    "pw": 0.4,
+    "coarse": -24,
+    "fine": 0,
+    "pm": 0,
+    "level": 0.5,
+    "fb": 0,
+    "unison": 1,
+    "detune": 10,
+    "blend": 0.5,
+    "stack": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "pw"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "pw"
+    ],
+    "k3": [
+     "coarse"
+    ],
+    "k4": [
+     "fine"
+    ]
+   }
+  },
+  {
+   "id": 7,
+   "type": "mixer",
+   "x": 40,
+   "y": 1242,
+   "params": {
+    "l1": 0.8,
+    "l2": 0.6,
+    "l3": 0.7,
+    "l4": 0.7
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "l1"
+    ],
+    "p2": [
+     "l2"
+    ],
+    "k1": [
+     "l1"
+    ],
+    "k2": [
+     "l2"
+    ],
+    "k3": [
+     "l3"
+    ],
+    "k4": [
+     "l4"
+    ]
+   }
+  },
+  {
+   "id": 8,
+   "type": "mixer",
+   "x": 200,
+   "y": 1242,
+   "params": {
+    "l1": 1,
+    "l2": 0.6,
+    "l3": 0.7,
+    "l4": 0.7
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "l1"
+    ],
+    "p2": [
+     "l2"
+    ],
+    "k1": [
+     "l1"
+    ],
+    "k2": [
+     "l2"
+    ],
+    "k3": [
+     "l3"
+    ],
+    "k4": [
+     "l4"
+    ]
+   }
+  },
+  {
+   "id": 9,
+   "type": "muug",
+   "x": 360,
+   "y": 1242,
+   "params": {
+    "cutoff": -1.6,
+    "emph": 5.5,
+    "drive": 1.8,
+    "cvamt": 3,
+    "track": 1
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [],
+    "p2": [],
+    "k1": [
+     "cutoff"
+    ],
+    "k2": [
+     "emph"
+    ],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 10,
+   "type": "adsr",
+   "x": 520,
+   "y": 1242,
+   "params": {
+    "a": 0.002,
+    "d": 0.18,
+    "s": 0.1,
+    "r": 0.12,
+    "long": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "a"
+    ],
+    "p2": [
+     "d"
+    ],
+    "k1": [
+     "a"
+    ],
+    "k2": [
+     "d"
+    ],
+    "k3": [
+     "s"
+    ],
+    "k4": [
+     "r"
+    ]
+   }
+  },
+  {
+   "id": 11,
+   "type": "adsr",
+   "x": 680,
+   "y": 1242,
+   "params": {
+    "a": 0.002,
+    "d": 0.3,
+    "s": 0.6,
+    "r": 0.1,
+    "long": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "a"
+    ],
+    "p2": [
+     "d"
+    ],
+    "k1": [
+     "a"
+    ],
+    "k2": [
+     "d"
+    ],
+    "k3": [
+     "s"
+    ],
+    "k4": [
+     "r"
+    ]
+   }
+  },
+  {
+   "id": 12,
+   "type": "vca",
+   "x": 40,
+   "y": 1656,
+   "params": {
+    "gain": 1
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "gain"
+    ],
+    "p2": [],
+    "k1": [
+     "gain"
+    ],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 13,
+   "type": "vca",
+   "x": 120,
+   "y": 1656,
+   "params": {
+    "gain": 1.6
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "gain"
+    ],
+    "p2": [],
+    "k1": [
+     "gain"
+    ],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 14,
+   "type": "delay",
+   "x": 200,
+   "y": 1656,
+   "params": {
+    "time": 380,
+    "fb": 0.4,
+    "mix": 0.25,
+    "sync": 0,
+    "pingpong": 0,
+    "note": 0,
+    "swell": 0,
+    "tape": 0.6
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [],
+    "p2": [],
+    "k1": [],
+    "k2": [],
+    "k3": [
+     "mix"
+    ],
+    "k4": [
+     "fb"
+    ]
+   }
+  },
+  {
+   "id": 15,
+   "type": "mixer",
+   "x": 400,
+   "y": 1656,
+   "params": {
+    "l1": 1,
+    "l2": 1,
+    "l3": 0.7,
+    "l4": 0.7
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "l1"
+    ],
+    "p2": [
+     "l2"
+    ],
+    "k1": [
+     "l1"
+    ],
+    "k2": [
+     "l2"
+    ],
+    "k3": [
+     "l3"
+    ],
+    "k4": [
+     "l4"
+    ]
+   }
+  },
+  {
+   "id": 16,
+   "type": "adsr",
+   "x": 560,
+   "y": 1656,
+   "params": {
+    "a": 0.001,
+    "d": 0.16,
+    "s": 0,
+    "r": 0.06,
+    "long": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "a"
+    ],
+    "p2": [
+     "d"
+    ],
+    "k1": [
+     "a"
+    ],
+    "k2": [
+     "d"
+    ],
+    "k3": [
+     "s"
+    ],
+    "k4": [
+     "r"
+    ]
+   }
+  },
+  {
+   "id": 17,
+   "type": "osc",
+   "x": 40,
+   "y": 2070,
+   "params": {
+    "wave": 0,
+    "pw": 0.5,
+    "coarse": -36,
+    "fine": 0,
+    "pm": 0,
+    "level": 0.9,
+    "fb": 0,
+    "unison": 1,
+    "detune": 10,
+    "blend": 0.5,
+    "stack": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "wave"
+    ],
+    "p2": [
+     "pw"
+    ],
+    "k1": [
+     "wave"
+    ],
+    "k2": [
+     "pw"
+    ],
+    "k3": [
+     "coarse"
+    ],
+    "k4": [
+     "fine"
+    ]
+   }
+  },
+  {
+   "id": 18,
+   "type": "vca",
+   "x": 280,
+   "y": 2070,
+   "params": {
+    "gain": 1.4
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "gain"
+    ],
+    "p2": [],
+    "k1": [
+     "gain"
+    ],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 19,
+   "type": "mixer",
+   "x": 360,
+   "y": 2070,
+   "params": {
+    "l1": 1,
+    "l2": 0.8,
+    "l3": 0.7,
+    "l4": 0.7
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "l1"
+    ],
+    "p2": [
+     "l2"
+    ],
+    "k1": [
+     "l1"
+    ],
+    "k2": [
+     "l2"
+    ],
+    "k3": [
+     "l3"
+    ],
+    "k4": [
+     "l4"
+    ]
+   }
+  }
+ ],
+ "cables": [
+  {
+   "from": {
+    "module": 3,
+    "port": "keys"
+   },
+   "to": {
+    "module": 4,
+    "port": "keys"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 5,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 6,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "gate"
+   },
+   "to": {
+    "module": 10,
+    "port": "gate"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "gate"
+   },
+   "to": {
+    "module": 11,
+    "port": "gate"
+   }
+  },
+  {
+   "from": {
+    "module": 5,
+    "port": "out"
+   },
+   "to": {
+    "module": 7,
+    "port": "in1"
+   }
+  },
+  {
+   "from": {
+    "module": 6,
+    "port": "out"
+   },
+   "to": {
+    "module": 7,
+    "port": "in2"
+   }
+  },
+  {
+   "from": {
+    "module": 7,
+    "port": "out"
+   },
+   "to": {
+    "module": 9,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 10,
+    "port": "env"
+   },
+   "to": {
+    "module": 8,
+    "port": "in1"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "b"
+   },
+   "to": {
+    "module": 8,
+    "port": "in2"
+   }
+  },
+  {
+   "from": {
+    "module": 8,
+    "port": "out"
+   },
+   "to": {
+    "module": 9,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 11,
+    "port": "env"
+   },
+   "to": {
+    "module": 12,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "vel"
+   },
+   "to": {
+    "module": 12,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 12,
+    "port": "out"
+   },
+   "to": {
+    "module": 13,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 9,
+    "port": "out"
+   },
+   "to": {
+    "module": 13,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 13,
+    "port": "out"
+   },
+   "to": {
+    "module": 14,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "t1"
+   },
+   "to": {
+    "module": 15,
+    "port": "in1"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "t5"
+   },
+   "to": {
+    "module": 15,
+    "port": "in2"
+   }
+  },
+  {
+   "from": {
+    "module": 15,
+    "port": "out"
+   },
+   "to": {
+    "module": 16,
+    "port": "gate"
+   }
+  },
+  {
+   "from": {
+    "module": 16,
+    "port": "env"
+   },
+   "to": {
+    "module": 18,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 17,
+    "port": "out"
+   },
+   "to": {
+    "module": 18,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 14,
+    "port": "out"
+   },
+   "to": {
+    "module": 19,
+    "port": "in1"
+   }
+  },
+  {
+   "from": {
+    "module": 18,
+    "port": "out"
+   },
+   "to": {
+    "module": 19,
+    "port": "in2"
+   }
+  },
+  {
+   "from": {
+    "module": 19,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "l"
+   }
+  },
+  {
+   "from": {
+    "module": 19,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "r"
+   }
+  }
+ ],
+ "notes": "Prueba del SEQ 960: dale PLAY. Fila A = notas (por KEYS a la voz), fila B = filtro, fila C = velocidad, T1 y T5 = bombo. El paso 6 está en SKIP. K1 corte, K2 énfasis, K3 y K4 el eco."
+}

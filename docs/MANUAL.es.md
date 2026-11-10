@@ -336,7 +336,7 @@ El FM-1 y el editor responden a cualquier controlador MIDI, por USB (y el FM-1 t
 
 ## 10. Los módulos
 
-Más de 50 módulos por familias. Todos andan en el editor y en el FM-1.
+56 módulos por familias. Todos andan en el editor y en el FM-1.
 
 | Familia | Módulos |
 | --- | --- |
@@ -359,6 +359,7 @@ Tres filas de ocho perillas (**A**, **B**, **C**) y una llave por paso: **PLAY**
 - **Reloj:** el transporte (PLAY del FM-1) a la velocidad de **RATE** (1/4, 1/8, 1/8T, 1/16, 1/16T, 1/32), o cualquier gate en **CLK** (un LFO, un Reloj/Div, un Euclídeo). **RESET** lo manda al paso 1, **HOLD** (alto) lo congela.
 - **Salidas:** **A**, **B**, **C** (el valor de cada fila; **RA / RB / RC** eligen 1, 2 o 4 octavas), **GATE** (lo largo que diga **GATE**; en 1 liga con el paso siguiente) y **T1…T8** (un disparo en cada paso: para envolventes, baterías u otros módulos).
 - **KEYS:** las notas de la fila que elijas en **KROW** (A, B o C: C4 más la perilla en semitonos) a la entrada **keys** de una voz (Voces / un ensamble) o de un Drum map, sin usar las teclas del FM-1. **VEL:** FIJA (100) o sacada de la fila A, B o C.
+- **Un patch para probarlo:** [`docs/patches/seq-960-prueba.json`](patches/seq-960-prueba.json): IMPORTAR en el editor, PLAY, y AL FM-1 a un lugar libre. La fila A toca las notas, la B mueve el filtro, la C da la velocidad, T1 y T5 disparan un bombo, el paso 6 está en SKIP.
 
 ---
 
@@ -441,7 +442,7 @@ Antes de instalar algo en un FM-1: **nunca un firmware sin la actualización por
 
 ### El formato de patch
 
-Formato 49 (el de Matryoshka 48 más los módulos de Kitten Rack). Una nota de secuencia es una palabra de 32 bits: paso (6 bits), largo - 1 (6), nota (7), velocidad (7), chance (5) y el bit 31, que marca una nota que suena entera hasta el final de su último paso (las grabadas y las que se alargan con K3). Un patch puede terminar con un mapa MIDI (flag 8 del byte 7): una cantidad y después 4 bytes por asignación: CC, canal (0 = el del FM-1), índice de módulo, índice de parámetro. Un firmware anterior rechaza ese patch en vez de leerlo mal. Al final, una sección de tiempos (flag 16 del byte 7): una cantidad y, por cada patrón con notas fuera de la grilla, su módulo, el patrón (0 = el de la sección de notas), la cantidad de notas y un u16 por nota (bits 0-5 cuánto tarde arranca en 1/64 de paso, 6-11 dónde termina en su último paso, bit 12 que tiene ese final).
+Formato 50 (el de Matryoshka 48 más los módulos de Kitten Rack; 50 solo para los patches con un Seq 960, los demás se siguen escribiendo como 49). Una nota de secuencia es una palabra de 32 bits: paso (6 bits), largo - 1 (6), nota (7), velocidad (7), chance (5) y el bit 31, que marca una nota que suena entera hasta el final de su último paso (las grabadas y las que se alargan con K3). Un patch puede terminar con un mapa MIDI (flag 8 del byte 7): una cantidad y después 4 bytes por asignación: CC, canal (0 = el del FM-1), índice de módulo, índice de parámetro. Un firmware anterior rechaza ese patch en vez de leerlo mal. Al final, una sección de tiempos (flag 16 del byte 7): una cantidad y, por cada patrón con notas fuera de la grilla, su módulo, el patrón (0 = el de la sección de notas), la cantidad de notas y un u16 por nota (bits 0-5 cuánto tarde arranca en 1/64 de paso, 6-11 dónde termina en su último paso, bit 12 que tiene ese final).
 
 ---
 

@@ -3,7 +3,7 @@
 <h1 align="center">Kitten Rack</h1>
 
 <p align="center"><b>A modular synthesizer inside the M-VAVE FM-1.</b><br>
-Over 50 Eurorack-style modules patched with cables on the FM-1 itself, a sequencer that records what you play, visuals, MIDI LEARN and USB audio.<br>
+56 Eurorack-style modules patched with cables on the FM-1 itself, a sequencer that records what you play, visuals, MIDI LEARN and USB audio.<br>
 By <a href="https://github.com/BlackKittenDevices">Black Kitten Devices</a> · free firmware · GPL-3.0</p>
 
 <p align="center">
@@ -20,7 +20,7 @@ By <a href="https://github.com/BlackKittenDevices">Black Kitten Devices</a> · f
 
 Kitten Rack turns the FM-1 into a **Eurorack in your hands**. A patch is a whole rack: modules with their knobs, jacks and cables, where any output can go to any input. You build it, play it, sequence it and save it, on the FM-1 or in the web editor, and both sound exactly the same.
 
-- **Over 50 modules:** VCOs (classic, wavetable, phase distortion), a self-oscillating Minimoog-style ladder, a Buchla-style low pass gate, a Moog 960-style sequencer that plays your voices, Turing, Marbles, Euclidean, Lorenz chaos, Maths-style functions, a tape echo, a spring reverb, granular, and more.
+- **56 modules:** VCOs (classic, wavetable, phase distortion), a self-oscillating Minimoog-style ladder, a Buchla-style low pass gate, a Moog 960-style sequencer that plays your voices, Turing, Marbles, Euclidean, Lorenz chaos, Maths-style functions, a tape echo, a spring reverb, granular, and more.
 - **Patch on the device:** add and remove modules and cables right on the FM-1 (EDIT), and see the whole rack with its cables (GLO).
 - **A sequencer that records what you play:** up to 64 patterns of 64 steps per patch, a piano roll, a drum grid and songs. Live takes keep your timing (or snap to the grid), with a click that never reaches your DAW, a count-in, free takes where the tempo follows you, undo and tap tempo.
 - **33 factory patches** of our own: 60s keys, generative machines that play by themselves, drones and noise.
