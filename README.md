@@ -111,3 +111,5 @@ Kitten Rack starts from [Matryoshka](https://github.com/glvno/matryoshka) by mic
 All the code is **GPL-3.0-only**: see [LICENSE](LICENSE) and [LICENSING.md](LICENSING.md) (third-party parts in [LICENSES/](LICENSES)). Changes by version: [CHANGELOG.md](CHANGELOG.md). For developers: the [manual's last chapter](docs/MANUAL.md#12-for-developers) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 <p align="center"><sub>Black Kitten Devices · =^.^=</sub></p>
+
+You can also try Kitten Rack in the browser, no flashing needed, in the free community [FM-1 Emulator](https://fm1-emulator.atst.tools/).
