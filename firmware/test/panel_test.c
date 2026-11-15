@@ -3521,7 +3521,7 @@ int main(void)
               && host_song_told == told + 1u);
         enc(2, 2);
         enc(3, -3);
-        check("K1: its pattern, K2: its shift", eng_song_get(0, 0) == (4 | (0xFD << 8)) && on_screen("01  P05  -3"));
+        check("K1: its pattern, K2: its shift", eng_song_get(0, 0) == (4 | (0xFD << 8)) && on_screen("P05") && on_screen("-3 st"));
         panel_held |= 1u << BTN_ACC;
         enc(2, 1);
         panel_held &= ~(1u << BTN_ACC);

@@ -1877,9 +1877,11 @@ static void seq_draw(int full)
  *   SEL / HOME      back to the SEQ page
  * The entry each track plays is marked (>); only the rows that changed are redrawn. Edits go into the running patch (SAVE
  * keeps them) and to the editor (SONG_NOW, PATTERN_NOW). */
-#define SONG_ROWS 8u
-#define SONG_Y 44u
+#define SONG_ROWS 7u                    /* KITTEN RACK (the owner's mock "SONG 1"): on a faceplate (menu.c menu_plate), the */
+#define SONG_Y 60u                      /* entries in a window as columns (#, pattern, shift), the controls as key caps */
 #define SONG_RH 19u
+#define SW_X0 12u
+#define SW_X1 228u
 static uint8_t song_sel;                /* the song shown (0..ENG_SONGS - 1) */
 static uint8_t song_cur, song_top;      /* the cursor (an entry, or the song's length: END), the first row shown */
 static char song_text[SONG_ROWS + 3u][40];   /* the rows, the info, the footer and the hint as drawn (a row's first byte: 1 the cursor) */
@@ -2036,7 +2038,29 @@ static void song_line(uint32_t n, uint32_t y, const char *s, uint16_t fg, int cu
     for (i = 0; s[i] && i < sizeof song_text[n] - 2u; i++)
         song_text[n][1u + i] = s[i];
     song_text[n][1u + i] = 0;
-    text_bc(&FONT_S, 8, y, s, cur ? C_BG : fg, cur ? C_ACC : C_BG, field, TA_LEFT);
+    if (n < SONG_ROWS) {                         /* an entry: its row of the window, its columns ("#|P..|shift") */
+        uint16_t bg = cur ? C_ACC : EW_BG, ink = cur ? PN_CHIP_INK : fg;
+        char c[3][12];
+        uint32_t j = 0, k = 0;
+        c[0][0] = c[1][0] = c[2][0] = 0;
+        for (i = 0; s[i] && j < 3u; i++) {
+            if (s[i] == '|') {
+                c[j][k] = 0;
+                j++;
+                k = 0;
+                continue;
+            }
+            if (k < 11u)
+                c[j][k++] = s[i];
+            c[j][k] = 0;
+        }
+        lcd_fill(SW_X0 + 2u, y, SW_X1 - SW_X0 - 4u, SONG_RH - 1u, bg);
+        text_bc(&FONT_M, SW_X0 + 6u, y, c[0], ink, bg, 50, TA_LEFT);
+        text_bc(&FONT_M, SW_X0 + 62u, y, c[1], ink, bg, 90, TA_LEFT);
+        text_bc(&FONT_M, SW_X1 - 72u, y, c[2], ink, bg, 64, TA_RIGHT);
+        return;
+    }
+    text_bc(&FONT_S, 16, y, s, fg, PN_BG, field > 210u ? 210u : field, TA_LEFT);
 }
 static void song_draw(int full)
 {
@@ -2052,7 +2076,16 @@ static void song_draw(int full)
         return;
     }
     if (full) {
+        static const char *const H1[6] = {"K1", "PAT", "K2", "SHIFT", "FX+K1", "INSERT"}, *const H2[6] = {"ALGO", "SONG", "SEQ+REC", "DEL", "SEL", "BACK"};
         lcd_fill(0, BAR_H, 240, 240u - BAR_H, C_BG);
+        menu_plate(BAR_H + 2u, 202);
+        lcd_fill(SW_X0, 40, SW_X1 - SW_X0, 158, EW_EDGE);    /* the window, its column names */
+        lcd_fill(SW_X0 + 1u, 41, SW_X1 - SW_X0 - 2u, 156, EW_BG);
+        text_bc(&FONT_S, SW_X0 + 8u, 43, "#", P_FAINT, EW_BG, 20, TA_LEFT);
+        text_bc(&FONT_S, SW_X0 + 64u, 43, "PATTERN", P_FAINT, EW_BG, 60, TA_LEFT);
+        text_bc(&FONT_S, SW_X1 - 72u, 43, "SHIFT", P_FAINT, EW_BG, 64, TA_RIGHT);
+        hint_keys(205, H1, 3);
+        hint_keys(223, H2, 3);
         song_ok = 0;
     }
     n = song_len();
@@ -2065,27 +2098,25 @@ static void song_draw(int full)
     fmt_int(num, n);                             /* 12 ENTRIES  K4: PATTERN / SONG */
     p = put(put(t, num), n == 1 ? " ENTRY" : " ENTRIES");
     put(p, eng_song() == song_sel + 1 ? "  K4 LEFT: PATTERN" : "  K4 RIGHT: SONG")[0] = 0;
-    song_line(SONG_ROWS, 26, t, C_FG, 0, 224);
+    song_line(SONG_ROWS, 25, t, C_FG, 0, 216);
     for (r = 0; r < SONG_ROWS; r++) {
         int k = song_top + (int)r;
         p = t;
-        if (k < n) {                             /* >03  P12  +5 */
+        if (k < n) {                             /* >03|P12|+5 */
             int e = eng_song_get(song_sel, (uint32_t)k), sh = (int8_t)(e >> 8);
             *p++ = k == play ? '>' : ' ';
             p = put2(p, k + 1);
-            p = put2(put(p, "  P"), (e & 0xFF) + 1);
-            p = put(p, "  ");
+            p = put2(put(p, "|P"), (e & 0xFF) + 1);
+            *p++ = '|';
             if (sh > 0)
                 *p++ = '+';
             fmt_int(num, sh);
-            p = put(p, num);
+            p = put(put(p, num), sh ? " st" : "");
         } else if (k == n)
-            p = put(p, n < (int)ENG_SONG_LEN ? " END   K1: ADD" : " END   FULL");
+            p = put(p, n < (int)ENG_SONG_LEN ? " END|K1: ADD|" : " END|FULL|");
         *p = 0;
-        song_line(r, SONG_Y + SONG_RH * r, t, k > n ? C_BG : k == n ? C_DIM : C_FG, k == song_cur, 120);
+        song_line(r, SONG_Y + SONG_RH * r, t, k > n ? EW_BG : k == n ? P_FAINT : C_FG, k == song_cur && k <= n, 120);
     }
-    song_line(SONG_ROWS + 1u, 202, "K1 PAT  K2 SHIFT  FX+K1 INSERT", C_DIM, 0, 224);
-    song_line(SONG_ROWS + 2u, 222, "ALGO SONG  SEQ+REC DEL  SEL BACK", C_HINT, 0, 228);
     song_shown_play = (int16_t)play;
     song_ok = 1;
 }
