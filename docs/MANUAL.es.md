@@ -358,8 +358,11 @@ Tres filas de ocho perillas (**A**, **B**, **C**) y una llave por paso: **PLAY**
 
 - **Reloj:** el transporte (PLAY del FM-1) a la velocidad de **RATE** (1/4, 1/8, 1/8T, 1/16, 1/16T, 1/32), o cualquier gate en **CLK** (un LFO, un Reloj/Div, un Euclídeo). **RESET** lo manda al paso 1, **HOLD** (alto) lo congela.
 - **Salidas:** **A**, **B**, **C** (el valor de cada fila; **RA / RB / RC** eligen 1, 2 o 4 octavas), **GATE** (lo largo que diga **GATE**; en 1 liga con el paso siguiente) y **T1…T8** (un disparo en cada paso: para envolventes, baterías u otros módulos).
+- **16 pasos:** **CHAIN** en **16 A+B** encadena las filas A y B en una sola fila de 16 pasos (como el conmutador 962 de Moog): la salida **A**, **KEYS** (KROW en A) y **VEL** tocan A1…A8 y después B1…B8; **C** sigue con sus ocho pasos (para el filtro, por ejemplo), y los pasos 9…16 usan las llaves, el ratcheo y los disparos T1…T8 de los pasos 1…8.
+- **Ratcheo:** **R1…R8** hacen sonar un paso 1, 2, 3 o 4 veces, repartidas parejo en su duración (cada repetición con su gate y su nota).
 - **KEYS:** las notas de la fila que elijas en **KROW** (A, B o C: C4 más la perilla en semitonos) a la entrada **keys** de una voz (Voces / un ensamble) o de un Drum map, sin usar las teclas del FM-1. **VEL:** FIJA (100) o sacada de la fila A, B o C.
 - **Un patch para probarlo:** [`docs/patches/seq-960-prueba.json`](patches/seq-960-prueba.json): IMPORTAR en el editor, PLAY, y AL FM-1 a un lugar libre. La fila A toca las notas, la B mueve el filtro, la C da la velocidad, T1 y T5 disparan un bombo, el paso 6 está en SKIP.
+- [`960-16-pasos.json`](patches/960-16-pasos.json): CHAIN en 16 A+B, un bajo de 16 pasos con las filas A y B, la fila C en el filtro, ratcheo en los pasos 4 y 8; las teclas tocan un lead que REC graba.
 - **Dos más:** [`960-bateria-lead.json`](patches/960-bateria-lead.json) (el Seq 960 toca una batería por un Drum map: la fila A elige bombo, caja, hat cerrado o abierto; las teclas tocan un lead Muug que REC graba) y [`960-bajo-lead.json`](patches/960-bajo-lead.json) (el Seq 960 toca un bajo; las teclas tocan un lead sincronizado que REC graba).
 
 ---

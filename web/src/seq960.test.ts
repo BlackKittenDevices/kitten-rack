@@ -46,9 +46,9 @@ function patch(params: Record<string, number>, clocked = false) {
 }
 
 describe('Seq 960', () => {
-  it('has 39 knobs and no pins (PIN_EXEMPT), keys out, eight step triggers', () => {
+  it('has 48 knobs and no pins (PIN_EXEMPT), keys out, eight step triggers', () => {
     const d = DEFS.seq960;
-    expect(d.params.length).toBe(39);
+    expect(d.params.length).toBe(48);
     expect(d.paramInputs).toBeFalsy();
     expect(d.outputs.map((o) => o.name)).toEqual(['a', 'b', 'c', 'gate', 't1', 't2', 't3', 't4', 't5', 't6', 't7', 't8', 'keys']);
   });
@@ -109,5 +109,53 @@ describe('Seq 960', () => {
       seen.add(Math.round(l[0] * 100) / 100);
     }
     expect(seen.has(0.25) && seen.has(0.75)).toBe(true);
+  });
+});
+
+describe('Seq 960: 16 steps (A + B) and ratchets', () => {
+  it('seq960Next over 16 steps takes switches 1..8 twice', () => {
+    const m = [0, 0, 1, 0, 0, 0, 0, 0];
+    expect([-1, 1, 7, 9, 15].map((p) => seq960Next(p, m, 16))).toEqual([0, 3, 8, 11, 0]);
+  });
+
+  it('chain: a plays A1..A8 then B1..B8; c stays on its eight', () => {
+    const a = [1, 2, 3, 4, 5, 6, 7, 8].map((k) => k / 20), b = [1, 2, 3, 4, 5, 6, 7, 8].map((k) => -k / 20);
+    const ps: Record<string, number> = { chain: 1, rate: 5 };
+    a.forEach((x, i) => (ps[`a${i + 1}`] = x));
+    b.forEach((x, i) => (ps[`b${i + 1}`] = x));
+    const p = patch(ps);
+    const e = new Engine(48000);
+    e.load(p);
+    const l = new Float32Array(128), r = new Float32Array(128);
+    const seen: number[] = [];
+    e.transport(true);
+    for (let k = 0; k < 2000 && seen.length < 17; k++) {
+      e.render(l, r);
+      const x = Math.round(l[64] * 100) / 100;
+      if (seen[seen.length - 1] !== x) seen.push(x);
+    }
+    expect(seen.slice(0, 17)).toEqual([...a, ...b, a[0]].map((x) => Math.round(x * 100) / 100));
+  });
+
+  it('a ratchet of 3 fires the gate three times in the step', () => {
+    const p = make('s960r', (add, wire) => {
+      add('fm1', 0, 0, { tempo: 120 });
+      const s = add('seq960', 0, 0, { rate: 0, r1: 3, m2: 2 });
+      const out = add('output', 0, 0, { level: 1 });
+      wire(s, 'gate', out, 'l');
+    });
+    const e = new Engine(48000);
+    e.load(p);
+    const l = new Float32Array(128), r = new Float32Array(128);
+    let rises = 0, last = 0;
+    e.transport(true);
+    for (let k = 0; k < 170; k++) { // under one beat (24000 samples at 120): step 1 only
+      e.render(l, r);
+      for (let i = 0; i < 128; i++) {
+        if (l[i] > 0.5 && last <= 0.5) rises++;
+        last = l[i];
+      }
+    }
+    expect(rises).toBe(3);
   });
 });

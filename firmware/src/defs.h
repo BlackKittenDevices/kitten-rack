@@ -1192,9 +1192,18 @@ enum {
 #define SEQ960_P_KROW 36
 #define SEQ960_P_VEL 37
 #define SEQ960_P_GATE 38
+#define SEQ960_P_CHAIN 39
+#define SEQ960_P_R1 40
+#define SEQ960_P_R2 41
+#define SEQ960_P_R3 42
+#define SEQ960_P_R4 43
+#define SEQ960_P_R5 44
+#define SEQ960_P_R6 45
+#define SEQ960_P_R7 46
+#define SEQ960_P_R8 47
 #define SEQ960_NIN 3
 #define SEQ960_NOUT 13
-#define SEQ960_NPAR 39
+#define SEQ960_NPAR 48
 #define SEQ960_CVBASE -1
 #define SEQ960_NDATA 0
 
@@ -1256,7 +1265,7 @@ static const char *const POLY_PRIORITY_NAME[3] = {"LAST", "LOW", "HIGH"};
 
 #define MAX_IN 11
 #define MAX_OUT 19
-#define MAX_PAR 39
+#define MAX_PAR 48
 
 typedef struct {
     uint8_t nin, nout, npar;
@@ -1855,19 +1864,21 @@ static const uint8_t MUUG_LOG[] = {0, 0, 1, 0, 0};
 static const char *const MUUG_UNIT[] = {"", "", "", "OCT", ""};
 static const char *const *const MUUG_CH[] = {0, 0, 0, 0, ADSR_CH4};
 static const char *const SEQ960_INNAMES[] = {"CLK", "RESET", "HOLD"};
-static const int32_t SEQ960_MIN[] = {-65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3277};
-static const int32_t SEQ960_MAX[] = {65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 196608, 196608, 196608, 196608, 196608, 196608, 196608, 196608, 327680, 131072, 131072, 131072, 131072, 196608, 65536};
-static const int32_t SEQ960_DEF[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 196608, 0, 0, 0, 0, 0, 32768};
-static const int32_t SEQ960_INC[] = {1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 655};
-static const char *const SEQ960_PN[] = {"A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "RATE", "RA", "RB", "RC", "KROW", "VEL", "GATE"};
-static const uint8_t SEQ960_LOG[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-static const char *const SEQ960_UNIT[] = {"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""};
+static const int32_t SEQ960_MIN[] = {-65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, -65536, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3277, 0, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536};
+static const int32_t SEQ960_MAX[] = {65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 196608, 196608, 196608, 196608, 196608, 196608, 196608, 196608, 327680, 131072, 131072, 131072, 131072, 196608, 65536, 65536, 262144, 262144, 262144, 262144, 262144, 262144, 262144, 262144};
+static const int32_t SEQ960_DEF[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 196608, 0, 0, 0, 0, 0, 32768, 0, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536};
+static const int32_t SEQ960_INC[] = {1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 1311, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 655, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536, 65536};
+static const uint8_t SEQ960_SINCE[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 51, 51, 51, 51, 51, 51, 51, 51, 51};
+static const char *const SEQ960_PN[] = {"A1", "A2", "A3", "A4", "A5", "A6", "A7", "A8", "B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "RATE", "RA", "RB", "RC", "KROW", "VEL", "GATE", "CHAIN", "R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8"};
+static const uint8_t SEQ960_LOG[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+static const char *const SEQ960_UNIT[] = {"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""};
 static const char *const SEQ960_CH24[] = {"PLAY", "SKIP", "STOP", "RESET", 0};
 static const char *const SEQ960_CH32[] = {"1/4", "1/8", "1/8T", "1/16", "1/16T", "1/32", 0};
 static const char *const SEQ960_CH33[] = {"1 OCT", "2 OCT", "4 OCT", 0};
 static const char *const SEQ960_CH36[] = {"A", "B", "C", 0};
 static const char *const SEQ960_CH37[] = {"FIXED", "A", "B", "C", 0};
-static const char *const *const SEQ960_CH[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SEQ960_CH24, SEQ960_CH24, SEQ960_CH24, SEQ960_CH24, SEQ960_CH24, SEQ960_CH24, SEQ960_CH24, SEQ960_CH24, SEQ960_CH32, SEQ960_CH33, SEQ960_CH33, SEQ960_CH33, SEQ960_CH36, SEQ960_CH37, 0};
+static const char *const SEQ960_CH39[] = {"8", "16 A+B", 0};
+static const char *const *const SEQ960_CH[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, SEQ960_CH24, SEQ960_CH24, SEQ960_CH24, SEQ960_CH24, SEQ960_CH24, SEQ960_CH24, SEQ960_CH24, SEQ960_CH24, SEQ960_CH32, SEQ960_CH33, SEQ960_CH33, SEQ960_CH33, SEQ960_CH36, SEQ960_CH37, 0, SEQ960_CH39, 0, 0, 0, 0, 0, 0, 0, 0};
 
 static const def_t DEFS[N_TYPES] = {
     {FM1_NIN, FM1_NOUT, FM1_NPAR, 1, FM1_CVBASE, -1, FM1_NDATA, 0, FM1_MIN, FM1_MAX, FM1_DEF, FM1_INC, "MAIN", FM1_PN, FM1_INNAMES, FM1_LOG, FM1_UNIT, FM1_CH, 0, 0},   /* fm1 */
@@ -1929,7 +1940,7 @@ static const def_t DEFS[N_TYPES] = {
     {BERN_NIN, BERN_NOUT, BERN_NPAR, 0, BERN_CVBASE, -1, BERN_NDATA, 0, BERN_MIN, BERN_MAX, BERN_DEF, BERN_INC, "BERNOULLI", BERN_PN, BERN_INNAMES, BERN_LOG, BERN_UNIT, BERN_CH, 0, 0},   /* bern */
     {CHAOS_NIN, CHAOS_NOUT, CHAOS_NPAR, 0, CHAOS_CVBASE, -1, CHAOS_NDATA, 0, CHAOS_MIN, CHAOS_MAX, CHAOS_DEF, CHAOS_INC, "CHAOS", CHAOS_PN, CHAOS_INNAMES, CHAOS_LOG, CHAOS_UNIT, CHAOS_CH, 0, 0},   /* chaos */
     {MUUG_NIN, MUUG_NOUT, MUUG_NPAR, 0, MUUG_CVBASE, 0, MUUG_NDATA, 1, MUUG_MIN, MUUG_MAX, MUUG_DEF, MUUG_INC, "VCF MUUG", MUUG_PN, MUUG_INNAMES, MUUG_LOG, MUUG_UNIT, MUUG_CH, 0, 0},   /* muug */
-    {SEQ960_NIN, SEQ960_NOUT, SEQ960_NPAR, 0, SEQ960_CVBASE, -1, SEQ960_NDATA, 0, SEQ960_MIN, SEQ960_MAX, SEQ960_DEF, SEQ960_INC, "SEQ 960", SEQ960_PN, SEQ960_INNAMES, SEQ960_LOG, SEQ960_UNIT, SEQ960_CH, 0, 0},   /* seq960 */
+    {SEQ960_NIN, SEQ960_NOUT, SEQ960_NPAR, 0, SEQ960_CVBASE, -1, SEQ960_NDATA, 0, SEQ960_MIN, SEQ960_MAX, SEQ960_DEF, SEQ960_INC, "SEQ 960", SEQ960_PN, SEQ960_INNAMES, SEQ960_LOG, SEQ960_UNIT, SEQ960_CH, 0, SEQ960_SINCE},   /* seq960 */
 };
 
 /* KITTEN RACK: the rack page's jacks (web/src/rack/catalog.ts portLabel), keys / gate kinds, and its catalog */

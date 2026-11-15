@@ -360,8 +360,11 @@ Three rows of eight knobs (**A**, **B**, **C**) and a stage switch on each step:
 
 - **Clock:** the transport (PLAY on the FM-1) at **RATE** (1/4, 1/8, 1/8T, 1/16, 1/16T, 1/32), or any gate into **CLK** (an LFO, a Clock/Div, a Euclidean). **RESET** sends it to step 1, **HOLD** (high) freezes it.
 - **Outputs:** **A**, **B**, **C** (each row's value; **RA / RB / RC** set 1, 2 or 4 octaves), **GATE** (as long as **GATE** says; 1 ties to the next step) and **T1…T8** (a trigger on each step: fire envelopes, drums or other modules).
+- **16 steps:** **CHAIN** on **16 A+B** chains rows A and B into one row of 16 steps (Moog's 962 switch): output **A**, **KEYS** (KROW on A) and **VEL** play A1…A8 and then B1…B8; **C** keeps its eight steps (for the filter, say), and steps 9…16 use the stage switches, ratchets and triggers T1…T8 of steps 1…8.
+- **Ratchets:** **R1…R8** play a step 1, 2, 3 or 4 times, evenly over its length (each repeat with its own gate and note).
 - **KEYS:** the notes of the row you pick in **KROW** (A, B or C: C4 plus the knob in semitones) into a voice's **keys** input (Voces / an assembly) or a Drum map, without the FM-1's keys. **VEL:** FIXED (100) or taken from row A, B or C.
 - **A patch to try it:** [`docs/patches/seq-960-prueba.json`](patches/seq-960-prueba.json): IMPORTAR it in the editor, press PLAY, send it to a free slot with AL FM-1. Row A plays the notes, B moves the filter, C sets the velocity, T1 and T5 fire a kick, step 6 is on SKIP.
+- [`960-16-pasos.json`](patches/960-16-pasos.json): CHAIN on 16 A+B, a 16-step bass line from rows A and B, row C on the filter, ratchets on steps 4 and 8; the keys play a lead that REC records.
 - **Two more:** [`960-bateria-lead.json`](patches/960-bateria-lead.json) (the Seq 960 plays a drum kit through a Drum map: row A picks kick, snare, closed or open hat; the keys play a Muug lead that REC records) and [`960-bajo-lead.json`](patches/960-bajo-lead.json) (the Seq 960 plays a bass line; the keys play a sync lead that REC records).
 
 ---

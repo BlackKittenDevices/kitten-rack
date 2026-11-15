@@ -386,8 +386,33 @@ tests['kr-seq960-clk'] = make('kr-seq960-clk', (add, wire) => {
   wire(s, 'c', out, 'l'); wire(s, 'gate', mx, 'in1'); wire(s, 't1', mx, 'in2'); wire(mx, 'out', out, 'r');
 });
 ends['kr-seq960-clk'] = 128 * 500;
+// format 51: rows A + B chained into 16 steps (a, keys) and ratchets (r1..r8), on the transport and on a clock in clk
+tests['kr-seq960-chain'] = make('kr-seq960-chain', (add, wire) => {
+  add('fm1', 0, 0, { tempo: 130 });
+  const s = add('seq960', 0, 0, { ...S960_ROWS, chain: 1, r2: 2, r5: 3, r8: 4, m3: 1, rb: 1, krow: 0, vel: 3, rate: 3, gate: 0.5 });
+  const al = add('alloc', 0, 0, { voices: 1 }), o = add('osc', 0, 0, { wave: 2, level: 0.6 });
+  const e = add('adsr', 0, 0, { a: 0.002, d: 0.08, s: 0.4, r: 0.03 }), v = add('vca', 0, 0), out = add('output', 0, 0, { level: 0.7 });
+  const mx = add('mixer', 0, 0);
+  wire(s, 'keys', al, 'keys'); wire(al, 'pitch', o, 'pitch'); wire(al, 'gate', e, 'gate'); wire(e, 'env', v, 'cv');
+  wire(o, 'out', v, 'in'); wire(v, 'out', out, 'l');
+  wire(s, 'a', mx, 'in1'); wire(s, 't2', mx, 'in2'); wire(s, 'c', mx, 'in3'); wire(mx, 'out', out, 'r');
+});
+{
+  const t = tests['kr-seq960-chain'];
+  makeAssembly(t, t.modules.filter((m) => ['alloc', 'osc', 'adsr', 'vca'].includes(m.type)).map((m) => m.id), 'voice').poly = {};
+}
+events['kr-seq960-chain'] = [[128 * 2, 'run', 0], [128 * 330, 'stop', 0], [128 * 350, 'run', 0]];
+ends['kr-seq960-chain'] = 128 * 520;
+tests['kr-seq960-ratchet-clk'] = make('kr-seq960-ratchet-clk', (add, wire) => {
+  const clk = add('lfo', 0, 0, { wave: 3, rate: 6, depth: 1 });
+  const s = add('seq960', 0, 0, { ...S960_ROWS, chain: 1, r1: 4, r4: 2, r6: 3, m7: 3, gate: 1 });
+  const out = add('output', 0, 0, { level: 1 }), mx = add('mixer', 0, 0);
+  wire(clk, 'out', s, 'clk');
+  wire(s, 'a', out, 'l'); wire(s, 'gate', mx, 'in1'); wire(s, 't1', mx, 'in2'); wire(mx, 'out', out, 'r');
+});
+ends['kr-seq960-ratchet-clk'] = 128 * 600;
 // the example patches (docs/patches): the Seq 960 plays a drum kit or a bass line (the keys play and record a lead)
-for (const [k, f] of [['kr-960-drums', '960-bateria-lead'], ['kr-960-bass', '960-bajo-lead']]) {
+for (const [k, f] of [['kr-960-drums', '960-bateria-lead'], ['kr-960-bass', '960-bajo-lead'], ['kr-960-16', '960-16-pasos']]) {
   tests[k] = validatePatch(JSON.parse(readFileSync(new URL(`../../docs/patches/${f}.json`, import.meta.url), 'utf8')), DEFS);
   events[k] = [[128 * 2, 'run', 0], [128 * 300, 'stop', 0], [128 * 320, 'run', 0]];   // (the Seq 960's part: the keys' lead is a factory voice)
   ends[k] = 128 * 460;

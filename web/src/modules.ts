@@ -2101,7 +2101,9 @@ const seq: ModuleImpl<SeqState> = {
  * next), t1..t8 (step k's gate while it plays), keys: the notes of row `krow` (C4 + the value in semitones, rounded) with
  * velocity `vel` (fixed 100, or 64 + 63 x a row's value), handed to the instrument's allocator like a Steps track's
  * (engine.ts trackKeys; engine.c steps_key / steps_keys). Integer maths as engine.c m_seq960. It runs once (SHARED_TYPES);
- * its knobs are not on the pins (PIN_EXEMPT: 39 parameters).
+ * its knobs are not on the pins (PIN_EXEMPT: 48 parameters).
+ * chain (format 51): rows A and B as one row of 16 steps on a, keys and vel (b and c, the switches, the ratchets and t1..t8
+ * by the step's place in its eight); r1..r8: a step plays 1..4 times, evenly in its length (each repeat with its gate).
  */
 export const SEQ960_MODES = ['play', 'skip', 'stop', 'reset'];
 export const SEQ960_RATES = ['1/4', '1/8', '1/8T', '1/16', '1/16T', '1/32'];
@@ -2116,24 +2118,30 @@ interface Seq960State {
   since: number;
   period: number;
   gleft: number;
-  /** the key sounding on keys out (-1 none) */
+  /** the key sounding on keys out (-1 none) and its velocity */
   key: number;
+  vel: number;
+  /** a ratchet (r1..r8): the repeats left in this step, a repeat's length and the samples to the next */
+  rleft: number;
+  rsub: number;
+  rcnt: number;
   /** keys out this block (key | 0x80 on, velocity; key, 0 off): engine.ts trackKeys */
   ev: number[];
 }
-/** the step after `pos` (-1: before the first) by the stage switches; -2: none to go to (stopped, or every step skipped) */
-export function seq960Next(pos: number, mode: number[]): number {
-  if (pos >= 0 && mode[pos] === 2) return -2;
+/** the step after `pos` (-1: before the first) by the stage switches, of `n` steps (8, or 16 with A and B chained: steps 9..16
+ * take switches 1..8 again); -2: none to go to (stopped, or every step skipped) */
+export function seq960Next(pos: number, mode: number[], n = 8): number {
+  if (pos >= 0 && mode[pos % 8] === 2) return -2;
   let p = pos, jumped = false;
-  for (let t = 0; t < 16; t++) {
-    p = p < 0 ? 0 : p + 1 >= 8 ? 0 : p + 1;
-    if (mode[p] === 3) {
+  for (let t = 0; t < 2 * n; t++) {
+    p = p < 0 ? 0 : p + 1 >= n ? 0 : p + 1;
+    if (mode[p % 8] === 3) {
       if (jumped) return -2;
       jumped = true;
       p = -1;
       continue;
     }
-    if (mode[p] === 1) continue;
+    if (mode[p % 8] === 1) continue;
     return p;
   }
   return -2;
@@ -2154,9 +2162,12 @@ const seq960: ModuleImpl<Seq960State> = {
       param('krow', 0, 2, 0, { step: 1, choices: ['A', 'B', 'C'] }),
       param('vel', 0, 3, 0, { step: 1, choices: ['fixed', 'A', 'B', 'C'] }),
       param('gate', 0.05, 1, 0.5, { step: 0.01 }),
+      // format 51: rows A and B chained into one of 16 steps (Moog's 962 switch), a ratchet a step (it plays 1..4 times)
+      param('chain', 0, 1, 0, { step: 1, choices: ['8', '16 A+B'], since: 51 }),
+      ...[1, 2, 3, 4, 5, 6, 7, 8].map((k) => param(`r${k}`, 1, 4, 1, { step: 1, since: 51 })),
     ],
   },
-  init: () => ({ pos: -1, cnt: 0, c1: 0, r1: 0, run: false, since: -1, period: 0, gleft: 0, key: -1, ev: [] }),
+  init: () => ({ pos: -1, cnt: 0, c1: 0, r1: 0, run: false, since: -1, period: 0, gleft: 0, key: -1, vel: 0, rleft: 0, rsub: 0, rcnt: 0, ev: [] }),
   process(c, s) {
     const q16 = (x: number | undefined): number => Math.round((x ?? 0) * 65536);
     const v = c.voice;
@@ -2166,6 +2177,11 @@ const seq960: ModuleImpl<Seq960State> = {
     const tps = SEQ960_TICKS[Math.max(0, Math.min(SEQ960_TICKS.length - 1, Math.round(c.p.rate ?? 3)))];
     const krow = Math.max(0, Math.min(2, Math.round(c.p.krow ?? 0))), vsrc = Math.max(0, Math.min(3, Math.round(c.p.vel ?? 0)));
     const glen = q16(c.p.gate ?? 0.5);
+    const n = Math.round(c.p.chain ?? 0) >= 1 ? 16 : 8;
+    const rat = [1, 2, 3, 4, 5, 6, 7, 8].map((k) => Math.max(1, Math.min(4, Math.round(c.p[`r${k}`] ?? 1))));
+    // a row's value at step p: row A chained with B over 16 steps; B and C (and A of 8) by the step's place in its row
+    const at = (r: number, p: number): number => (r === 0 && p >= 8 ? val[1][p - 8] : val[r][p % 8]);
+    const len = (sl: number): number => (glen >= 65536 ? 2 * sl : Math.max(1, Math.floor((glen * sl) / 65536)));
     const ext = !!c.connected.clk;
     const { clk, reset, hold } = c.inp;
     const off = (): void => {
@@ -2175,9 +2191,21 @@ const seq960: ModuleImpl<Seq960State> = {
     if (!ext && s.run && !v.run) { // the transport stopped: the note ends
       off();
       s.gleft = 0;
+      s.rleft = 0;
     }
     for (let i = 0; i < c.n; i++) {
       let adv = 0;
+      if (s.rleft > 0 && --s.rcnt <= 0) { // a ratchet's next repeat: the same note again
+        s.rleft--;
+        s.rcnt = s.rsub;
+        s.gleft = len(s.rsub);
+        if (s.key >= 0) {
+          const k = s.key;
+          off();
+          s.key = k;
+          s.ev.push(k | 0x80, s.vel);
+        }
+      }
       if (ext) {
         if (s.since >= 0 && s.since < 8388608) s.since++;
         if (clk[i] >= 0.5 && s.c1 < 0.5) {
@@ -2206,24 +2234,28 @@ const seq960: ModuleImpl<Seq960State> = {
       s.r1 = reset[i];
       if (hold[i] >= 0.5) adv = 0;
       for (; adv > 0; adv--) {
-        const np = seq960Next(s.pos, mode);
+        const np = seq960Next(s.pos, mode, n);
         if (np < 0) continue;
         s.pos = np;
         const sl = ext ? (s.period > 0 ? s.period : 6 * v.tickLen) : tps * v.tickLen;
-        s.gleft = glen >= 65536 ? 2 * sl : Math.max(1, Math.floor((glen * sl) / 65536));
+        const r = rat[np % 8];
+        s.rsub = r > 1 ? Math.max(1, Math.floor(sl / r)) : sl;
+        s.rleft = r - 1;
+        s.rcnt = s.rsub;
+        s.gleft = len(s.rsub);
         off();
-        const semis = Math.floor((val[krow][np] * rng[krow] * 12 + 32768) / 65536);
-        const vel = vsrc === 0 ? 100 : Math.max(1, Math.min(127, 64 + Math.floor((val[vsrc - 1][np] * 63 + 32768) / 65536)));
+        const semis = Math.floor((at(krow, np) * rng[krow] * 12 + 32768) / 65536);
+        s.vel = vsrc === 0 ? 100 : Math.max(1, Math.min(127, 64 + Math.floor((at(vsrc - 1, np) * 63 + 32768) / 65536)));
         s.key = Math.max(0, Math.min(127, 60 + semis));
-        s.ev.push(s.key | 0x80, vel);
+        s.ev.push(s.key | 0x80, s.vel);
       }
       const p = s.pos < 0 ? 0 : s.pos;
-      c.out.a[i] = (val[0][p] * rng[0]) / 65536;
-      c.out.b[i] = (val[1][p] * rng[1]) / 65536;
-      c.out.c[i] = (val[2][p] * rng[2]) / 65536;
+      c.out.a[i] = (at(0, p) * rng[0]) / 65536;
+      c.out.b[i] = (at(1, p) * rng[1]) / 65536;
+      c.out.c[i] = (at(2, p) * rng[2]) / 65536;
       const g = s.gleft > 0 ? 1 : 0;
       c.out.gate[i] = g;
-      for (let k = 0; k < 8; k++) c.out[`t${k + 1}`][i] = g && s.pos === k ? 1 : 0;
+      for (let k = 0; k < 8; k++) c.out[`t${k + 1}`][i] = g && p % 8 === k ? 1 : 0;
       if (s.gleft > 0 && --s.gleft === 0) off();
     }
     s.run = v.run;

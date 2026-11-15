@@ -2,6 +2,11 @@
 
 Kitten Rack's versions. Each release on GitHub has an installer, the `.fwsc` and the offline editor. The history of Matryoshka, which Kitten Rack starts from, is in [docs/CHANGELOG-matryoshka.md](docs/CHANGELOG-matryoshka.md).
 
+## 1.5.0-rc1 — 2026-11-15 (test version)
+
+- **Seq 960: 16 steps and ratchets**, as Graham Hanks suggested: **CHAIN** (8 / 16 A+B) chains rows A and B into one row of 16 steps on output A, KEYS and VEL (row C keeps its eight, for the filter); **R1..R8** play each step 1 to 4 times. Patch format 51, only for patches that use them (a patch without them is still written as 50 and opens in 1.4.0).
+- A new example patch, `docs/patches/960-16-pasos.json`.
+
 ## 1.4.0 — 2026-11-10
 
 (Tested on the FM-1 as 1.4.0-rc1.)

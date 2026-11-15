@@ -122,7 +122,9 @@ describe('binary patch format', () => {
       ps.forEach((q, i) => expect((q.since ?? 0) >= (ps[i - 1]?.since ?? 0), `${t}.${q.name}`).toBe(true));
       expect(ps.every((q) => (q.since ?? 0) <= VERSION), t).toBe(true);
     }
-    for (const t of TYPE_ORDER.slice(nTypes34)) expect(DEFS[t].params.some((q) => q.since !== undefined), t).toBe(false);
+    // (the newer types came whole, but the Seq 960's chain and ratchets came in format 51, after the type in 50)
+    for (const t of TYPE_ORDER.slice(nTypes34)) expect(DEFS[t].params.some((q) => q.since !== undefined), t).toBe(t === 'seq960');
+    expect(DEFS.seq960.params.filter((q) => q.since === 51).map((q) => q.name)).toEqual(['chain', 'r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8']);
     // a module without a stored matrix routes as before: a Pulse's p2 does not reach its new `inf`
     expect(defaultMap(DEFS.pulse).p2).toEqual([]);
   });

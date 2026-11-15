@@ -370,7 +370,7 @@ typedef struct {
         struct { int32_t count, c1, r1; } cdv;
         /* KITTEN RACK (format 50): the Seq 960 (modules.ts Seq960State): rising edge memories, clk's edge distance, the gate's
          * samples left; ticks since the step, the step (-1: the next is the first), the key on keys out (-1 none) */
-        struct { int32_t c1, r1, since, period, gleft; int16_t cnt; int8_t pos, key; uint8_t run; } s960;
+        struct { int32_t c1, r1, since, period, gleft, rsub, rcnt; int16_t cnt; int8_t pos, key; uint8_t run, vel, rleft; } s960;
         struct { int32_t v, c1; } sh;
         /* KITTEN RACK (format 49) */
         struct { int32_t vac, y1, y2, t1; } lpg;                 /* vac Q30, y1 y2 Q24 */
@@ -6299,36 +6299,51 @@ static void m_seq(const node_t *nd, inst_t *it, uint32_t n)
 /* KITTEN RACK: the Seq 960 (modules.ts seq960, seq960Next): three rows of eight steps, a stage switch a step (play, skip,
  * stop, reset), on clk's rising edges or the transport; its keys go out as a Steps track's (steps_key, steps_keys) */
 static const uint8_t SEQ960_TPS[6] = {24, 12, 8, 6, 4, 3};
-static int32_t seq960_next(int32_t pos, const int32_t *mode)
+static int32_t seq960_next(int32_t pos, const int32_t *mode, int32_t n)
 {
     int32_t p = pos, t;
     int jumped = 0;
-    if (pos >= 0 && mode[pos] == 2)
+    if (pos >= 0 && mode[pos & 7] == 2)
         return -2;
-    for (t = 0; t < 16; t++) {
-        p = p < 0 ? 0 : p + 1 >= 8 ? 0 : p + 1;
-        if (mode[p] == 3) {
+    for (t = 0; t < 2 * n; t++) {
+        p = p < 0 ? 0 : p + 1 >= n ? 0 : p + 1;
+        if (mode[p & 7] == 3) {
             if (jumped)
                 return -2;
             jumped = 1;
             p = -1;
             continue;
         }
-        if (mode[p] == 1)
+        if (mode[p & 7] == 1)
             continue;
         return p;
     }
     return -2;
 }
 
+/* a gate's samples for a step (or a ratchet's repeat) of `sl` samples: gate x sl, at least 1; gate 1: tied (twice sl) */
+static int32_t seq960_len(int32_t glen, int32_t sl)
+{
+    int32_t gl;
+    if (glen >= 65536)
+        return 2 * sl;
+    gl = (int32_t)(((int64_t)glen * sl) >> 16);
+    return gl > 1 ? gl : 1;
+}
+/* row r's value at step p: row A chained with B over 16 steps (steps 9..16 are B1..B8); else by the step's place in its row */
+#define SEQ960_AT(r, p) EF(it, (r) == 0 && (p) >= 8 ? SEQ960_P_B1 + ((p) - 8) : SEQ960_P_A1 + 8 * (r) + ((p) & 7))
+
 static void m_seq960(const node_t *nd, inst_t *it, uint32_t n)
 {
     const esig_t *clk = it->in[SEQ960_I_CLK], *reset = it->in[SEQ960_I_RESET], *hold = it->in[SEQ960_I_HOLD];
     esig_t *oa = it->out[SEQ960_O_A], *ob = it->out[SEQ960_O_B], *oc = it->out[SEQ960_O_C], *og = it->out[SEQ960_O_GATE];
     uint32_t node = (uint32_t)(nd - E.node), i, k;
-    int32_t mode[8], rng[3], krow, vsrc, glen, tps, ext = (nd->conn >> SEQ960_I_CLK) & 1u;
-    for (k = 0; k < 8u; k++)
+    int32_t mode[8], rat[8], rng[3], krow, vsrc, glen, tps, nst, ext = (nd->conn >> SEQ960_I_CLK) & 1u;
+    for (k = 0; k < 8u; k++) {
         mode[k] = clampi(round_q16(EF(it, SEQ960_P_M1 + k)), 0, 3);
+        rat[k] = clampi(round_q16(EF(it, SEQ960_P_R1 + k)), 1, 4);
+    }
+    nst = round_q16(EF(it, SEQ960_P_CHAIN)) >= 1 ? 16 : 8;
     for (k = 0; k < 3u; k++)
         rng[k] = 1 << clampi(round_q16(EF(it, SEQ960_P_RA + k)), 0, 2);
     tps = SEQ960_TPS[clampi(round_q16(EF(it, SEQ960_P_RATE)), 0, 5)];
@@ -6340,10 +6355,20 @@ static void m_seq960(const node_t *nd, inst_t *it, uint32_t n)
             steps_key(node, (uint32_t)it->s.s960.key, 0);
         it->s.s960.key = -1;
         it->s.s960.gleft = 0;
+        it->s.s960.rleft = 0;
     }
     fill(it->out[SEQ960_O_KEYS], 0, n);
     for (i = 0; i < n; i++) {
         int32_t adv = 0, p, g;
+        if (it->s.s960.rleft > 0 && --it->s.s960.rcnt <= 0) {   /* a ratchet's next repeat: the same note again */
+            it->s.s960.rleft--;
+            it->s.s960.rcnt = it->s.s960.rsub;
+            it->s.s960.gleft = seq960_len(glen, it->s.s960.rsub);
+            if (it->s.s960.key >= 0) {
+                steps_key(node, (uint32_t)it->s.s960.key, 0);
+                steps_key(node, (uint32_t)it->s.s960.key | 0x80u, it->s.s960.vel);
+            }
+        }
         if (ext) {
             if (it->s.s960.since >= 0 && it->s.s960.since < (1 << 23))
                 it->s.s960.since++;
@@ -6377,32 +6402,31 @@ static void m_seq960(const node_t *nd, inst_t *it, uint32_t n)
         if (hold[i] >= 32768)
             adv = 0;
         for (; adv > 0; adv--) {
-            int32_t np = seq960_next(it->s.s960.pos, mode), sl, semis, vel;
+            int32_t np = seq960_next(it->s.s960.pos, mode, nst), sl, semis, r;
             if (np < 0)
                 continue;
             it->s.s960.pos = (int8_t)np;
             sl = ext ? (it->s.s960.period > 0 ? it->s.s960.period : 6 * E.tick_len) : tps * E.tick_len;
-            if (glen >= 65536)
-                it->s.s960.gleft = 2 * sl;
-            else {
-                int32_t gl = (int32_t)(((int64_t)glen * sl) >> 16);
-                it->s.s960.gleft = gl > 1 ? gl : 1;
-            }
+            r = rat[np & 7];
+            it->s.s960.rsub = r > 1 ? (sl / r > 1 ? sl / r : 1) : sl;
+            it->s.s960.rleft = (uint8_t)(r - 1);
+            it->s.s960.rcnt = it->s.s960.rsub;
+            it->s.s960.gleft = seq960_len(glen, it->s.s960.rsub);
             if (it->s.s960.key >= 0)
                 steps_key(node, (uint32_t)it->s.s960.key, 0);
-            semis = (EF(it, SEQ960_P_A1 + 8 * krow + np) * rng[krow] * 12 + 32768) >> 16;
-            vel = vsrc == 0 ? 100 : clampi(64 + ((EF(it, SEQ960_P_A1 + 8 * (vsrc - 1) + np) * 63 + 32768) >> 16), 1, 127);
+            semis = (SEQ960_AT(krow, np) * rng[krow] * 12 + 32768) >> 16;
+            it->s.s960.vel = (uint8_t)(vsrc == 0 ? 100 : clampi(64 + ((SEQ960_AT(vsrc - 1, np) * 63 + 32768) >> 16), 1, 127));
             it->s.s960.key = (int8_t)clampi(60 + semis, 0, 127);
-            steps_key(node, (uint32_t)it->s.s960.key | 0x80u, (uint32_t)vel);
+            steps_key(node, (uint32_t)it->s.s960.key | 0x80u, it->s.s960.vel);
         }
         p = it->s.s960.pos < 0 ? 0 : it->s.s960.pos;
-        oa[i] = EF(it, SEQ960_P_A1 + p) * rng[0];
-        ob[i] = EF(it, SEQ960_P_B1 + p) * rng[1];
-        oc[i] = EF(it, SEQ960_P_C1 + p) * rng[2];
+        oa[i] = SEQ960_AT(0, p) * rng[0];
+        ob[i] = SEQ960_AT(1, p) * rng[1];
+        oc[i] = SEQ960_AT(2, p) * rng[2];
         g = it->s.s960.gleft > 0;
         og[i] = g ? ENG_ONE : 0;
         for (k = 0; k < 8u; k++)
-            it->out[SEQ960_O_T1 + k][i] = g && it->s.s960.pos == (int32_t)k ? ENG_ONE : 0;
+            it->out[SEQ960_O_T1 + k][i] = g && (p & 7) == (int32_t)k ? ENG_ONE : 0;
         if (it->s.s960.gleft > 0 && --it->s.s960.gleft == 0) {
             if (it->s.s960.key >= 0)
                 steps_key(node, (uint32_t)it->s.s960.key, 0);
