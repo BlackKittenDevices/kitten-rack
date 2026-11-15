@@ -104,6 +104,11 @@ static uint32_t vj_t, vj_scene, vj_since, vj_beat_ms;
 static uint32_t vj_bass, vj_mid, vj_high, vj_pulse, vj_ring;   /* 0..255; the beat's flash; the shock ring's radius */
 static uint32_t vj_avg = 64u, vj_max[3] = {2000u, 2000u, 2000u};
 static const uint16_t VJ_PAL[6] = {0x0000u, 0x2860u, 0x5900u, 0xAA20u, 0xFBC3u, 0xFE4Au};
+/* KITTEN RACK: with the scope over the scenes (MENU > PANEL > VISUAL SCOPE, the web visuals' BOTH) the band it runs in is
+ * darker (55 %), as the web page's */
+static const uint16_t VJ_PAL_DIM[6] = {0x0000u, 0x1820u, 0x30A0u, 0x5940u, 0x8A62u, 0x8B65u};
+#define VJ_BAND0 5u                     /* the band's cell rows: 20 .. 80 % of the screen */
+#define VJ_BAND1 22u
 
 /* the bass, the middle, the highs of the last 512 samples (half rate), each 0..255 of what it reached lately */
 static void vj_listen(void)
@@ -206,13 +211,47 @@ static uint32_t vj_cell(uint32_t x, uint32_t y)
     }
 }
 
+/* KITTEN RACK: the scope's trace over the scenes: per column its span (viz_lo..viz_hi) around the screen's middle, the
+ * cells under the last one drawn again (vj_drawn 0xFF) before the scene, the new trace over them after */
+#define VJ_YC (VJ_Y0 + VJ_H * 4u)
+static uint32_t vj_trace_start, vj_trace_gain = 256u;
+static void vj_trace_prep(void)
+{
+    uint32_t w = viz_w, i, peak = 0, want;
+    vj_trace_start = 0;
+    for (i = 1; i < 300u; i++)                  /* the trigger: rising through zero (as viz_scope) */
+        if (VIZ_AT(w, 560u, i - 1u) < 0 && VIZ_AT(w, 560u, i) >= 0) {
+            vj_trace_start = i;
+            break;
+        }
+    for (i = vj_trace_start; i < vj_trace_start + 240u; i++) {
+        int32_t v = VIZ_AT(w, 560u, i);
+        uint32_t a = (uint32_t)(v < 0 ? -v : v);
+        peak = a > peak ? a : peak;
+    }
+    want = peak > 600u ? (80u << 16) / peak : (80u << 16) / 600u;
+    want = want > 4096u ? 4096u : want;
+    vj_trace_gain = (vj_trace_gain * 7u + want) / 8u;
+}
+static int32_t vj_trace_y(uint32_t x)
+{
+    int32_t v = VIZ_AT(viz_w, 560u, vj_trace_start + x), y = (int32_t)VJ_YC - ((v * (int32_t)vj_trace_gain) >> 8) / 256;
+    return clampi(y, (int32_t)(VJ_Y0 + VJ_BAND0 * 8u), (int32_t)(VJ_Y0 + VJ_BAND1 * 8u) - 1);
+}
+
 static void viz_vj(int full)
 {
-    uint32_t x, y, i;
+    uint32_t x, y, i, scope = cfg.viz_scope;
     if (full || !viz_ok) {
-        viz_ground("VISUAL");
+        static char title[24];
+        put(put(title, "VISUAL  "), cfg.viz_scene ? VIZ_SCENE_NAME[cfg.viz_scene - 1u] : "AUTO")[0] = 0;
+        viz_ground(title);
         for (i = 0; i < VJ_W * VJ_H; i++)
             vj_drawn[i] = 0;
+        for (x = 0; x < 240u; x++) {
+            viz_lo[x] = 1;
+            viz_hi[x] = 0;
+        }
         vj_since = fm1_ms;
         viz_ok = 1;
     }
@@ -220,19 +259,51 @@ static void viz_vj(int full)
     vj_t++;
     vj_pulse = vj_pulse > 24u ? vj_pulse - 24u : 0u;
     vj_ring += 12u;
-    if (fm1_ms - vj_since > 10000u) {           /* the next scene, if no beat brought it */
+    if (cfg.viz_scene)                          /* KITTEN RACK: one scene kept (MENU > PANEL > VISUAL) */
+        vj_scene = cfg.viz_scene - 1u;
+    else if (fm1_ms - vj_since > 10000u) {      /* the next scene, if no beat brought it */
         vj_scene = (vj_scene + 1u) % 5u;
         vj_since = fm1_ms;
     }
+    if (scope)
+        for (x = 0; x < 240u; x++)              /* the cells under the last trace: drawn again */
+            if (viz_lo[x] <= viz_hi[x])
+                for (y = (viz_lo[x] - VJ_Y0) / 8u; y <= (uint32_t)(viz_hi[x] - VJ_Y0) / 8u && y < VJ_H; y++)
+                    vj_drawn[y * VJ_W + x / 8u] = 0xFFu;
     for (y = 0; y < VJ_H; y++)
         for (x = 0; x < VJ_W; x++) {
-            uint32_t c = vj_cell(x, y);
+            uint32_t c = vj_cell(x, y), dim = scope && y >= VJ_BAND0 && y < VJ_BAND1, code = c | (dim ? 8u : 0u);
             i = y * VJ_W + x;
-            if (c == vj_drawn[i])
+            if (code == vj_drawn[i])
                 continue;
-            vj_drawn[i] = (uint8_t)c;
-            lcd_fill(x * 8u, VJ_Y0 + y * 8u, 8, 8, VJ_PAL[c]);
+            vj_drawn[i] = (uint8_t)code;
+            lcd_fill(x * 8u, VJ_Y0 + y * 8u, 8, 8, dim ? VJ_PAL_DIM[c] : VJ_PAL[c]);
         }
+    if (!scope) {
+        for (x = 0; x < 240u; x++) {
+            viz_lo[x] = 1;
+            viz_hi[x] = 0;
+        }
+        return;
+    }
+    vj_trace_prep();
+    {
+        int32_t prev = vj_trace_y(0);
+        for (x = 0; x < 240u; x++) {            /* the trace, 2 px at least, bright where it is steep */
+            int32_t yy = vj_trace_y(x), lo = yy < prev ? yy : prev, hi = yy < prev ? prev : yy, k;
+            prev = yy;
+            if (hi - lo < 1)
+                hi = lo + 1;
+            lcd_sync();
+            for (k = lo; k <= hi; k++) {
+                uint16_t c = hi - lo > 6 ? VIZ_OR : VIZ_OR_HI;
+                lcd_line[k - lo] = (uint16_t)((c >> 8) | (c << 8));
+            }
+            lcd_blit(x, (uint32_t)lo, 1, (uint32_t)(hi - lo + 1), lcd_line);
+            viz_lo[x] = (uint8_t)lo;
+            viz_hi[x] = (uint8_t)hi;
+        }
+    }
 }
 
 static void viz_draw(int full)

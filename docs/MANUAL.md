@@ -56,7 +56,9 @@ If the window doesn't open: `python instalar_kitten_rack.py` (text mode; `--solo
 
 ## 2. The FM-1, button by button
 
-The FM-1 plays **patches**: a patch is a whole rack (modules, cables, knob settings and sequences). The screen shows one module at a time; **K1 to K4** turn the four knobs of the page shown.
+The FM-1 plays **patches**: a patch is a whole rack (modules, cables, knob settings and sequences). The screen shows one module at a time, as a panel with four knobs: **K1 to K4** turn them. Under each knob its tab (K1 … K4, in its colour), the name of the parameter it moves and its value; on top, the knob you turned last, large. Envelopes (ADSR, ENV, ENV 8, ENV DX, Function) also draw their curve there, each stage in the colour of the knob that sets it; on a page with other stages (ENV 8, say) the knobs say which ones they move.
+
+![The module page](img/device-page.png)
 
 | Control | What it does |
 | --- | --- |
@@ -207,7 +209,7 @@ The whole patch is saved: sound, cables and sequences. Slots 1 to 33 hold the fa
 On the module page, **HOME** (with nothing behind) opens the **oscilloscope**; HOME again, the **visuals**; HOME again goes back. The knobs keep working meanwhile.
 
 - **Oscilloscope:** the output's waveform, triggered on the zero crossing, with automatic gain.
-- **Visuals:** five scenes in six shades of orange on black: a corridor, a starburst with a shock ring on every beat, three helices, a spiral and a plasma. The bass, the middle, the highs and the beats drive them. They change every 10 seconds, or on a beat after 5.
+- **Visuals:** five scenes in six shades of orange on black: a corridor, a starburst with a shock ring on every beat, three helices, a spiral and a plasma. The bass, the middle, the highs and the beats drive them. They change every 10 seconds, or on a beat after 5. **MENU → PANEL → VISUAL**: AUTO (each in turn) or one of them kept (CORRIDOR, STARBURST, HELICES, SPIRAL, PLASMA). **VISUAL SCOPE ON** draws the oscilloscope over the scenes, as the computer's LOS DOS.
 
 ### On a big screen (projector, second screen, OBS)
 

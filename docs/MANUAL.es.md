@@ -56,7 +56,9 @@ Si la ventana no abre: `python instalar_kitten_rack.py` (modo texto; `--solo-inf
 
 ## 2. El FM-1, botón por botón
 
-El FM-1 toca **patches**: un patch es un rack entero (módulos, cables, perillas y secuencias). La pantalla muestra un módulo a la vez; **K1 a K4** mueven sus cuatro perillas de la página que se ve.
+El FM-1 toca **patches**: un patch es un rack entero (módulos, cables, perillas y secuencias). La pantalla muestra un módulo a la vez, como un panel con cuatro perillas: **K1 a K4** las mueven. Debajo de cada perilla, su etiqueta (K1 … K4, en su color), el nombre del parámetro que mueve y su valor; arriba, en grande, la última perilla que tocaste. Las envolventes (ADSR, ENV, ENV 8, ENV DX, Función) dibujan además su curva ahí, cada etapa en el color de la perilla que la ajusta; en una página con otras etapas (ENV 8, por ejemplo) las perillas dicen cuáles mueven.
+
+![La pantalla del módulo](img/device-page.png)
 
 | Control | Qué hace |
 | --- | --- |
@@ -207,7 +209,7 @@ Se guarda el patch entero: sonido, cables y secuencias. Los lugares 1 a 33 traen
 En la pantalla del módulo, **HOME** (sin nada para atrás) abre el **osciloscopio**; HOME otra vez, las **visuales**; HOME otra vez vuelve. Las perillas siguen funcionando mientras tanto.
 
 - **Osciloscopio:** la onda de la salida, con disparo en el cruce por cero y volumen automático.
-- **Visuales:** cinco escenas en seis tonos de naranja sobre negro: un pasillo, un estallido con onda de choque en cada golpe, tres hélices, una espiral y un plasma. Los graves, los medios, los agudos y los golpes las mueven. Cambian cada 10 segundos, o con un golpe después de 5.
+- **Visuales:** cinco escenas en seis tonos de naranja sobre negro: un pasillo, un estallido con onda de choque en cada golpe, tres hélices, una espiral y un plasma. Los graves, los medios, los agudos y los golpes las mueven. Cambian cada 10 segundos, o con un golpe después de 5. **MENÚ → PANEL → VISUAL**: AUTO (una tras otra) o una fija (CORRIDOR, STARBURST, HELICES, SPIRAL, PLASMA). **VISUAL SCOPE ON** dibuja el osciloscopio encima de las escenas, como LOS DOS en la computadora.
 
 ### En la pantalla grande (proyector, segunda pantalla, OBS)
 

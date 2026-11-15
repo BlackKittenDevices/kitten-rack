@@ -34,7 +34,7 @@ static void sandbox_bar(void);
 
 /* the settings' rows (menu.c; GLO shows some of them: pages_ui.c glo_page) */
 enum { MR_LEDS, MR_ACCEL, MR_CH, MR_CLOCK, MR_MOUT, MR_VERSION, MR_CPU, MR_PEAK, MR_SLOTS, MR_BATT, MR_UPDATE, MR_DEFAULTS, MR_LANG,
-       MR_CLICK, MR_CLICKLVL, MR_RMODE, MR_RBARS, MR_RSTART, MR_RQUANT, MR_KEYLEDS, MR_COUNT };   /* (KITTEN RACK: the REC tab) */
+       MR_CLICK, MR_CLICKLVL, MR_RMODE, MR_RBARS, MR_RSTART, MR_RQUANT, MR_KEYLEDS, MR_VIZ, MR_VIZSCOPE, MR_COUNT };   /* (KITTEN RACK: the REC tab) */
 /* the settings of the menu (menu.c); saved with the state (SAVE) */
 static struct {
     uint8_t leds;                       /* the idle buttons glow: 0 off, 1 dim low, 2 dim higher */
@@ -50,7 +50,9 @@ static struct {
      * bars (3), it starts on the first note or after a bar counted in, quantized to the steps or as played */
     uint8_t click, click_lvl, rec_free, rec_bars, rec_count, rec_quant;
     uint8_t key_leds;                   /* KITTEN RACK: the keys light while held or sounded by the sequencer (MENU > PANEL) */
-} cfg = {2, 1, 1, 0, 1, 1, 1, 0, 1, 6, 0, 0, 0, 0, 1};
+    uint8_t viz_scene;                  /* KITTEN RACK: the VJ screen's scene, 0 each in turn (AUTO), 1..5 that one (MENU > PANEL) */
+    uint8_t viz_scope;                  /* .. and the oscilloscope over it (the web visuals' BOTH) */
+} cfg = {2, 1, 1, 0, 1, 1, 1, 0, 1, 6, 0, 0, 0, 0, 1, 0, 0};
 static uint8_t cfg_dirty;               /* KITTEN RACK: a REC setting changed: stored when nothing plays (main.c cfg_poll) */
 static uint32_t cfg_dirty_ms;
 /* KITTEN RACK: a text in the language set (cfg.lang): LG("ENGLISH", "SPANISH"). Only the texts KITTEN RACK wrote in Spanish

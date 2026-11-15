@@ -2,6 +2,11 @@
 
 Kitten Rack's versions. Each release on GitHub has an installer, the `.fwsc` and the offline editor. The history of Matryoshka, which Kitten Rack starts from, is in [docs/CHANGELOG-matryoshka.md](docs/CHANGELOG-matryoshka.md).
 
+## 1.5.0-rc3 — 2026-11-15 (test version)
+
+- **A new look for the screen** (the owner's mocks): the module page is a panel with **four knobs** (scale, pointer, the knob's colour on its tab) and, on top, the knob turned last, large; **envelopes draw their curve**, each stage in the colour of the knob that sets it, the knobs named after what they move. GLO and the sandbox page the same; the **menu** and the **SONG** page on the same faceplate (LEDs, value windows, key caps).
+- **Visuals:** MENU → PANEL → **VISUAL** (AUTO or one scene kept) and **VISUAL SCOPE** (the oscilloscope over the scenes).
+
 ## 1.5.0-rc2 — 2026-11-15 (test version)
 
 - **VCO Chord**, a recreation of VCO Chord 2.0 (Black Kitten Devices, after HAGIWO's chord VCO): five oscillators, seven chords, sixteen inversions, seven waves, detune, a built-in arpeggiator (up, down, up-down, random; on CLK or PLAY; octave range, mutation, structure) and an 8-bit mode with the Arduino's sound. Its pitch follows the keys (a voice's V/OCT) and any CV, such as a Seq 960 row. Patch format 52, only for patches that use it.

@@ -23,10 +23,14 @@ static void settings_store(void);               /* main.c: the settings record n
 enum { MT_PANEL, MT_MIDI, MT_REC, MT_SYSTEM, MT_MANUAL, MT_COUNT };   /* (MANUAL has no rows: a text) */
 static const char *const ROW_NAME[MR_COUNT] = {"LEDS", "KNOB ACCEL", "MIDI CHANNEL", "CLOCK IN", "MIDI OUT",
                                               "VERSION", "CPU", "CPU PEAK", "BANK SLOTS", "BATTERY", "UPDATE MODE", "FACTORY RESET", "LANGUAGE",
-                                              "CLICK", "CLICK LEVEL", "REC MODE", "REC LENGTH", "REC START", "QUANTIZE", "KEY LIGHTS"};
+                                              "CLICK", "CLICK LEVEL", "REC MODE", "REC LENGTH", "REC START", "QUANTIZE", "KEY LIGHTS",
+                                              "VISUAL", "VISUAL SCOPE"};
 static const uint8_t ROW_TAB[MR_COUNT] = {MT_PANEL, MT_PANEL, MT_MIDI, MT_MIDI, MT_MIDI, MT_SYSTEM, MT_SYSTEM, MT_SYSTEM, MT_SYSTEM, MT_SYSTEM, MT_SYSTEM,
-                                          MT_SYSTEM, MT_PANEL, MT_REC, MT_REC, MT_REC, MT_REC, MT_REC, MT_REC, MT_PANEL};
+                                          MT_SYSTEM, MT_PANEL, MT_REC, MT_REC, MT_REC, MT_REC, MT_REC, MT_REC, MT_PANEL,
+                                          MT_PANEL, MT_PANEL};
 static const char *const TAB_NAME[MT_COUNT] = {"PANEL", "MIDI", "REC", "SYSTEM", "MANUAL"};
+/* KITTEN RACK: the VJ screen's scenes (viz_ui.c vj_cell), as MENU > PANEL > VISUAL names them */
+static const char *const VIZ_SCENE_NAME[5] = {"CORRIDOR", "STARBURST", "HELICES", "SPIRAL", "PLASMA"};
 /* KITTEN RACK: the REC tab's values (the REC screen shows them too: seq_ui.c) */
 static const char *rec_value(uint32_t row)
 {
@@ -106,6 +110,8 @@ static void menu_value(uint32_t row, char *out)
     case MR_LEDS: p = put(p, cfg.leds == 0 ? "OFF" : cfg.leds == 1 ? "DIM LOW" : "DIM HIGH"); break;
     case MR_ACCEL: p = put(p, ONOFF[cfg.accel]); break;
     case MR_KEYLEDS: p = put(p, ONOFF[cfg.key_leds]); break;
+    case MR_VIZ: p = put(p, cfg.viz_scene ? VIZ_SCENE_NAME[cfg.viz_scene - 1u] : "AUTO"); break;
+    case MR_VIZSCOPE: p = put(p, ONOFF[cfg.viz_scope]); break;
     case MR_LANG: p = put(p, cfg.lang ? "ESPANOL" : "ENGLISH"); break;
     case MR_CLICK: case MR_CLICKLVL: case MR_RMODE: case MR_RBARS: case MR_RSTART: case MR_RQUANT: p = put(p, rec_value(row)); break;
     case MR_CPU:
@@ -348,6 +354,16 @@ static void setting_step(uint32_t row, int32_t s)       /* a setting's next / pr
     case MR_ACCEL: cfg.accel = (uint8_t)up; break;
     case MR_KEYLEDS:
         cfg.key_leds = (uint8_t)up;
+        cfg_dirty = 1;
+        cfg_dirty_ms = fm1_ms;
+        break;
+    case MR_VIZ:                                    /* KITTEN RACK: the VJ screen's scene: AUTO, or one kept */
+        cfg.viz_scene = (uint8_t)clampi((int32_t)cfg.viz_scene + d, 0, 5);
+        cfg_dirty = 1;
+        cfg_dirty_ms = fm1_ms;
+        break;
+    case MR_VIZSCOPE:
+        cfg.viz_scope = (uint8_t)up;
         cfg_dirty = 1;
         cfg_dirty_ms = fm1_ms;
         break;

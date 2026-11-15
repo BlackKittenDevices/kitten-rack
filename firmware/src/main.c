@@ -191,7 +191,8 @@ static int slot_used(uint32_t s) { return s < M1_SLOTS && (bank_mask >> s & 1u);
 /* the settings record: version, slot, octave + 8, LED mode, knob accel, CPU in the bar, clock in, program change,
  * MIDI channel, MIDI out, the bank's format, the selected module */
 #define SET_VERSION 1u
-#define SET_LEN 24u                                 /* KITTEN RACK: byte 16 the language, 17..22 the REC tab, 23 the keys' lights */
+#define SET_LEN 26u                                 /* KITTEN RACK: byte 16 the language, 17..22 the REC tab, 23 the keys' lights,
+                                                     * 24..25 the visualizers (the scene, the scope over it) */
 #define SET_MIN 12u                                 /* (a record from before KITTEN RACK's bank id: 12 bytes) */
 /* the patch format the bank's untouched factory slots were brought to (settings byte 10; 0 in a record from before):
  * below ENG_PATCH_VERSION, the boot rewrites them once (bank_upgrade) */
@@ -224,6 +225,8 @@ static void settings_pack(uint8_t *d)
     d[21] = cfg.rec_count;
     d[22] = cfg.rec_quant;
     d[23] = cfg.key_leds;
+    d[24] = cfg.viz_scene;
+    d[25] = cfg.viz_scope;
 }
 static int settings_unpack(const uint8_t *d, uint32_t len, uint32_t *slot, uint32_t *module)
 {
@@ -247,6 +250,8 @@ static int settings_unpack(const uint8_t *d, uint32_t len, uint32_t *slot, uint3
         cfg.rec_quant = d[22] & 1u;
     }
     cfg.key_leds = len >= 24u ? d[23] & 1u : 1u;
+    cfg.viz_scene = len >= 26u && d[24] <= 5u ? d[24] : 0u;
+    cfg.viz_scope = len >= 26u ? d[25] & 1u : 0u;
     bank_fmt = d[10];
     *module = d[11];
     return 0;
