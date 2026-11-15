@@ -3,7 +3,7 @@
 <h1 align="center">Kitten Rack</h1>
 
 <p align="center"><b>Un sintetizador modular adentro del M-VAVE FM-1.</b><br>
-56 módulos estilo Eurorack que se cablean en el mismo FM-1, un secuenciador que graba lo que tocás, visuales, MIDI LEARN y audio por USB.<br>
+57 módulos estilo Eurorack que se cablean en el mismo FM-1, un secuenciador que graba lo que tocás, visuales, MIDI LEARN y audio por USB.<br>
 Por <a href="https://github.com/BlackKittenDevices">Black Kitten Devices</a> · firmware libre · GPL-3.0</p>
 
 <p align="center">
@@ -20,7 +20,7 @@ Por <a href="https://github.com/BlackKittenDevices">Black Kitten Devices</a> · 
 
 Kitten Rack convierte el FM-1 en un **Eurorack en tus manos**. Un patch es un rack entero: módulos con sus perillas, jacks y cables, donde cualquier salida va a cualquier entrada. Lo armás, lo tocás, lo secuenciás y lo guardás, en el FM-1 o en el editor web, y los dos suenan exactamente igual.
 
-- **56 módulos:** VCOs (clásico, wavetable, phase distortion), un ladder estilo Minimoog que autooscila, un low pass gate estilo Buchla, un secuenciador estilo Moog 960 que toca tus voces, Turing, Marbles, Euclídeo, caos de Lorenz, funciones estilo Maths, eco de cinta, reverb de resorte, granular y más.
+- **57 módulos:** VCOs (clásico, wavetable, phase distortion, un VCO de acordes con arpegiador), un ladder estilo Minimoog que autooscila, un low pass gate estilo Buchla, un secuenciador estilo Moog 960 que toca tus voces, Turing, Marbles, Euclídeo, caos de Lorenz, funciones estilo Maths, eco de cinta, reverb de resorte, granular y más.
 - **Cableado en el equipo:** agregás y sacás módulos y cables en el mismo FM-1 (EDIT), y ves el rack entero con sus cables (GLO).
 - **Un secuenciador que graba lo que tocás:** hasta 64 patrones de 64 pasos por patch, piano roll, grilla de batería y canciones. Las tomas en vivo guardan tu tiempo (o caen en la grilla), con click que nunca llega a tu DAW, cuenta previa, tomas libres donde el tempo te sigue, deshacer y tap tempo.
 - **33 patches de fábrica** propios: teclados de los 60, máquinas generativas que tocan solas, drones y ruido.
@@ -80,7 +80,7 @@ Un botón queda encendido mientras se ve lo que abrió, y las teclas se enciende
 
 | Familia | Módulos |
 | --- | --- |
-| Fuentes | VCO, VCO WT (wavetable), VCO CZ (phase distortion), Ruido, Cuerda (Karplus), Resonador (modal) |
+| Fuentes | VCO, VCO WT (wavetable), VCO CZ (phase distortion), VCO Chord, Ruido, Cuerda (Karplus), Resonador (modal) |
 | Generativos | Turing, Marbles, Euclídeo, Bernoulli, Caos (Lorenz), Random, S&H, Seq 8, Seq 960 (estilo Moog 960: 3 x 8 pasos, salida keys), Steps (el secuenciador), Arpegiador |
 | Filtros | VCF Muug (ladder Minimoog), LPG (estilo Buchla), VCF Ladder, VCF Multi, Formante, Comb, Wavefolder |
 | VCA y mezcla | VCA, Ring mod, Mix 4, Xfade, Pan, Selector, Compresor |
@@ -107,7 +107,7 @@ En el primer arranque Kitten Rack escribe sus 33 patches de fábrica. Para volve
 
 ## Créditos y licencia
 
-Kitten Rack parte de [Matryoshka](https://github.com/glvno/matryoshka) de michael glaviano (1.5.1), que viene de [Modular-1](https://github.com/WiggisModular/Modular-1) de WiggisModular, y usa la capa de hardware y el cargador de actualizaciones de [Felucca](https://github.com/hugelton/Felucca) de Leo Kuroshita / Hügelton Instruments. El VCF Muug viene de [FMini-1](https://github.com/ruppert/fmini-1) de Guilherme Ruppert.
+Kitten Rack parte de [Matryoshka](https://github.com/glvno/matryoshka) de michael glaviano (1.5.1), que viene de [Modular-1](https://github.com/WiggisModular/Modular-1) de WiggisModular, y usa la capa de hardware y el cargador de actualizaciones de [Felucca](https://github.com/hugelton/Felucca) de Leo Kuroshita / Hügelton Instruments. El VCF Muug viene de [FMini-1](https://github.com/ruppert/fmini-1) de Guilherme Ruppert. El VCO Chord recrea el [VCO Chord 2.0](https://github.com/BlackKittenDevices/VCO-Chord-2.0) de Black Kitten Devices, basado en el [VCO de acordes de HAGIWO](https://note.com/solder_state/n/n681d2e07e324).
 
 Todo el código es **GPL-3.0-only**: ver [LICENSE](LICENSE) y [LICENSING.md](LICENSING.md) (las partes de terceros en [LICENSES/](LICENSES)). Cambios por versión: [CHANGELOG.md](CHANGELOG.md). Para desarrolladores: el [último capítulo del manual](docs/MANUAL.es.md#12-para-desarrolladores) y [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

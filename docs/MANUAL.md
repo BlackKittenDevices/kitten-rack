@@ -338,11 +338,11 @@ The FM-1 and the editor answer any MIDI controller, over USB (and the FM-1 also 
 
 ## 10. The modules
 
-56 modules by family. All of them work in the editor and on the FM-1.
+57 modules by family. All of them work in the editor and on the FM-1.
 
 | Family | Modules |
 | --- | --- |
-| Sources | VCO, VCO WT (wavetable), VCO CZ (phase distortion), Noise, String (Karplus), Resonator (modal) |
+| Sources | VCO, VCO WT (wavetable), VCO CZ (phase distortion), VCO Chord, Noise, String (Karplus), Resonator (modal) |
 | Generative | Turing, Marbles, Euclidean, Bernoulli, Chaos (Lorenz), Random, S&H, Seq 8, Seq 960 (Moog 960 style), Steps (the sequencer), Arpeggiator |
 | Filters | VCF Muug (a Minimoog ladder that self-oscillates), LPG (Buchla style), VCF Ladder, VCF Multi, Formant, Comb, Wavefolder |
 | VCA and mix | VCA, Ring mod, Mix 4, Xfade, Pan, Selector, Compressor |
@@ -353,6 +353,16 @@ The FM-1 and the editor answer any MIDI controller, over USB (and the FM-1 also 
 In every patch: **MIDI-CV** (the keyboard and MIDI: pitch, gate, velocity, bend, mod, aftertouch) and **OUT** (the output).
 
 FM-1 limits: one delay, one reverb and one chorus per patch, and a CPU ceiling the editor estimates (the CPU bar at the top).
+
+### VCO Chord (after VCO Chord 2.0 and HAGIWO's chord VCO)
+
+Five oscillators that play a chord from one pitch: the keyboard (a voice's **V/OCT**), a Seq 960 row, any CV.
+
+- **CHORD:** seven four-note chords (Ionian, Mixolydian, major pentatonic, Dorian, minor, Phrygian, minor pentatonic). **INV:** sixteen inversions (which notes go up one or two octaves, and whether the fifth oscillator, the root, sounds). **WAVE:** saw, square, triangle, sine, Chebyshev, sigmoid, phasor. **DETUNE:** spreads the five (a supersaw at the top). **TUNE:** semitones.
+- **ARP:** UP, DOWN, UP-DOWN or RANDOM through the chord's notes, all five on the same note. It steps on **CLK** (any gate) or, with nothing in CLK, with PLAY at **RATE**. **RANGE:** every other round an octave up or down. **MUTATE** (0 to 60 %) breaks the pattern now and then. **STR OCT / STR ST** move the arpeggio by octaves and semitones. **TRIG** sends a pulse on each step (for an envelope).
+- **BITS 8 BIT:** the Arduino's sound: plain 8-bit waves sampled at 16384 Hz, with their grit.
+- Its first knobs are CHORD, INV, WAVE and DETUNE, so they land on K1 to K4 and on the CV1 / CV2 pins: a Seq 960 row into CV1 changes the chord step by step.
+- Example: [`vco-chord.json`](patches/vco-chord.json): the keys play chords through the Muug (K1 chord, K2 inversion, K3 wave, K4 detune).
 
 ### Seq 960 (after Moog's 960)
 
@@ -457,6 +467,6 @@ Format 50 (Matryoshka's 48 plus Kitten Rack's modules; 50 only for patches with 
 
 ## 13. Credits and license
 
-Kitten Rack starts from [Matryoshka](https://github.com/glvno/matryoshka) by michael glaviano (1.5.1, commit `ec7d934`), which comes from [Modular-1](https://github.com/WiggisModular/Modular-1) by WiggisModular and uses the hardware layer and the installer of [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita / Hügelton Instruments.
+Kitten Rack starts from [Matryoshka](https://github.com/glvno/matryoshka) by michael glaviano (1.5.1, commit `ec7d934`), which comes from [Modular-1](https://github.com/WiggisModular/Modular-1) by WiggisModular and uses the hardware layer and the installer of [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita / Hügelton Instruments. The VCO Chord recreates [VCO Chord 2.0](https://github.com/BlackKittenDevices/VCO-Chord-2.0) by Black Kitten Devices, after the [chord VCO by HAGIWO](https://note.com/solder_state/n/n681d2e07e324).
 
 All the code is **GPL-3.0-only**: see [LICENSE](../LICENSE) and [LICENSING.md](../LICENSING.md).

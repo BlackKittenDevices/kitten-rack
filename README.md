@@ -3,7 +3,7 @@
 <h1 align="center">Kitten Rack</h1>
 
 <p align="center"><b>A modular synthesizer inside the M-VAVE FM-1.</b><br>
-56 Eurorack-style modules patched with cables on the FM-1 itself, a sequencer that records what you play, visuals, MIDI LEARN and USB audio.<br>
+57 Eurorack-style modules patched with cables on the FM-1 itself, a sequencer that records what you play, visuals, MIDI LEARN and USB audio.<br>
 By <a href="https://github.com/BlackKittenDevices">Black Kitten Devices</a> · free firmware · GPL-3.0</p>
 
 <p align="center">
@@ -20,7 +20,7 @@ By <a href="https://github.com/BlackKittenDevices">Black Kitten Devices</a> · f
 
 Kitten Rack turns the FM-1 into a **Eurorack in your hands**. A patch is a whole rack: modules with their knobs, jacks and cables, where any output can go to any input. You build it, play it, sequence it and save it, on the FM-1 or in the web editor, and both sound exactly the same.
 
-- **56 modules:** VCOs (classic, wavetable, phase distortion), a self-oscillating Minimoog-style ladder, a Buchla-style low pass gate, a Moog 960-style sequencer that plays your voices, Turing, Marbles, Euclidean, Lorenz chaos, Maths-style functions, a tape echo, a spring reverb, granular, and more.
+- **57 modules:** VCOs (classic, wavetable, phase distortion, a chord VCO with arpeggiator), a self-oscillating Minimoog-style ladder, a Buchla-style low pass gate, a Moog 960-style sequencer that plays your voices, Turing, Marbles, Euclidean, Lorenz chaos, Maths-style functions, a tape echo, a spring reverb, granular, and more.
 - **Patch on the device:** add and remove modules and cables right on the FM-1 (EDIT), and see the whole rack with its cables (GLO).
 - **A sequencer that records what you play:** up to 64 patterns of 64 steps per patch, a piano roll, a drum grid and songs. Live takes keep your timing (or snap to the grid), with a click that never reaches your DAW, a count-in, free takes where the tempo follows you, undo and tap tempo.
 - **33 factory patches** of our own: 60s keys, generative machines that play by themselves, drones and noise.
@@ -79,7 +79,7 @@ A button stays lit while what it opened shows, and the keys light while they sou
 
 | Family | Modules |
 | --- | --- |
-| Sources | VCO, VCO WT (wavetable), VCO CZ (phase distortion), Noise, String (Karplus), Resonator (modal) |
+| Sources | VCO, VCO WT (wavetable), VCO CZ (phase distortion), VCO Chord, Noise, String (Karplus), Resonator (modal) |
 | Generative | Turing, Marbles, Euclidean, Bernoulli, Chaos (Lorenz), Random, S&H, Seq 8, Seq 960 (Moog 960 style: 3 x 8 steps, keys out), Steps (the sequencer), Arpeggiator |
 | Filters | VCF Muug (Minimoog ladder), LPG (Buchla style), VCF Ladder, VCF Multi, Formant, Comb, Wavefolder |
 | VCA and mix | VCA, Ring mod, Mix 4, Xfade, Pan, Selector, Compressor |
@@ -106,7 +106,7 @@ On the first boot Kitten Rack writes its 33 factory patches. To go back to anoth
 
 ## Credits and license
 
-Kitten Rack starts from [Matryoshka](https://github.com/glvno/matryoshka) by michael glaviano (1.5.1), which comes from [Modular-1](https://github.com/WiggisModular/Modular-1) by WiggisModular, and uses the hardware layer and the update loader of [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita / Hügelton Instruments. Inspered in the software VCV RACK. The VCF Muug comes from [FMini-1](https://github.com/ruppert/fmini-1) by Guilherme Ruppert.
+Kitten Rack starts from [Matryoshka](https://github.com/glvno/matryoshka) by michael glaviano (1.5.1), which comes from [Modular-1](https://github.com/WiggisModular/Modular-1) by WiggisModular, and uses the hardware layer and the update loader of [Felucca](https://github.com/hugelton/Felucca) by Leo Kuroshita / Hügelton Instruments. Inspered in the software VCV RACK. The VCF Muug comes from [FMini-1](https://github.com/ruppert/fmini-1) by Guilherme Ruppert. The VCO Chord recreates [VCO Chord 2.0](https://github.com/BlackKittenDevices/VCO-Chord-2.0) by Black Kitten Devices, after the [chord VCO by HAGIWO](https://note.com/solder_state/n/n681d2e07e324).
 
 All the code is **GPL-3.0-only**: see [LICENSE](LICENSE) and [LICENSING.md](LICENSING.md) (third-party parts in [LICENSES/](LICENSES)). Changes by version: [CHANGELOG.md](CHANGELOG.md). For developers: the [manual's last chapter](docs/MANUAL.md#12-for-developers) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 

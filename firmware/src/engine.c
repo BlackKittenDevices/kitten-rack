@@ -371,6 +371,15 @@ typedef struct {
         /* KITTEN RACK (format 50): the Seq 960 (modules.ts Seq960State): rising edge memories, clk's edge distance, the gate's
          * samples left; ticks since the step, the step (-1: the next is the first), the key on keys out (-1 none) */
         struct { int32_t c1, r1, since, period, gleft, rsub, rcnt; int16_t cnt; int8_t pos, key; uint8_t run, vel, rleft; } s960;
+        /* KITTEN RACK (format 52): the VCO Chord (modules.ts ChordVcoState): five phases and their poly-BLEP caches, the
+         * arpeggio (step, going up, the octave round, oscillator 1's mutation octave), clk / transport, the trig, bits 8 */
+        struct {
+            uint32_t ph[5], rc[10], seed;
+            int32_t c1, since, period, tleft, acc, held;
+            int16_t cnt;
+            int8_t step, up, ext, mo;
+            uint8_t run;
+        } cvc;
         struct { int32_t v, c1; } sh;
         /* KITTEN RACK (format 49) */
         struct { int32_t vac, y1, y2, t1; } lpg;                 /* vac Q30, y1 y2 Q24 */
@@ -757,6 +766,11 @@ static void init_state(const node_t *nd, inst_t *it, uint32_t mod, uint32_t v)
         break;
     case T_CLKDIV:
         it->s.cdv.count = -1;
+        break;
+    case T_CHORDVCO:                     /* modules.ts chordvco.seed with engine.ts instSeed(module index, part) */
+        it->s.cvc.seed = (mod * 8u + v + 1u) * 0x9e3779b9u;
+        it->s.cvc.up = 1;
+        it->s.cvc.since = -1;
         break;
     case T_SEQ960:
         it->s.s960.pos = it->s.s960.key = -1;
@@ -6436,6 +6450,202 @@ static void m_seq960(const node_t *nd, inst_t *it, uint32_t n)
     it->s.s960.run = E.running;
 }
 
+/* KITTEN RACK: the VCO Chord (modules.ts chordvco: CHORDVCO_CHORDS, CHORDVCO_INV, chordWave), after Kitten's VCO Chord 2.0
+ * and HAGIWO's chord VCO */
+static const int8_t CVC_CHORDS[7][4] = {{0, 4, 7, 12}, {0, 4, 7, 11}, {0, 4, 7, 9}, {0, 3, 7, 9}, {0, 3, 7, 8}, {0, 1, 7, 8}, {0, 3, 7, 10}};
+static const uint8_t CVC_INV[16][5] = {
+    {0, 0, 0, 0, 0}, {1, 0, 0, 0, 0}, {1, 1, 0, 0, 0}, {1, 1, 1, 0, 0}, {1, 1, 1, 1, 0}, {2, 1, 1, 1, 0}, {2, 2, 1, 1, 0}, {2, 2, 2, 1, 0},
+    {2, 2, 2, 1, 1}, {2, 2, 1, 1, 1}, {2, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 0, 1}, {1, 1, 0, 0, 1}, {1, 0, 0, 0, 1}, {0, 0, 0, 0, 1}};
+#define CVC_LOFI_SR 16384u
+
+/* wave k at phase ph (increment dt; 0: plain) -> Q16 */
+static int32_t cvc_wave(int32_t k, uint32_t ph, uint32_t dt, uint32_t *rc)
+{
+    int32_t x = (int32_t)(ph >> 15) - ENG_ONE;
+    switch (k) {
+    case 0:
+        return wave_saw(ph, dt, rc);
+    case 1:
+        return wave_square(ph, dt, 0x80000000u, rc);
+    case 2:
+        return wave_tri(ph);
+    case 3:
+        return sin_turn(ph);
+    case 4: {
+        int32_t x2 = (int32_t)(((int64_t)x * x) >> 16), x3 = (int32_t)(((int64_t)x2 * x) >> 16);
+        return 4 * x3 - 3 * x - poly_blep(ph, dt, rc);
+    }
+    case 5: {
+        int32_t xs = (3 * x) >> 4, x2 = (xs * xs) >> 12;           /* 3x in Q12 (|xs| <= 12288): the Pade fits 32 bits */
+        int32_t num = xs * (27 * 4096 + x2), den = 27 * 4096 + 9 * x2;
+        return (num / den) * 16 - poly_blep(ph, dt, rc);
+    }
+    default:
+        return x;
+    }
+}
+
+static inline int32_t cvc_rnd(uint32_t *seed, uint32_t n)
+{
+    *seed = lcg(*seed);
+    return (int32_t)(((*seed >> 16) * n) >> 16);
+}
+
+static void m_chordvco(const node_t *nd, inst_t *it, uint32_t n)
+{
+    const esig_t *clk = it->in[CHORDVCO_I_CLK];
+    esig_t *out = it->out[CHORDVCO_O_OUT], *trig = it->out[CHORDVCO_O_TRIG];
+    int32_t chord = clampi(round_q16(EF(it, CHORDVCO_P_CHORD)), 0, 6), inv = clampi(round_q16(EF(it, CHORDVCO_P_INV)), 0, 15);
+    int32_t wk = clampi(round_q16(EF(it, CHORDVCO_P_WAVE)), 0, 6), arp = clampi(round_q16(EF(it, CHORDVCO_P_ARP)), 0, 4);
+    int32_t range = clampi(round_q16(EF(it, CHORDVCO_P_RANGE)), 0, 2), lofi = clampi(round_q16(EF(it, CHORDVCO_P_BITS)), 0, 1);
+    int32_t tps = SEQ960_TPS[clampi(round_q16(EF(it, CHORDVCO_P_RATE)), 0, 5)];
+    int32_t pct = (EF(it, CHORDVCO_P_MUTATE) * 100 + 32768) >> 16, mut = EF(it, CHORDVCO_P_MUTATE);
+    int32_t det = (int32_t)(((int64_t)EF(it, CHORDVCO_P_DETUNE) * 14) / 205), lvl = EF(it, CHORDVCO_P_LEVEL);
+    int32_t dk[5], base = it->in[CHORDVCO_I_PITCH][0] + EF(it, CHORDVCO_P_TUNE) / 12, off[5], ext = (nd->conn >> CHORDVCO_I_CLK) & 1u;
+    int32_t half, steps[24], ns = 0, si = 0, k;
+    uint32_t inc[5], on = 0x1Fu, i;
+    const int8_t *notes = CVC_CHORDS[chord];
+    dk[0] = 0; dk[1] = det / 3; dk[2] = 2 * det / 3; dk[3] = det; dk[4] = det / 2;
+    if (arp > 0) {
+        if (!ext && E.running && !it->s.cvc.run) {
+            it->s.cvc.cnt = 0;
+            steps[ns++] = 0;
+        }
+        for (i = 0; i < n; i++) {
+            if (ext) {
+                if (it->s.cvc.since >= 0 && it->s.cvc.since < (1 << 23))
+                    it->s.cvc.since++;
+                if (clk[i] >= 32768 && it->s.cvc.c1 < 32768) {
+                    if (it->s.cvc.since > 0)
+                        it->s.cvc.period = it->s.cvc.since;
+                    it->s.cvc.since = 0;
+                    if (ns < 24)
+                        steps[ns++] = (int32_t)i;
+                }
+                it->s.cvc.c1 = clk[i];
+            } else if (E.running && (int32_t)i == E.tick_off) {
+                int32_t q;
+                for (q = 0; q < E.tick_n; q++)
+                    if (++it->s.cvc.cnt >= tps) {
+                        it->s.cvc.cnt = 0;
+                        if (ns < 24)
+                            steps[ns++] = (int32_t)i;
+                    }
+            }
+        }
+    }
+    it->s.cvc.run = (uint8_t)E.running;
+    half = ext ? (it->s.cvc.period > 0 ? it->s.cvc.period >> 1 : 3 * E.tick_len) : (tps * E.tick_len) >> 1;
+    if (half < 1)
+        half = 1;
+#define CVC_ARP_OFFS()                                                                                                       \
+    do {                                                                                                                     \
+        int32_t ro = it->s.cvc.ext == 1 ? (range == 1 ? 1 : range == 2 ? -1 : 0) : 0, nn;                                    \
+        nn = (notes[it->s.cvc.step] + clampi(round_q16(EF(it, CHORDVCO_P_STRST)), 0, 3)) * 65536 / 12 +                      \
+             (clampi(round_q16(EF(it, CHORDVCO_P_STROCT)), 0, 3) + ro) * 65536;                                               \
+        for (k = 0; k < 5; k++)                                                                                              \
+            off[k] = nn;                                                                                                     \
+        off[0] += it->s.cvc.mo * 65536;                                                                                      \
+    } while (0)
+#define CVC_INCS()                                                                                                           \
+    do {                                                                                                                     \
+        for (k = 0; k < 5; k++) {                                                                                            \
+            uint32_t d = exp2_scale(INC_C4, base + off[k] + dk[k]);                                                          \
+            inc[k] = d > 1932735283u ? 1932735283u : d;                                                                      \
+        }                                                                                                                    \
+    } while (0)
+    if (arp == 0) {
+        const uint8_t *a = CVC_INV[inv];
+        for (k = 0; k < 4; k++)
+            off[k] = (notes[k] + 12 * a[k]) * 65536 / 12;
+        off[4] = notes[0] * 65536 / 12;
+        if (!a[4])
+            on = 0x0Fu;
+    } else
+        CVC_ARP_OFFS();
+    CVC_INCS();
+    for (i = 0; i < n; i++) {
+        int32_t y = 0;
+        while (si < ns && steps[si] == (int32_t)i) {
+            int32_t prev = it->s.cvc.step, next = prev, round;
+            if (cvc_rnd(&it->s.cvc.seed, 100) >= pct) {
+                if (arp == 1)
+                    next = (prev + 1) & 3;
+                else if (arp == 2)
+                    next = prev == 0 ? 3 : prev - 1;
+                else if (arp == 3) {
+                    if (it->s.cvc.up) {
+                        next = prev + 1;
+                        if (next >= 3) {
+                            next = 3;
+                            it->s.cvc.up = 0;
+                        }
+                    } else if (prev == 0) {
+                        next = 1;
+                        it->s.cvc.up = 1;
+                    } else {
+                        next = prev - 1;
+                        if (next == 0)
+                            it->s.cvc.up = 1;
+                    }
+                } else
+                    next = cvc_rnd(&it->s.cvc.seed, 4);
+            } else {
+                int32_t kind = cvc_rnd(&it->s.cvc.seed, 3);
+                if (kind == 0)
+                    next = prev;
+                else if (kind == 1)
+                    next = cvc_rnd(&it->s.cvc.seed, 4);
+                else {
+                    it->s.cvc.up = (int8_t)!it->s.cvc.up;
+                    next = (prev + 1) & 3;
+                }
+            }
+            round = (arp == 1 && next == 0) || (arp == 2 && next == 3) || (arp == 3 && prev == 0 && next == 1) ||
+                    (arp == 4 && cvc_rnd(&it->s.cvc.seed, 10) > 7);
+            if (round)
+                it->s.cvc.ext = (int8_t)(range == 0 ? 0 : it->s.cvc.ext ^ 1);
+            if (mut > 0 && cvc_rnd(&it->s.cvc.seed, 100) < pct)
+                it->s.cvc.mo = (int8_t)(cvc_rnd(&it->s.cvc.seed, 2) == 0 ? 1 : -1);
+            else
+                it->s.cvc.mo = 0;
+            it->s.cvc.step = (int8_t)next;
+            it->s.cvc.tleft = half;
+            CVC_ARP_OFFS();
+            CVC_INCS();
+            si++;
+        }
+        if (lofi) {
+            int tick;
+            it->s.cvc.acc += (int32_t)CVC_LOFI_SR;
+            tick = it->s.cvc.acc >= (int32_t)ENG_SR;
+            if (tick)
+                it->s.cvc.acc -= (int32_t)ENG_SR;
+            for (k = 0; k < 5; k++) {
+                it->s.cvc.ph[k] += inc[k];
+                if (tick && (on >> k & 1u))
+                    y += clampi((cvc_wave(wk, it->s.cvc.ph[k], 0u, &it->s.cvc.rc[2 * k]) * 127 + 32768) >> 16, -128, 127);
+            }
+            if (tick)
+                it->s.cvc.held = (int32_t)(((int64_t)y << 16) / 508);
+            y = it->s.cvc.held;
+        } else {
+            for (k = 0; k < 5; k++) {
+                it->s.cvc.ph[k] += inc[k];
+                if (on >> k & 1u)
+                    y += cvc_wave(wk, it->s.cvc.ph[k], inc[k], &it->s.cvc.rc[2 * k]);
+            }
+            y >>= 2;
+        }
+        out[i] = mul16(y, lvl);
+        trig[i] = it->s.cvc.tleft > 0 ? ENG_ONE : 0;
+        if (it->s.cvc.tleft > 0)
+            it->s.cvc.tleft--;
+    }
+#undef CVC_ARP_OFFS
+#undef CVC_INCS
+}
+
 
 static void m_clkdiv(const node_t *nd, inst_t *it, uint32_t n)
 {
@@ -7320,6 +7530,7 @@ static void process(const node_t *nd, inst_t *it, uint32_t n)
     case T_CHORUS: m_chorus(nd, it, n); break;
     case T_SEQ: m_seq(nd, it, n); break;
     case T_SEQ960: m_seq960(nd, it, n); break;
+    case T_CHORDVCO: m_chordvco(nd, it, n); break;
     case T_STEPS: m_steps(nd, it, n); break;
     case T_DRUMMAP: m_drummap(nd, it, n); break;
     case T_CLKDIV: m_clkdiv(nd, it, n); break;

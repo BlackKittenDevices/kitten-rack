@@ -38,7 +38,7 @@ static uint32_t rk_px(uint32_t hp) { return RK_X0 + hp * RK_W / RK_HP; }
 static uint16_t rk_family(int t)
 {
     switch (t) {
-    case T_OSC: case T_NOISE: case T_STRING: case T_WAVETABLE: case T_MODAL: case T_PD: case T_RATIO:
+    case T_OSC: case T_NOISE: case T_STRING: case T_WAVETABLE: case T_MODAL: case T_PD: case T_RATIO: case T_CHORDVCO:
         return P_CORAL;                                 /* sources: pumpkin */
     case T_TURING:
         return P_CORAL;                                 /* (the Turing machine sounds too) */
@@ -82,6 +82,7 @@ static const char *rk_short(int t)
     case T_TURING: return "TURING";  case T_EUCLID: return "EUCLID";  case T_MARBLES: return "MARBLES";
     case T_BERN: return "BERNOULLI"; case T_CHAOS: return "CHAOS";   case T_MUUG: return "MUUG";
     case T_SEQ960: return "SEQ 960";
+    case T_CHORDVCO: return "VCO CHORD";
     default: return 0;
     }
 }

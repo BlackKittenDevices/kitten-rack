@@ -2,6 +2,11 @@
 
 Kitten Rack's versions. Each release on GitHub has an installer, the `.fwsc` and the offline editor. The history of Matryoshka, which Kitten Rack starts from, is in [docs/CHANGELOG-matryoshka.md](docs/CHANGELOG-matryoshka.md).
 
+## 1.5.0-rc2 — 2026-11-15 (test version)
+
+- **VCO Chord**, a recreation of VCO Chord 2.0 (Black Kitten Devices, after HAGIWO's chord VCO): five oscillators, seven chords, sixteen inversions, seven waves, detune, a built-in arpeggiator (up, down, up-down, random; on CLK or PLAY; octave range, mutation, structure) and an 8-bit mode with the Arduino's sound. Its pitch follows the keys (a voice's V/OCT) and any CV, such as a Seq 960 row. Patch format 52, only for patches that use it.
+- Example patch `docs/patches/vco-chord.json`.
+
 ## 1.5.0-rc1 — 2026-11-15 (test version)
 
 - **Seq 960: 16 steps and ratchets**, as Graham Hanks suggested: **CHAIN** (8 / 16 A+B) chains rows A and B into one row of 16 steps on output A, KEYS and VEL (row C keeps its eight, for the filter); **R1..R8** play each step 1 to 4 times. Patch format 51, only for patches that use them (a patch without them is still written as 50 and opens in 1.4.0).

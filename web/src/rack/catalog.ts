@@ -14,6 +14,7 @@ export const FAMILIES: Family[] = [
       { type: 'osc', label: 'VCO' },
       { type: 'wavetable', label: 'VCO WT' },
       { type: 'pd', label: 'VCO CZ' },
+      { type: 'chordvco', label: 'VCO Chord' },
       { type: 'noise', label: 'Ruido' },
       { type: 'string', label: 'Cuerda' },
       { type: 'modal', label: 'Resonador' },

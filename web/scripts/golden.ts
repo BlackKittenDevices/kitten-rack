@@ -411,12 +411,65 @@ tests['kr-seq960-ratchet-clk'] = make('kr-seq960-ratchet-clk', (add, wire) => {
   wire(s, 'a', out, 'l'); wire(s, 'gate', mx, 'in1'); wire(s, 't1', mx, 'in2'); wire(mx, 'out', out, 'r');
 });
 ends['kr-seq960-ratchet-clk'] = 128 * 600;
+// KITTEN RACK (format 52): the VCO Chord: a chord from the keys (a voice's pitch), its seven waves, the arpeggio on the
+// transport (up with the octave rounds and the structure) and on a clock (random, mutating), bits 8, a Seq 960 driving it
+tests['kr-chordvco'] = make('kr-chordvco', (add, wire) => {
+  const main = add('fm1', 0, 0, { tempo: 120 }), al = add('alloc', 0, 0, { voices: 1 });
+  wire(main, 'keys', al, 'keys');
+  const cv = add('chordvco', 0, 0, { chord: 1, inv: 7, wave: 0, detune: 0.6, tune: -12 });
+  const e = add('adsr', 0, 0, { a: 0.01, d: 0.2, s: 0.7, r: 0.1 }), v = add('vca', 0, 0), out = add('output', 0, 0, { level: 0.7 });
+  wire(al, 'pitch', cv, 'pitch'); wire(al, 'gate', e, 'gate'); wire(cv, 'out', v, 'in'); wire(e, 'env', v, 'cv');
+  wire(v, 'out', out, 'l'); wire(cv, 'out', out, 'r');
+});
+tests['kr-chordvco-waves'] = make('kr-chordvco-waves', (add, wire) => {
+  const out = add('output', 0, 0, { level: 0.5 }), m1 = add('mixer', 0, 0), m2 = add('mixer', 0, 0);
+  for (let w = 0; w < 7; w++) {
+    const cv = add('chordvco', 0, 0, { chord: w, inv: (w * 5) % 16, wave: w, detune: w / 7, tune: -24 + 5 * w });
+    wire(cv, 'out', w < 4 ? m1 : m2, `in${(w % 4) + 1}`);
+  }
+  wire(m1, 'out', out, 'l'); wire(m2, 'out', out, 'r');
+});
+tests['kr-chordvco-arp'] = make('kr-chordvco-arp', (add, wire) => {
+  add('fm1', 0, 0, { tempo: 140 });
+  const a = add('chordvco', 0, 0, { chord: 3, arp: 1, range: 1, stroct: 1, strst: 2, rate: 4, wave: 1, detune: 0.3, tune: -12 });
+  const b = add('chordvco', 0, 0, { chord: 6, arp: 3, range: 2, rate: 2, wave: 4, tune: -24 });
+  const out = add('output', 0, 0, { level: 0.6 }), mx = add('mixer', 0, 0);
+  wire(a, 'out', out, 'l'); wire(b, 'out', mx, 'in1'); wire(a, 'trig', mx, 'in2'); wire(mx, 'out', out, 'r');
+});
+events['kr-chordvco-arp'] = [[128 * 2, 'run', 0], [128 * 330, 'stop', 0], [128 * 350, 'run', 0]];
+ends['kr-chordvco-arp'] = 128 * 520;
+tests['kr-chordvco-clk'] = make('kr-chordvco-clk', (add, wire) => {
+  const clk = add('lfo', 0, 0, { wave: 3, rate: 9, depth: 1 });
+  const a = add('chordvco', 0, 0, { chord: 5, arp: 4, mutate: 0.5, range: 1, wave: 5, detune: 0.8, tune: -5 });
+  const b = add('chordvco', 0, 0, { chord: 2, arp: 2, mutate: 0.3, wave: 6, bits: 1, tune: -17 });
+  const out = add('output', 0, 0, { level: 0.6 });
+  wire(clk, 'out', a, 'clk'); wire(clk, 'out', b, 'clk'); wire(a, 'out', out, 'l'); wire(b, 'out', out, 'r');
+});
+ends['kr-chordvco-clk'] = 128 * 600;
+tests['kr-chordvco-8bit'] = make('kr-chordvco-8bit', (add, wire) => {
+  const out = add('output', 0, 0, { level: 0.6 });
+  const a = add('chordvco', 0, 0, { chord: 0, inv: 11, wave: 0, bits: 1, detune: 0.5, tune: -12 });
+  const b = add('chordvco', 0, 0, { chord: 4, inv: 3, wave: 3, bits: 1, tune: 0 });
+  wire(a, 'out', out, 'l'); wire(b, 'out', out, 'r');
+});
+tests['kr-chordvco-seq'] = make('kr-chordvco-seq', (add, wire) => {
+  add('fm1', 0, 0, { tempo: 120 });
+  const s = add('seq960', 0, 0, { ...S960_ROWS, rb: 0, rate: 2 });
+  const cv = add('chordvco', 0, 0, { wave: 2, detune: 0.2, tune: -12 });
+  const out = add('output', 0, 0, { level: 0.6 });
+  wire(s, 'a', cv, 'pitch'); wire(s, 'b', cv, 'p1');
+  wire(cv, 'out', out, 'l'); wire(s, 'b', out, 'r');
+});
+events['kr-chordvco-seq'] = [[128 * 2, 'run', 0]];
+ends['kr-chordvco-seq'] = 128 * 500;
 // the example patches (docs/patches): the Seq 960 plays a drum kit or a bass line (the keys play and record a lead)
 for (const [k, f] of [['kr-960-drums', '960-bateria-lead'], ['kr-960-bass', '960-bajo-lead'], ['kr-960-16', '960-16-pasos']]) {
   tests[k] = validatePatch(JSON.parse(readFileSync(new URL(`../../docs/patches/${f}.json`, import.meta.url), 'utf8')), DEFS);
   events[k] = [[128 * 2, 'run', 0], [128 * 300, 'stop', 0], [128 * 320, 'run', 0]];   // (the Seq 960's part: the keys' lead is a factory voice)
   ends[k] = 128 * 460;
 }
+tests['kr-chordvco-demo'] = validatePatch(JSON.parse(readFileSync(new URL('../../docs/patches/vco-chord.json', import.meta.url), 'utf8')), DEFS);
+ends['kr-chordvco-demo'] = 128 * 300;
 for (const k of ['kr-tape', 'kr-tape-pp', 'kr-spring', 'kr-muug', 'kr-muug-sing', 'kr-turing', 'kr-turing-gates', 'kr-euclid', 'kr-marbles', 'kr-marbles-cv', 'kr-bern', 'kr-bern-latch', 'kr-chaos', 'kr-chaos-slow', 'kr-func', 'kr-lpg'])
   ends[k] = 128 * 600;
 kit('waves', (add, wire) => {

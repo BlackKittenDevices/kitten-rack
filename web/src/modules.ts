@@ -2262,6 +2262,251 @@ const seq960: ModuleImpl<Seq960State> = {
   },
 };
 
+/**
+ * KITTEN RACK: VCO Chord, after Kitten's VCO Chord 2.0 (github.com/BlackKittenDevices/VCO-Chord-2.0), itself after
+ * HAGIWO's chord VCO. Five oscillators: a four-note chord (CHORDVCO_CHORDS, one of seven) with `inv` (one of sixteen
+ * inversions, CHORDVCO_INV: each oscillator's octave, the fifth one, the root, on or off) or, with `arp` on, an arpeggio of
+ * the chord's notes (up, down, up-down, random) where all five play the same note detuned: it steps on clk's rising edges
+ * or with the transport at `rate`, `range` takes every other round an octave up or down, `mutate` (0..60 %) breaks the
+ * pattern (the note held, a random one, the direction turned) and throws the first oscillator an octave, `stroct` /
+ * `strst` move the arpeggio by octaves / semitones. detune spreads the five (0, 1/3, 2/3, 1, 1/2 of 14/205 octave at
+ * the top); wave: saw, square, triangle, sine, Chebyshev (T3), sigmoid, phasor (a plain ramp). bits 8: the Arduino's
+ * sound: plain (not band-limited) waves, each rounded to 8 bits, sampled at 16384 Hz. pitch is volt per octave from C4
+ * plus tune: the keyboard's voice pitch or a sequencer's CV. trig: a pulse on each arpeggio step. Parameters are read
+ * once a block (as the module read its knobs at 128 Hz). engine.c m_chordvco in fixed point.
+ */
+/** engine.c's EXP2_T (2^(i/256) in Q28) and exp2_scale: base * 2^(x / 65536), x Q16 octaves, u32 saturating, exactly */
+const EXP2_T = Array.from({ length: 257 }, (_, i) => Math.round(Math.pow(2, i / 256) * 268435456));
+export function exp2Scale(base: number, x: number): number {
+  const n = x >> 16, fr = x & 0xffff, i = fr >> 8, r = fr & 255;
+  const m = EXP2_T[i] + Math.floor(((EXP2_T[i + 1] - EXP2_T[i]) * r) / 256);
+  const v = (BigInt(base) * BigInt(m)) >> 28n;
+  if (n >= 0) return n >= 32 || v >= 1n << BigInt(32 - n) ? 0xffffffff : Number(v << BigInt(n));
+  return -n >= 64 ? 0 : Number(v >> BigInt(-n));
+}
+/** engine.c INC_C4: C4's phase increment per sample at DEVICE_SR, u32 turns */
+const INC_C4 = 25469723;
+export const CHORDVCO_CHORDS: { name: string; notes: number[] }[] = [
+  { name: 'ionian', notes: [0, 4, 7, 12] },
+  { name: 'mixolyd', notes: [0, 4, 7, 11] },
+  { name: 'maj pent', notes: [0, 4, 7, 9] },
+  { name: 'dorian', notes: [0, 3, 7, 9] },
+  { name: 'minor', notes: [0, 3, 7, 8] },
+  { name: 'phrygian', notes: [0, 1, 7, 8] },
+  { name: 'min pent', notes: [0, 3, 7, 10] },
+];
+/** per inversion the octaves of oscillators 1..4 and whether the fifth (the root) sounds */
+export const CHORDVCO_INV: number[][] = [
+  [0, 0, 0, 0, 0], [1, 0, 0, 0, 0], [1, 1, 0, 0, 0], [1, 1, 1, 0, 0], [1, 1, 1, 1, 0], [2, 1, 1, 1, 0], [2, 2, 1, 1, 0],
+  [2, 2, 2, 1, 0], [2, 2, 2, 1, 1], [2, 2, 1, 1, 1], [2, 1, 1, 1, 1], [1, 1, 1, 1, 1], [1, 1, 1, 0, 1], [1, 1, 0, 0, 1],
+  [1, 0, 0, 0, 1], [0, 0, 0, 0, 1],
+];
+const CHORDVCO_WAVES = ['saw', 'square', 'triangle', 'sine', 'chebyshev', 'sigmoid', 'phasor'];
+const CHORDVCO_ARPS = ['off', 'up', 'down', 'up-down', 'random'];
+/** each oscillator's share of the detune */
+const CHORDVCO_DET = [0, 1 / 3, 2 / 3, 1, 1 / 2];
+/** the Arduino's sample rate (Mozzi), for bits 8 */
+export const CHORDVCO_LOFI_SR = 16384;
+/** tanh-like (a Pade approximant), 1 at 3: the sigmoid wave's shape */
+const pade3 = (x: number): number => (x * (27 + x * x)) / (27 + 9 * x * x);
+/** wave k of CHORDVCO_WAVES at phase p (increment dt; dt 0: plain, not band-limited) */
+function chordWave(k: number, p: number, dt: number): number {
+  const x = 2 * p - 1;
+  switch (k) {
+    case 0:
+      return x - polyBlep(p, dt);
+    case 1:
+      return wave(3, p, dt);
+    case 2:
+      return wave(1, p, dt);
+    case 3:
+      return Math.sin(2 * Math.PI * p);
+    case 4:
+      return 4 * x * x * x - 3 * x - polyBlep(p, dt);
+    case 5:
+      return pade3(3 * x) - polyBlep(p, dt);
+    default:
+      return x;
+  }
+}
+interface ChordVcoState {
+  ph: number[];
+  /** the arpeggio: its step (0..3), going up (up-down), the octave round (0 base, 1 moved), the octave the mutation throws
+   * oscillator 1 (-1, 0, 1) */
+  step: number;
+  up: boolean;
+  ext: number;
+  mo: number;
+  seed: number;
+  c1: number;
+  run: boolean;
+  cnt: number;
+  since: number;
+  period: number;
+  tleft: number;
+  /** bits 8: the lofi clock and the held output */
+  acc: number;
+  held: number;
+}
+const chordvco: ModuleImpl<ChordVcoState> = {
+  def: {
+    type: 'chordvco',
+    label: 'VCO Chord',
+    inputs: [control('pitch'), gate('clk')],
+    outputs: [audio('out'), gate('trig')],
+    params: [
+      param('chord', 0, CHORDVCO_CHORDS.length - 1, 0, { step: 1, choices: CHORDVCO_CHORDS.map((x) => x.name) }),
+      param('inv', 0, 15, 0, { step: 1 }),
+      param('wave', 0, CHORDVCO_WAVES.length - 1, 0, { step: 1, choices: CHORDVCO_WAVES }),
+      param('detune', 0, 1, 0, { step: 0.01 }),
+      param('tune', -36, 24, 0, { step: 1, unit: 'st' }),
+      param('arp', 0, CHORDVCO_ARPS.length - 1, 0, { step: 1, choices: CHORDVCO_ARPS }),
+      param('rate', 0, SEQ960_RATES.length - 1, 3, { step: 1, choices: SEQ960_RATES }),
+      param('range', 0, 2, 0, { step: 1, choices: ['1 oct', '+1 oct', '-1 oct'] }),
+      param('mutate', 0, 0.6, 0, { step: 0.01 }),
+      param('stroct', 0, 3, 0, { step: 1, unit: 'oct' }),
+      param('strst', 0, 3, 0, { step: 1, unit: 'st' }),
+      param('bits', 0, 1, 0, { step: 1, choices: ['hifi', '8 bit'], toggle: true }),
+      param('level', 0, 1, 0.8, { step: 0.01 }),
+    ],
+  },
+  init: () => ({ ph: [0, 0, 0, 0, 0], step: 0, up: true, ext: 0, mo: 0, seed: 0, c1: 0, run: false, cnt: 0, since: -1, period: 0, tleft: 0, acc: 0, held: 0 }),
+  seed(s, seed) {
+    s.seed = seed >>> 0;
+  },
+  process(c, s) {
+    const r = (x: number | undefined, d: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, Math.round(x ?? d)));
+    const chord = r(c.p.chord, 0, 0, 6), inv = r(c.p.inv, 0, 0, 15), wk = r(c.p.wave, 0, 0, 6);
+    const arp = r(c.p.arp, 0, 0, 4), range = r(c.p.range, 0, 0, 2), lofi = r(c.p.bits, 0, 0, 1) === 1;
+    const tps = SEQ960_TICKS[r(c.p.rate, 3, 0, SEQ960_TICKS.length - 1)];
+    const mut = pQ16(c.p.mutate, 0), pct = (mut * 100 + 32768) >> 16, lvl = c.p.level ?? 0.8;
+    // pitches in Q16 octaves and the phases in u32 turns, as engine.c (exp2Scale): the oscillators keep in step with the FM-1's
+    const det = Math.trunc((pQ16(c.p.detune, 0) * 14) / 205);
+    const dk = [0, Math.trunc(det / 3), Math.trunc((2 * det) / 3), det, Math.trunc(det / 2)];
+    const base = Math.round(c.inp.pitch[0] * 65536) + Math.trunc(pQ16(c.p.tune, 0) / 12);
+    const notes = CHORDVCO_CHORDS[chord].notes, v = c.voice, ext = !!c.connected.clk;
+    // (the browser runs at its own rate: C4's increment for it; at DEVICE_SR the FM-1's)
+    const c4 = c.sr === DEVICE_SR ? INC_C4 : Math.round((C4 / c.sr) * 4294967296);
+    const rnd = (n: number): number => {
+      s.seed = lcg(s.seed);
+      return ((s.seed >>> 16) * n) >>> 16;
+    };
+    // the arpeggio's steps this block (on clk's edges, or the transport), each where it falls
+    const steps: number[] = [];
+    if (arp > 0) {
+      if (!ext && v.run && !s.run) {
+        s.cnt = 0;
+        steps.push(0);
+      }
+      for (let i = 0; i < c.n; i++) {
+        if (ext) {
+          if (s.since >= 0 && s.since < 8388608) s.since++;
+          if (c.inp.clk[i] >= 0.5 && s.c1 < 0.5) {
+            if (s.since > 0) s.period = s.since;
+            s.since = 0;
+            if (steps.length < 24) steps.push(i);
+          }
+          s.c1 = c.inp.clk[i];
+        } else if (v.run && i === v.tick) {
+          for (let t = 0; t < v.ticks; t++)
+            if (++s.cnt >= tps) {
+              s.cnt = 0;
+              if (steps.length < 24) steps.push(i);
+            }
+        }
+      }
+    }
+    s.run = v.run;
+    const half = Math.max(1, ext ? (s.period > 0 ? s.period >> 1 : 3 * v.tickLen) : (tps * v.tickLen) >> 1);
+    // per oscillator: its offset from the base pitch (Q16 octaves), whether it sounds
+    const off = [0, 0, 0, 0, 0], on = [1, 1, 1, 1, 1], inc = [0, 0, 0, 0, 0];
+    const arpOffs = (): void => {
+      const ro = s.ext === 1 ? (range === 1 ? 1 : range === 2 ? -1 : 0) : 0;
+      const n = Math.trunc(((notes[s.step] + r(c.p.strst, 0, 0, 3)) * 65536) / 12) + (r(c.p.stroct, 0, 0, 3) + ro) * 65536;
+      for (let k = 0; k < 5; k++) off[k] = n;
+      off[0] += s.mo * 65536;
+    };
+    const incs = (): void => {
+      for (let k = 0; k < 5; k++) inc[k] = Math.min(1932735283, exp2Scale(c4, base + off[k] + dk[k]));
+    };
+    const advance = (): void => {
+      const prev = s.step;
+      let next = prev;
+      if (rnd(100) >= pct) {
+        if (arp === 1) next = (prev + 1) & 3;
+        else if (arp === 2) next = prev === 0 ? 3 : prev - 1;
+        else if (arp === 3) {
+          if (s.up) {
+            next = prev + 1;
+            if (next >= 3) {
+              next = 3;
+              s.up = false;
+            }
+          } else if (prev === 0) {
+            next = 1;
+            s.up = true;
+          } else {
+            next = prev - 1;
+            if (next === 0) s.up = true;
+          }
+        } else next = rnd(4);
+      } else {
+        const kind = rnd(3);
+        if (kind === 0) next = prev;
+        else if (kind === 1) next = rnd(4);
+        else {
+          s.up = !s.up;
+          next = (prev + 1) & 3;
+        }
+      }
+      const round = (arp === 1 && next === 0) || (arp === 2 && next === 3) || (arp === 3 && prev === 0 && next === 1) || (arp === 4 && rnd(10) > 7);
+      if (round) s.ext = range === 0 ? 0 : s.ext ^ 1;
+      s.mo = mut > 0 && rnd(100) < pct ? (rnd(2) === 0 ? 1 : -1) : 0;
+      s.step = next;
+      s.tleft = half;
+    };
+    if (arp === 0) {
+      const a = CHORDVCO_INV[inv];
+      for (let k = 0; k < 4; k++) off[k] = Math.trunc(((notes[k] + 12 * a[k]) * 65536) / 12);
+      off[4] = Math.trunc((notes[0] * 65536) / 12);
+      on[4] = a[4];
+    } else arpOffs();
+    incs();
+    let si = 0;
+    const out = c.out.out, U = 4294967296;
+    for (let i = 0; i < c.n; i++) {
+      while (si < steps.length && steps[si] === i) {
+        advance();
+        arpOffs();
+        incs();
+        si++;
+      }
+      let y = 0;
+      if (lofi) {
+        s.acc += CHORDVCO_LOFI_SR;
+        const tick = s.acc >= c.sr;
+        if (tick) s.acc -= c.sr;
+        let q = 0;
+        for (let k = 0; k < 5; k++) {
+          s.ph[k] = (s.ph[k] + inc[k]) >>> 0;
+          if (tick && on[k]) q += Math.max(-128, Math.min(127, Math.round(chordWave(wk, s.ph[k] / U, 0) * 127)));
+        }
+        if (tick) s.held = q / 508;
+        y = s.held;
+      } else {
+        for (let k = 0; k < 5; k++) {
+          s.ph[k] = (s.ph[k] + inc[k]) >>> 0;
+          if (on[k]) y += chordWave(wk, s.ph[k] / U, inc[k] / U);
+        }
+        y /= 4;
+      }
+      out[i] = y * lvl;
+      c.out.trig[i] = s.tleft > 0 ? 1 : 0;
+      if (s.tleft > 0) s.tleft--;
+    }
+  },
+};
+
 /** a clock divider: `out` passes every `div`-th clock pulse (its width is the clock's), `d2` `d4` `d8` every 2nd, 4th, 8th; `reset` restarts the count so the next pulse is a downbeat */
 const clkdiv: ModuleImpl<{ count: number; c1: number; r1: number }> = {
   def: {
@@ -4114,7 +4359,9 @@ const ALL = [fm1, osc, lfo, noise, constant, scale, adsr, vca, filter, mixer, de
   // KITTEN RACK (format 49)
   lpg, func, ring, turing, euclid, marbles, bern, chaos, muug,
   // KITTEN RACK (format 50)
-  seq960];
+  seq960,
+  // KITTEN RACK (format 52)
+  chordvco];
 
 /**
  * Every module except the FM-1 panel (the input) and the output has two parameter inputs, p1 and p2, each with an

@@ -5,6 +5,7 @@ import os
 
 v = os.environ.get("V", "X.Y.Z")
 print(f"""**New in 1.5 · Nuevo en 1.5**
+- **VCO Chord:** five oscillators playing a chord (7 chords, 16 inversions, 7 waves, detune), a built-in arpeggiator and an 8-bit mode, after VCO Chord 2.0 and HAGIWO's chord VCO. Cinco osciladores que tocan un acorde, con arpegiador y modo 8 bits, homenaje al VCO Chord 2.0 y al VCO de acordes de HAGIWO.
 - **Seq 960: 16 steps and ratchets / 16 pasos y ratcheo:** CHAIN (8 / 16 A+B) chains rows A and B into one row of 16 steps; R1..R8 play each step 1 to 4 times. CHAIN encadena las filas A y B en una de 16 pasos; R1..R8 repiten cada paso de 1 a 4 veces.
 - From 1.4 / De la 1.4: the **Seq 960**, after Moog's 960 sequencer: three rows of eight steps (A, B, C), a switch per step (PLAY / SKIP / STOP / RESET), the transport or a clock in CLK, outputs A, B, C, GATE, T1..T8 and KEYS, which plays a voice or a Drum map without the FM-1's keys (notes from row A, B or C, velocity fixed or from a row). Un secuenciador estilo Moog 960: tres filas de ocho pasos, una llave por paso (PLAY / SKIP / STOP / RESET), el transporte o un reloj en CLK, salidas A, B, C, GATE, T1..T8 y KEYS, que toca una voz o un Drum map sin las teclas del FM-1 (notas de la fila A, B o C, velocidad fija o de una fila).
 - From 1.3 / De la 1.3: button and key lights. Luces en botones y teclas.

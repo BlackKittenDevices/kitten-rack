@@ -336,11 +336,11 @@ El FM-1 y el editor responden a cualquier controlador MIDI, por USB (y el FM-1 t
 
 ## 10. Los módulos
 
-56 módulos por familias. Todos andan en el editor y en el FM-1.
+57 módulos por familias. Todos andan en el editor y en el FM-1.
 
 | Familia | Módulos |
 | --- | --- |
-| Fuentes | VCO, VCO WT (wavetable), VCO CZ (phase distortion), Ruido, Cuerda (Karplus), Resonador (modal) |
+| Fuentes | VCO, VCO WT (wavetable), VCO CZ (phase distortion), VCO Chord, Ruido, Cuerda (Karplus), Resonador (modal) |
 | Generativos | Turing, Marbles, Euclídeo, Bernoulli, Caos (Lorenz), Random, S&H, Seq 8, Seq 960 (estilo Moog 960), Steps (el secuenciador), Arpegiador |
 | Filtros | VCF Muug (escalera Minimoog que autooscila), LPG (estilo Buchla), VCF Ladder, VCF Multi, Formante, Comb, Wavefolder |
 | VCA y mezcla | VCA, Ring mod, Mix 4, Xfade, Pan, Selector, Compresor |
@@ -351,6 +351,16 @@ El FM-1 y el editor responden a cualquier controlador MIDI, por USB (y el FM-1 t
 Fijos en cada patch: **MIDI-CV** (el teclado y el MIDI: pitch, gate, velocidad, bend, mod, aftertouch) y **OUT** (la salida).
 
 Límites del FM-1: un solo delay, una sola reverb y un solo chorus por patch, y un tope de CPU que el editor estima (barra CPU arriba).
+
+### VCO Chord (como el VCO Chord 2.0 y el VCO de acordes de HAGIWO)
+
+Cinco osciladores que tocan un acorde a partir de una sola altura: el teclado (el **V/OCT** de una voz), una fila del Seq 960 o cualquier CV.
+
+- **CHORD:** siete acordes de cuatro notas (jónico, mixolidio, pentatónica mayor, dórico, menor, frigio, pentatónica menor). **INV:** dieciséis inversiones (qué notas suben una o dos octavas y si suena el quinto oscilador, la fundamental). **WAVE:** sierra, cuadrada, triangular, seno, Chebyshev, sigmoide, phasor. **DETUNE:** separa los cinco (al máximo, un supersaw). **TUNE:** semitonos.
+- **ARP:** UP, DOWN, UP-DOWN o RANDOM por las notas del acorde, los cinco en la misma nota. Avanza con **CLK** (cualquier gate) o, sin nada en CLK, con PLAY a la velocidad de **RATE**. **RANGE:** una vuelta sí y otra no, una octava arriba o abajo. **MUTATE** (0 a 60 %) rompe el patrón de vez en cuando. **STR OCT / STR ST** corren el arpegio en octavas y semitonos. **TRIG** manda un pulso en cada paso (para una envolvente).
+- **BITS 8 BIT:** el sonido del Arduino: ondas de 8 bits sin filtrar, a 16384 Hz, con su suciedad.
+- Sus primeras perillas son CHORD, INV, WAVE y DETUNE: caen en K1 a K4 y en los pines CV1 / CV2, así que una fila del Seq 960 en CV1 cambia el acorde paso a paso.
+- Ejemplo: [`vco-chord.json`](patches/vco-chord.json): las teclas tocan acordes por el Muug (K1 acorde, K2 inversión, K3 onda, K4 detune).
 
 ### Seq 960 (como el 960 de Moog)
 
@@ -452,6 +462,6 @@ Formato 50 (el de Matryoshka 48 más los módulos de Kitten Rack; 50 solo para l
 
 ## 13. Créditos y licencia
 
-Kitten Rack parte de [Matryoshka](https://github.com/glvno/matryoshka) de michael glaviano (1.5.1, commit `ec7d934`), que viene de [Modular-1](https://github.com/WiggisModular/Modular-1) de WiggisModular y usa la capa de hardware y el instalador de [Felucca](https://github.com/hugelton/Felucca) de Leo Kuroshita / Hügelton Instruments.
+Kitten Rack parte de [Matryoshka](https://github.com/glvno/matryoshka) de michael glaviano (1.5.1, commit `ec7d934`), que viene de [Modular-1](https://github.com/WiggisModular/Modular-1) de WiggisModular y usa la capa de hardware y el instalador de [Felucca](https://github.com/hugelton/Felucca) de Leo Kuroshita / Hügelton Instruments. El VCO Chord recrea el [VCO Chord 2.0](https://github.com/BlackKittenDevices/VCO-Chord-2.0) de Black Kitten Devices, basado en el [VCO de acordes de HAGIWO](https://note.com/solder_state/n/n681d2e07e324).
 
 Todo el código es **GPL-3.0-only**: ver [LICENSE](../LICENSE) y [LICENSING.md](../LICENSING.md). Los cambios por versión están en [CHANGELOG.md](../CHANGELOG.md).

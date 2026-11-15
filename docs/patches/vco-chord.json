@@ -1,0 +1,495 @@
+{
+ "version": 2,
+ "name": "vco chord",
+ "modules": [
+  {
+   "id": 1,
+   "type": "fm1",
+   "x": 40,
+   "y": 0,
+   "params": {
+    "morph": 0,
+    "tempo": 112
+   },
+   "panel": {
+    "toggle": [
+     "arp"
+    ],
+    "kinds": {
+     "fx": "nothing",
+     "lfo": "nothing",
+     "edit": "nothing",
+     "arp": "bypass"
+    },
+    "targets": {
+     "arp": {
+      "module": 11
+     }
+    }
+   }
+  },
+  {
+   "id": 2,
+   "type": "output",
+   "x": 440,
+   "y": 828,
+   "params": {
+    "level": 0.94
+   }
+  },
+  {
+   "id": 3,
+   "type": "chordvco",
+   "x": 240,
+   "y": 0,
+   "params": {
+    "chord": 0,
+    "inv": 4,
+    "wave": 0,
+    "detune": 0.35,
+    "tune": -12,
+    "arp": 0,
+    "rate": 3,
+    "range": 0,
+    "mutate": 0,
+    "stroct": 0,
+    "strst": 0,
+    "bits": 0,
+    "level": 1
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [],
+    "p2": [],
+    "k1": [
+     "chord"
+    ],
+    "k2": [
+     "inv"
+    ],
+    "k3": [
+     "wave"
+    ],
+    "k4": [
+     "detune"
+    ]
+   }
+  },
+  {
+   "id": 4,
+   "type": "muug",
+   "x": 560,
+   "y": 0,
+   "params": {
+    "cutoff": -0.2,
+    "emph": 3.5,
+    "drive": 1.3,
+    "cvamt": 2,
+    "track": 1
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "cutoff"
+    ],
+    "p2": [
+     "emph"
+    ],
+    "k1": [
+     "cutoff"
+    ],
+    "k2": [
+     "emph"
+    ],
+    "k3": [
+     "drive"
+    ],
+    "k4": [
+     "cvamt"
+    ]
+   }
+  },
+  {
+   "id": 5,
+   "type": "adsr",
+   "x": 720,
+   "y": 0,
+   "params": {
+    "a": 0.02,
+    "d": 0.6,
+    "s": 0.4,
+    "r": 0.6,
+    "long": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "a"
+    ],
+    "p2": [
+     "d"
+    ],
+    "k1": [
+     "a"
+    ],
+    "k2": [
+     "d"
+    ],
+    "k3": [
+     "s"
+    ],
+    "k4": [
+     "r"
+    ]
+   }
+  },
+  {
+   "id": 6,
+   "type": "adsr",
+   "x": 40,
+   "y": 414,
+   "params": {
+    "a": 0.01,
+    "d": 0.4,
+    "s": 0.85,
+    "r": 0.7,
+    "long": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "a"
+    ],
+    "p2": [
+     "d"
+    ],
+    "k1": [
+     "a"
+    ],
+    "k2": [
+     "d"
+    ],
+    "k3": [
+     "s"
+    ],
+    "k4": [
+     "r"
+    ]
+   }
+  },
+  {
+   "id": 7,
+   "type": "vca",
+   "x": 200,
+   "y": 414,
+   "params": {
+    "gain": 1.3
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "gain"
+    ],
+    "p2": [],
+    "k1": [
+     "gain"
+    ],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   }
+  },
+  {
+   "id": 8,
+   "type": "chorus",
+   "x": 280,
+   "y": 414,
+   "params": {
+    "rate": 0.4,
+    "depth": 0.45,
+    "mix": 0.4
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "rate"
+    ],
+    "p2": [
+     "depth"
+    ],
+    "k1": [
+     "rate"
+    ],
+    "k2": [
+     "depth"
+    ],
+    "k3": [
+     "mix"
+    ],
+    "k4": []
+   }
+  },
+  {
+   "id": 9,
+   "type": "reverb",
+   "x": 400,
+   "y": 414,
+   "params": {
+    "size": 0.55,
+    "damp": 0.45,
+    "mix": 0.25,
+    "pre": 0,
+    "mod": 0.3,
+    "freeze": 0,
+    "spring": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "size"
+    ],
+    "p2": [
+     "damp"
+    ],
+    "k1": [
+     "size"
+    ],
+    "k2": [
+     "damp"
+    ],
+    "k3": [
+     "mix"
+    ],
+    "k4": [
+     "pre"
+    ]
+   }
+  },
+  {
+   "id": 10,
+   "type": "steps",
+   "x": 600,
+   "y": 414,
+   "params": {
+    "len": 16,
+    "rate": 4,
+    "swing": 50,
+    "gate": 0.25,
+    "dir": 0
+   },
+   "att": [
+    1,
+    1
+   ],
+   "map": {
+    "p1": [
+     "len"
+    ],
+    "p2": [
+     "rate"
+    ],
+    "k1": [],
+    "k2": [],
+    "k3": [],
+    "k4": []
+   },
+   "name": "PATTERN"
+  },
+  {
+   "id": 11,
+   "type": "arp",
+   "x": 40,
+   "y": 828,
+   "params": {
+    "mode": 0,
+    "rate": 4,
+    "octaves": 2,
+    "gate": 0.4,
+    "latch": 0
+   },
+   "bypass": true
+  },
+  {
+   "id": 12,
+   "type": "alloc",
+   "x": 200,
+   "y": 828,
+   "params": {
+    "voices": 1,
+    "assign": 0,
+    "legato": 0,
+    "priority": 0,
+    "unison": 0,
+    "channel": 0,
+    "low": 0,
+    "high": 127,
+    "steal": 1,
+    "stack": 0
+   }
+  }
+ ],
+ "cables": [
+  {
+   "from": {
+    "module": 12,
+    "port": "pitch"
+   },
+   "to": {
+    "module": 3,
+    "port": "pitch"
+   }
+  },
+  {
+   "from": {
+    "module": 12,
+    "port": "gate"
+   },
+   "to": {
+    "module": 5,
+    "port": "gate"
+   }
+  },
+  {
+   "from": {
+    "module": 12,
+    "port": "gate"
+   },
+   "to": {
+    "module": 6,
+    "port": "gate"
+   }
+  },
+  {
+   "from": {
+    "module": 3,
+    "port": "out"
+   },
+   "to": {
+    "module": 4,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 5,
+    "port": "env"
+   },
+   "to": {
+    "module": 4,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 4,
+    "port": "out"
+   },
+   "to": {
+    "module": 7,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 6,
+    "port": "env"
+   },
+   "to": {
+    "module": 7,
+    "port": "cv"
+   }
+  },
+  {
+   "from": {
+    "module": 7,
+    "port": "out"
+   },
+   "to": {
+    "module": 8,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 8,
+    "port": "l"
+   },
+   "to": {
+    "module": 9,
+    "port": "in"
+   }
+  },
+  {
+   "from": {
+    "module": 9,
+    "port": "out"
+   },
+   "to": {
+    "module": 2,
+    "port": "l"
+   }
+  },
+  {
+   "from": {
+    "module": 8,
+    "port": "r"
+   },
+   "to": {
+    "module": 2,
+    "port": "r"
+   }
+  },
+  {
+   "from": {
+    "module": 1,
+    "port": "keys"
+   },
+   "to": {
+    "module": 10,
+    "port": "keys"
+   }
+  },
+  {
+   "from": {
+    "module": 10,
+    "port": "keys"
+   },
+   "to": {
+    "module": 11,
+    "port": "keys"
+   }
+  },
+  {
+   "from": {
+    "module": 11,
+    "port": "keys"
+   },
+   "to": {
+    "module": 12,
+    "port": "keys"
+   }
+  }
+ ],
+ "notes": "Las teclas tocan acordes con el VCO Chord (homenaje al VCO Chord 2.0 y al chord VCO de HAGIWO). K1 acorde, K2 inversión, K3 onda, K4 detune. Con ARP en el módulo, arpegia al tempo con PLAY; con BITS en 8 bit suena como el Arduino. SEQ / REC graban lo que tocás."
+}
