@@ -2,6 +2,10 @@
 
 Kitten Rack's versions. Each release on GitHub has an installer, the `.fwsc` and the offline editor. The history of Matryoshka, which Kitten Rack starts from, is in [docs/CHANGELOG-matryoshka.md](docs/CHANGELOG-matryoshka.md).
 
+## 1.5.0 — 2026-11-15
+
+(Tested on the FM-1 as 1.5.0-rc3.) Everything in the three test versions below: the **VCO Chord**, the **Seq 960 with 16 steps and ratchets**, the **new screen look** (knobs on a faceplate, envelope curves, menu and SONG on the plate) and the **visuals settings** (VISUAL, VISUAL SCOPE).
+
 ## 1.5.0-rc3 — 2026-11-15 (test version)
 
 - **A new look for the screen** (the owner's mocks): the module page is a panel with **four knobs** (scale, pointer, the knob's colour on its tab) and, on top, the knob turned last, large; **envelopes draw their curve**, each stage in the colour of the knob that sets it, the knobs named after what they move. GLO and the sandbox page the same; the **menu** and the **SONG** page on the same faceplate (LEDs, value windows, key caps).
