@@ -1235,7 +1235,7 @@ int main(void)
             check("  the rack's patching menu in English", !strcmp(v, "NEW CABLE"));
             rk_row_menu(2, v);
             check("  ADD MODULE", !strcmp(v, "ADD MODULE"));
-            rk_row_cat(3, v);
+            rk_row_cat(4, v);   /* (row 3: VCO CHORD, since 1.5) */
             check("  the catalog in English (NOISE  SOURCES)", !strcmp(v, "NOISE  SOURCES"));
             check("  a Spanish jack name in English (STRIKE)", !strcmp(rk_port_word("GOLPE"), "STRIKE") && !strcmp(rk_port_word("IN"), "IN"));
             enc(5, 1);
