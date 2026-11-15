@@ -84,7 +84,7 @@ static int poly_row_set(uint32_t mod, uint32_t field, int32_t v)
 }
 
 #define ROWS_Y (LK_HH + 4u)                            /* the device page's first bar */
-#define K1_TAB px(BAR_X + LK_VP + 1u, row_y(0) + row_h() / 2u)   /* K1's accent tab (the page drawn last: its bars) */
+#define K1_TAB px(knob_chip_x(0), knob_chip_y())   /* K1's tab under its knob (the page drawn last: its panel; KITTEN RACK) */
 #define BPX(x, y) px(BATT_FX + (x), BATT_FY + (y))      /* the footer's battery */
 static int failed;
 static void check(const char *what, int ok)
@@ -545,14 +545,14 @@ int main(void)
     }
     {   /* #298: a knob turned moves its own bar where it is: the slider and the number, nothing else on the screen */
         static uint16_t was[240 * 240];
-        uint32_t i, outside = 0, k1_px, y_lo = row_y(0), y_hi = row_y(0) + row_h(), n;
+        uint32_t i, outside = 0, k1_px, y_lo = panel_y0(), y_hi = panel_y1(), n;   /* (KITTEN RACK: the readout and the knobs) */
         memcpy(was, fb, sizeof was);
         lcd_px = lcd_xfers = 0;
         enc(2, 5);                                          /* K1 */
         k1_px = lcd_px;
         check("K1: its row's parameter moved, the editor told", eng_get_param(mod, par) != v0 && param_now == 1);
         for (i = 0; i < 240u * 240u; i++)
-            outside += was[i] != fb[i] && (i / 240u < y_lo || i / 240u >= y_hi || i % 240u < BAR_X || i % 240u >= BAR_X + BAR_W);
+            outside += was[i] != fb[i] && (i / 240u < y_lo || i / 240u >= y_hi || i % 240u < PN_X0 || i % 240u >= PN_X1);
         printf("      LCD pixels for a K1 turn: %u in %u transfers\n", k1_px, lcd_xfers);
         check("K1: no pixel outside its bar changes, and the bar moves (no toast)", outside == 0u
               && memcmp(was, fb, sizeof was) != 0 && K1_TAB == KNOB_HUE[0]);
@@ -563,7 +563,7 @@ int main(void)
         for (i = 0, outside = 0; i < 240u * 240u; i++)
             outside += was[i] != fb[i] && (i / 240u < y_lo || i / 240u >= y_hi);
         printf("      LCD pixels for one K1 click: %u\n", k1_px);
-        check("one K1 click: under 2,500 px (about 3 ms), only its bar", k1_px < 2500u && outside == 0u);
+        check("one K1 click: under 4,500 px (about 5 ms: its pointer, its value, the readout's), only the panel", k1_px < 4500u && outside == 0u);
         memcpy(was, fb, sizeof was);
         ui_dirty = 2;                                       /* the bar drawn whole: the same picture */
         loop();
@@ -2859,8 +2859,8 @@ int main(void)
         for (gold = 0, x = 0; x < 240u; x++)
             gold += px(x, SB_RAIL_Y) == P_GOLD;
         check("the page: its bars (K4 empty), the third page of five lit in gold", sb_have && K1_TAB != P_NIGHT
-              && px(BAR_X + 2u, row_y(3) + 2u) == P_STRIP && gold > 20u && px(4, 4) == P_GOLD);
-        check("  K1 half way: its fill to the middle", px(BAR_X + BAR_W / 2u - 8u, row_y(0) + 4u) != px(BAR_X + BAR_W / 2u + 8u, row_y(0) + 4u));
+              && px(knob_chip_x(3), knob_chip_y()) == P_FAINT && gold > 20u && px(4, 4) == P_GOLD);
+        check("  K1 half way: its pointer straight up", px(KN_X0 + KN_W / 2u, knob_cy() - 8u) == KB_PTR && px(KN_X0 + KN_W / 2u, knob_cy() + 8u) != KB_PTR);
         from = mlen;
         pn = param_now;
         enc(2, 1);                                          /* K1: one click from the editor's position (128 = CC 64) */

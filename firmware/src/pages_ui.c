@@ -68,6 +68,7 @@ static uint32_t pg_ndev, pg_npage, pg_built_gen = 0xFFFFFFFFu, pg_built_at;
 static uint32_t pg_cur_dev, pg_cur_page;                /* the focus: the device and its page K1..K4 turn */
 static uint8_t pg_strip_dirty = 1;                      /* the header needs a redraw (the focus moved) */
 static uint8_t pg_row_dirty;                            /* K1..K4 turned these rows: redrawn where they changed (#298) */
+static uint8_t pg_focus;                                /* KITTEN RACK: the knob last turned (the panel's readout shows it) */
 static struct {
     uint16_t base, live, vx;                            /* as the bar was drawn: its fill's end, live tick, value's x */
     uint32_t txt, name;                                 /* its value and unit, its name and whether the page has the row (text_hash) */
@@ -557,6 +558,7 @@ static int pages_focus(uint32_t d, uint32_t g)
     pg_cur_dev = d;
     pg_cur_page = g;
     pg_strip_dirty = 1;
+    pg_focus = 0;                                       /* (KITTEN RACK: the readout starts on K1) */
     toast_end();
     return 1;
 }
@@ -592,6 +594,7 @@ static int pages_turn(uint32_t k, int32_t clicks, int fast, uint32_t *mod, uint3
     m = pg->mod[k];
     j = pg->par[k];
     pg_row_dirty |= (uint8_t)(1u << k);                 /* (the row moves where it is, #298) */
+    pg_focus = (uint8_t)k;                              /* (KITTEN RACK: the readout shows it) */
     toast_end();
     *mod = m;
     *par = j;
@@ -1233,91 +1236,406 @@ static int pages_unheaded(const ppage_t *pg, const pdev_t *d)
     return 1;
 }
 
-/* ---- the bars: K1..K4's rows, four full-width bars in the knob's hue. The area they share (g_y0..g_y1: the device page's
- * between the header and the footer, 4 px from each; GLO's and the sandbox page's smaller) gives four equal heights,
- * ROW_GAP apart. A bar: the panel colour, filled to its value in the hue mixed 40 % with it and edged LK_ET px in the
- * hue, an ivory tick where modulation has the parameter now; an accent tab in the hue at LK_VP, 45 % of the bar high;
- * the name after it, the value and its unit right. A row the page lacks: the strip's colour */
+/* ---- KITTEN RACK: the panel (the owner's mock "B · panel Eurorack" of 2026-11-15; for an envelope, "ENV 2"): K1..K4's
+ * rows as four knobs on a faceplate between the header and the footer (g_y0..g_y1: the device page's, GLO's with its
+ * button list under it, the sandbox page's). The faceplate: a 1 px edge and a screw in each corner; on top the readout,
+ * the knob last turned (pg_focus) large: its hue's tab, its name, its value in its hue and the unit; an envelope's page
+ * (ppage_t.display) shows the envelope's curve there instead, each stage in the hue of the knob on this page that sets it
+ * (P_DIM: a knob of another page), the knob last turned's name and value in its corner. Under a line, the four knobs in
+ * columns of KN_W: a scale of 11 ticks, the knob (its ring in its hue when it is the one last turned), its cap and
+ * pointer at the value, an ivory dot on the scale where modulation has the parameter now; under it "K1" on the hue and
+ * the row's name, then its value. A row the page lacks: a dim "-". */
 static uint32_t g_y0 = LK_HH + 4u, g_y1 = FOOT_Y - 4u;
 static void geo_set(uint32_t y0, uint32_t y1)
 {
     g_y0 = y0;
     g_y1 = y1;
 }
-static uint32_t row_y(uint32_t k) { return (4u * g_y0 + k * (g_y1 - g_y0 + ROW_GAP) + 2u) / 4u; }
-static uint32_t row_h(void) { return (g_y1 - g_y0 - 3u * ROW_GAP + 2u) / 4u; }
-/* the device page's and GLO's areas (GLO keeps its button list under the bars) */
+/* the device page's and GLO's areas (GLO keeps its button list under the panel) */
 #define GLO_LIST_H 36u
 static void geo_page(int glo) { geo_set(LK_HH + 4u, FOOT_Y - 4u - (glo ? GLO_LIST_H : 0u)); }
 
-/* what a bar shows */
+/* what a knob shows */
 typedef struct {
     uint8_t used;
     char name[24], num[20], unit[8];
-    uint32_t base, live, nx, vx, ux;
+    uint32_t base, live, nx, vx, ux;                    /* base, live: 0..BAR_W along its range; vx, ux: the readout's x */
 } bar_t;
-static uint32_t bar_nb(void) { return BASE6(row_h() + 2u, LK_NS); }   /* the name's baseline in the bar */
-static uint32_t bar_vb(void) { return BASE6(row_h() + 2u, LK_VS); }   /* the value's */
-static uint32_t bar_ub(void) { return BASE6(row_h() + 6u, LK_US); }   /* the unit's */
-/* the band of rows that holds the value and the unit */
-static uint32_t bar_vr0(void)
+#define PN_X0 4u
+#define PN_X1 236u
+#define KN_X0 6u
+#define KN_W 57u                                        /* a knob's column */
+#define RD_H 36u                                        /* the readout */
+#define EW_H 62u                                        /* .. an envelope's curve instead */
+#define EW_X0 14u
+#define EW_X1 226u
+#define PN_BG RGB565(0x2A2622u)
+#define PN_EDGE RGB565(0x3D3731u)
+#define PN_SCREW RGB565(0x6F675Eu)
+#define PN_SCREW_IN RGB565(0x4A443Eu)
+#define PN_VAL RGB565(0xCDBBA6u)
+#define PN_CHIP_INK RGB565(0x15110Eu)
+#define KB_BODY RGB565(0x0E0D0Cu)
+#define KB_RING RGB565(0x3A3530u)
+#define KB_CAP RGB565(0x1B1917u)
+#define KB_CAP_EDGE RGB565(0x34302Cu)
+#define KB_TICK RGB565(0x8B8178u)
+#define KB_PTR RGB565(0xF6EFE4u)
+#define EW_BG RGB565(0x0D0B0Au)
+#define EW_EDGE RGB565(0x1A1714u)
+#define EW_GRID RGB565(0x221E1Au)
+/* the scale's 11 ticks, -135 .. 135 degrees from up, clockwise: their directions (sin, -cos), Q14 */
+static const int16_t TICK_UX[11] = {-11585, -15582, -16182, -13255, -7438, 0, 7438, 13255, 16182, 15582, 11585};
+static const int16_t TICK_UY[11] = {11585, 5063, -2563, -9630, -14598, -16384, -14598, -9630, -2563, 5063, 11585};
+static struct {
+    uint16_t y0, y1, r0, r1, dv, a0, a1, cy, nb, vb;
+    uint8_t r, env;
+} pn;                                                   /* the panel's geometry (panel_geo) */
+static uint8_t pn_sandbox;                              /* the sandbox page draws the panel (panel_out, not page_out) */
+static const ppage_t *pg_shown;                         /* the page the panel draws (its envelope) */
+static uint8_t rd_focus = 0xFFu;                        /* the knob the readout shows (0xFF: none yet) */
+static int16_t kn_ux[PG_ROWS], kn_uy[PG_ROWS], kn_lx[PG_ROWS], kn_ly[PG_ROWS];   /* a knob's pointer (Q14), its live dot (Q4) */
+static uint8_t viz_lo[240], viz_hi[240];                /* (viz_ui.c's scope columns: an envelope's curve while a page shows) */
+static uint8_t viz_ok;
+
+static void panel_geo(int env)
 {
-    uint32_t a = bar_vb() - FONT_V.base, b = bar_ub() - FONT_F.base;
-    return a < b ? a : b;
+    uint32_t h, blk, r, slack;
+    pn.y0 = (uint16_t)g_y0;
+    pn.y1 = (uint16_t)g_y1;
+    pn.env = (uint8_t)(env ? 1u : 0u);
+    pn.r0 = (uint16_t)(g_y0 + 5u);
+    pn.r1 = (uint16_t)(pn.r0 + (env ? EW_H : RD_H));
+    pn.dv = (uint16_t)(pn.r1 + 2u);
+    pn.a0 = (uint16_t)(pn.dv + 3u);
+    pn.a1 = (uint16_t)(g_y1 > pn.a0 + 4u ? g_y1 - 4u : pn.a0);
+    h = pn.a1 - pn.a0;
+    blk = 4u + FONT_S.h + 2u + FONT_M.h;                /* under the knob: its name line and its value */
+    r = h > blk + 24u ? (h - blk) / 2u : 12u;
+    r = r > 26u ? 26u : r;
+    slack = h > 2u * r + blk ? h - 2u * r - blk : 0u;
+    pn.r = (uint8_t)r;
+    pn.cy = (uint16_t)(pn.a0 + slack / 2u + r);
+    pn.nb = (uint16_t)(pn.cy + r + 4u + FONT_S.base);
+    pn.vb = (uint16_t)(pn.nb - FONT_S.base + FONT_S.h + 2u + FONT_M.base);
 }
-static uint32_t bar_vr1(void)
+static uint32_t panel_sig(void) { return (uint32_t)pn.y0 << 16 ^ (uint32_t)pn.y1 << 4 ^ pn.env; }
+
+/* a cov sixteenths of fg over bg */
+static uint16_t over(uint16_t fg, uint16_t bg, int32_t cov)
 {
-    uint32_t a = bar_vb() - FONT_V.base + FONT_V.h, b = bar_ub() - FONT_F.base + FONT_F.h, r = a > b ? a : b;
-    return r > row_h() ? row_h() : r;
+    return cov <= 0 ? bg : cov >= 16 ? fg : mix565(fg, bg, (uint32_t)cov);
 }
 
-/* where its type goes: name and num cut to fit, the x of each */
+/* a position along BAR_W -> the knob's direction (sin, -cos of -135 .. 135 degrees), Q14 */
+static void knob_dir(uint32_t at, int16_t *ux, int16_t *uy)
+{
+    int32_t pos = (int32_t)((at > BAR_W ? BAR_W : at) * 65536u / BAR_W), turns = -24576 + pos * 3 / 4;
+    uint32_t ph = (uint32_t)turns << 16;
+    *ux = (int16_t)(sin_turn(ph) >> 2);
+    *uy = (int16_t)(-(sin_turn(ph + 0x40000000u) >> 2));
+}
+/* knob k's pointer and live dot from its bar (pg_bar) */
+static bar_t pg_bar[PG_ROWS];
+static void knob_prep(uint32_t k)
+{
+    int16_t lx, ly;
+    int32_t rr = ((int32_t)pn.r - 2) * 16;
+    knob_dir(pg_bar[k].base, &kn_ux[k], &kn_uy[k]);
+    knob_dir(pg_bar[k].live, &lx, &ly);
+    kn_lx[k] = (int16_t)((lx * rr) >> 14);
+    kn_ly[k] = (int16_t)((ly * rr) >> 14);
+}
+
+/* knob k's pixels on scanline y (the panel already under them) */
+static void knob_row(uint32_t k, uint32_t y, uint16_t *row)
+{
+    const bar_t *b = &pg_bar[k];
+    int32_t R = (int32_t)pn.r * 16, rb = ((int32_t)pn.r - 8) * 16, rc = rb * 5 / 8, cx2 = (int32_t)(2u * (KN_X0 + k * KN_W) + KN_W);
+    int32_t fy = ((int32_t)(2u * y + 1u) - (int32_t)(2u * pn.cy + 1u)) * 8, x, xr = (int32_t)(KN_X0 + (k + 1u) * KN_W);
+    int32_t lim = (R + 24) * (R + 24);
+    uint16_t ring = k == rd_focus ? KNOB_HUE[k] : KB_RING, tick = b->used ? KB_TICK : P_FAINT;
+    if (fy * fy >= lim)
+        return;
+    for (x = (int32_t)(KN_X0 + k * KN_W); x < xr; x++) {
+        int32_t fx = ((2 * x + 1) - cx2) * 8, d2 = fx * fx + fy * fy, dist, i;
+        uint16_t c;
+        if (d2 >= lim)
+            continue;
+        c = row[x];
+        dist = (int32_t)isqrt32((uint32_t)d2);
+        if (dist >= R - 6 * 16 && dist <= R + 8)       /* the scale */
+            for (i = 0; i < 11; i++) {
+                int32_t t = (fx * TICK_UX[i] + fy * TICK_UY[i]) >> 14, d, cov;
+                if (t <= 0 || dist < R - (i % 5 == 0 ? 6 : 4) * 16)
+                    continue;
+                d = (fx * TICK_UY[i] - fy * TICK_UX[i]) >> 14;
+                d = d < 0 ? -d : d;
+                cov = 22 - d;
+                if (cov > 0) {
+                    c = over(tick, c, cov > 16 ? 16 : cov);
+                    break;
+                }
+            }
+        if (b->used && b->live != b->base) {            /* where modulation has it now */
+            int32_t ex = fx - kn_lx[k], ey = fy - kn_ly[k], e2 = ex * ex + ey * ey;
+            if (e2 < 40 * 40)
+                c = over(P_INK, c, 40 - (int32_t)isqrt32((uint32_t)e2));
+        }
+        if (dist < rb + 8) {                            /* the knob, its ring */
+            c = over(KB_BODY, c, rb + 8 - dist);
+            if (dist > rb - 28)
+                c = over(ring, c, dist < rb - 12 ? dist - (rb - 28) : rb + 8 - dist);
+        }
+        if (dist < rc + 8) {                            /* the cap */
+            c = over(KB_CAP_EDGE, c, rc + 8 - dist);
+            c = over(KB_CAP, c, rc - 8 - dist);
+        }
+        if (b->used) {                                  /* the pointer */
+            int32_t t = (fx * kn_ux[k] + fy * kn_uy[k]) >> 14;
+            if (t >= 4 * 16 && t <= rb - 3 * 16) {
+                int32_t d = (fx * kn_uy[k] - fy * kn_ux[k]) >> 14;
+                d = d < 0 ? -d : d;
+                c = over(KB_PTR, c, 30 - d);
+            }
+        }
+        row[x] = c;
+    }
+}
+
+/* knob k's caption on scanline y: "K1" on its hue and the name, then the value */
+/* knob k's tab and name under it: the tab's text ("K1", or "1" before a long name) and x, its width, the name cut to fit */
+static void knob_caption(uint32_t k, char *kn, char *name, uint32_t *sx, uint32_t *cw)
+{
+    const bar_t *b = &pg_bar[k];
+    uint32_t nw, tw;
+    kn[0] = 'K';
+    kn[1] = (char)('1' + k);
+    kn[2] = 0;
+    *cw = text_w(&FONT_S, kn, -1) + 4u;
+    put(name, b->used ? b->name : "-")[0] = 0;
+    if (text_w(&FONT_S, name, -1) > KN_W - *cw - 4u) {  /* a long name: the tab says only the knob's number */
+        kn[0] = kn[1];
+        kn[1] = 0;
+        *cw = text_w(&FONT_S, kn, -1) + 4u;
+    }
+    fit(name, &FONT_S, KN_W - *cw - 4u);
+    nw = text_w(&FONT_S, name, -1);
+    tw = *cw + 3u + nw;
+    *sx = KN_X0 + k * KN_W + (KN_W > tw ? (KN_W - tw) / 2u : 0u);
+}
+static void knob_text(uint32_t k, uint32_t y, uint16_t *row)
+{
+    const bar_t *b = &pg_bar[k];
+    char kn[3], name[24];
+    uint32_t x0 = KN_X0 + k * KN_W, cw, sx, ct = pn.nb - FONT_S.base;
+    knob_caption(k, kn, name, &sx, &cw);
+    if (y >= ct && y < ct + FONT_S.h) {
+        uint32_t i;
+        for (i = sx; i < sx + cw; i++)
+            row[i] = b->used ? KNOB_HUE[k] : P_FAINT;
+        text_at(row, 240, &FONT_S, y, pn.nb, kn, sx + 2u, PN_CHIP_INK);
+        text_at(row, 240, &FONT_S, y, pn.nb, name, sx + cw + 3u, b->used ? P_INK : P_FAINT);
+    }
+    if (b->used && y + FONT_M.base >= pn.vb && y + FONT_M.base < pn.vb + FONT_M.h) {
+        char num[20];
+        uint32_t vw, uw = b->unit[0] ? text_w(&FONT_F, b->unit, -1) + 2u : 0u, x;
+        put(num, b->num)[0] = 0;
+        fit(num, &FONT_M, KN_W - 2u);                   /* (never past its column) */
+        vw = text_w(&FONT_M, num, -1);
+        if (vw + uw > KN_W - 2u)
+            uw = 0;
+        x = x0 + (KN_W > vw + uw ? (KN_W - vw - uw) / 2u : 0u);
+        text_at(row, 240, &FONT_M, y, pn.vb, num, x, PN_VAL);
+        if (uw)
+            text_at(row, 240, &FONT_F, y, pn.vb, b->unit, x + vw + 2u, P_MIST);
+    }
+}
+/* the rows of knob k's caption */
+static uint32_t knob_t0(void) { return pn.nb - FONT_S.base; }
+static uint32_t knob_v0(void) { return pn.vb - FONT_M.base; }
+static uint32_t knob_v1(void) { return pn.vb - FONT_M.base + FONT_M.h; }
+
+/* ---- an envelope's curve (ENV 2): its stages, each a level reached over a time, laid along the window (viz_lo: the
+ * curve's row per column, viz_hi: its colour, 0..3 a knob's hue, 4 dim) */
+#define ENV_SEGS 10u
+static void env_prep(const ppage_t *pg)
+{
+    uint32_t m = pg->display - 1u, n = 0, i, w = EW_X1 - EW_X0 - 2u, tot = 0, x = 0;
+    int32_t t = eng_type(m), top = pn.r0 + 6, bot = pn.r1 - 5;
+    uint8_t lev[ENV_SEGS], wgt[ENV_SEGS], par[ENV_SEGS], l0 = 0;
+    const def_t *d;
+    if (t < 0)
+        return;
+    d = &DEFS[t];
+#define SEG(L, W, P) do { if (n < ENV_SEGS) { lev[n] = (uint8_t)(L); wgt[n] = (uint8_t)(W); par[n] = (uint8_t)(P); n++; } } while (0)
+#define LV(j) ((uint32_t)clampi(eng_get_param(m, j), 0, 65536) * 255u >> 16)
+#define TW(j) (6u + (uint32_t)unit_of(d, j, eng_get_param(m, j)) * 54u / 65536u)
+    if (t == T_ADSR) {
+        SEG(255u, TW(ADSR_P_A), ADSR_P_A);
+        SEG(LV(ADSR_P_S), TW(ADSR_P_D), ADSR_P_D);
+        SEG(LV(ADSR_P_S), 18u, ADSR_P_S);
+        SEG(0u, TW(ADSR_P_R), ADSR_P_R);
+    } else if (t == T_ENV || t == T_ENV8) {             /* level j, rate j + 1 */
+        uint32_t st = t == T_ENV ? 4u : (uint32_t)clampi(round_q16(eng_get_param(m, ENV8_P_END)), 1, 8);
+        for (i = 0; i < st; i++)
+            SEG(LV(2u * i), TW(2u * i + 1u), 2u * i);
+    } else if (t == T_RATEENV) {                        /* DX rates: 31 the fastest */
+#define RW(j, mx) (6u + (uint32_t)((mx) - clampi(round_q16(eng_get_param(m, j)), 0, mx)) * 54u / (mx))
+        uint32_t l1 = (uint32_t)clampi(round_q16(eng_get_param(m, RATEENV_P_D1L)), 0, 15) * 17u;
+        SEG(255u, RW(RATEENV_P_AR, 31), RATEENV_P_AR);
+        SEG(l1, RW(RATEENV_P_D1R, 31), RATEENV_P_D1R);
+        SEG(clampi(round_q16(eng_get_param(m, RATEENV_P_D2R)), 0, 31) ? 0u : l1, RW(RATEENV_P_D2R, 31), RATEENV_P_D2R);
+        SEG(0u, RW(RATEENV_P_RR, 15), RATEENV_P_RR);
+#undef RW
+    } else if (t == T_FUNC) {
+        SEG(255u, TW(FUNC_P_RISE), FUNC_P_RISE);
+        SEG(0u, TW(FUNC_P_FALL), FUNC_P_FALL);
+    }
+#undef SEG
+#undef LV
+#undef TW
+    for (i = 0; i < n; i++)
+        tot += wgt[i];
+    if (!tot)
+        return;
+    for (i = 0; i < n; i++) {
+        uint32_t x1 = i + 1u == n ? w + 1u : x + (wgt[i] * w + tot / 2u) / tot, ci = 4u, k, c;
+        for (k = 0; k < pg->nrows; k++)                 /* the stage's colour: the knob here that sets it */
+            if (pg->mod[k] == m && (pg->par[k] == par[i] || (t != T_ADSR && t != T_RATEENV && t != T_FUNC && pg->par[k] == par[i] + 1u)
+                                    || (t == T_ADSR && par[i] == ADSR_P_D && pg->par[k] == ADSR_P_S)
+                                    || (t == T_RATEENV && par[i] == RATEENV_P_D1R && pg->par[k] == RATEENV_P_D1L))) {
+                ci = k;
+                break;
+            }
+        for (c = x; c < x1 && c < 240u; c++) {
+            int32_t u = (int32_t)((c - x) * 256u / (x1 > x ? x1 - x : 1u)), l;
+            if (lev[i] >= l0)
+                l = l0 + ((int32_t)(lev[i] - l0) * u >> 8);
+            else {                                      /* a fall: fast, then easing out */
+                int32_t v = 256 - u;
+                l = lev[i] + (int32_t)((int32_t)(l0 - lev[i]) * (v * v >> 8) * v >> 16);
+            }
+            viz_lo[c] = (uint8_t)(bot - (bot - top) * l / 255);
+            viz_hi[c] = (uint8_t)ci;
+        }
+        l0 = lev[i];
+        x = x1;
+    }
+    for (; x <= w && x < 240u; x++) {
+        viz_lo[x] = (uint8_t)bot;
+        viz_hi[x] = 4u;
+    }
+    viz_ok = 0;                                         /* (the scope draws its page whole when it shows again) */
+}
+
+/* the readout's scanline: the knob last turned large (or the envelope's window with it in its corner) */
+static void readout_row(const ppage_t *pg, uint32_t y, uint16_t *row)
+{
+    uint32_t f = rd_focus < PG_ROWS ? rd_focus : 0u, x, base = pn.r1 - 6u;
+    const bar_t *b = &pg_bar[f];
+    uint16_t hue = KNOB_HUE[f];
+    if (pn.env) {
+        uint32_t gy = pn.r1 - pn.r0, yy = y - pn.r0;
+        for (x = EW_X0; x < EW_X1; x++)
+            row[x] = (x == EW_X0 || x + 1u == EW_X1 || yy == 0u || yy + 1u == gy) ? EW_EDGE
+                     : (yy == gy / 4u || yy == gy / 2u || yy == 3u * gy / 4u) ? EW_GRID : EW_BG;
+        if (pg && pg->display && yy && yy + 1u < gy)
+            for (x = 0; x + EW_X0 + 2u < EW_X1; x++) {
+                int32_t a = viz_lo[x], c2 = viz_lo[x + 1u], lo = a < c2 ? a : c2, hi = a < c2 ? c2 : a;
+                uint16_t col = viz_hi[x] < 4u ? KNOB_HUE[viz_hi[x]] : P_DIM;
+                if ((int32_t)y >= lo - 1 && (int32_t)y <= hi + 1)
+                    row[EW_X0 + 1u + x] = (int32_t)y >= lo && (int32_t)y <= hi ? col : mix565(col, EW_BG, 9u);
+                else if ((int32_t)y > hi + 1)
+                    row[EW_X0 + 1u + x] = mix565(col, EW_BG, 3u);
+            }
+        if (b->used) {                                  /* the knob last turned: its name and value, top right */
+            uint32_t vw = text_w(&FONT_H, b->num, -1), uw = b->unit[0] ? text_w(&FONT_F, b->unit, -1) + 2u : 0u;
+            uint32_t nw = text_w(&FONT_H, b->name, -1), vx = EW_X1 - 6u - uw - vw, nx = vx > nw + 6u ? vx - nw - 6u : EW_X0 + 4u;
+            base = pn.r0 + 4u + FONT_H.base;
+            text_at(row, 240, &FONT_H, y, base, b->name, nx, P_INK);
+            text_at(row, 240, &FONT_H, y, base, b->num, vx, hue);
+            if (uw)
+                text_at(row, 240, &FONT_F, y, base, b->unit, vx + vw + 2u, P_MIST);
+        }
+        return;
+    }
+    if (!b->used)
+        return;
+    if (y + 4u >= base - 8u && y + 4u < base + 2u)      /* the tab */
+        for (x = 12u; x < 18u; x++)
+            row[x] = hue;
+    text_at(row, 240, &FONT_N, y, base, b->name, 24u, P_INK);
+    text_at(row, 240, &FONT_T, y, base + 1u, b->num, b->vx, hue);
+    if (b->unit[0])
+        text_at(row, 240, &FONT_F, y, base, b->unit, b->ux, P_MIST);
+}
+
+/* where its type goes: the readout's value right, its unit after it; the name cut to fit before it */
 static void bar_layout(bar_t *b)
 {
     uint32_t uw, vw, vr;
-    b->nx = LK_VP + 10u;
+    b->nx = 24u;
     b->vx = b->ux = 0;
     if (!b->used)
         return;
     uw = b->unit[0] ? text_w(&FONT_F, b->unit, -1) : 0u;
-    b->ux = BAR_W - 6u - uw;
-    vr = b->unit[0] ? b->ux - 3u : BAR_W - 6u;
-    fit(b->num, &FONT_V, 110u);
-    vw = text_w(&FONT_V, b->num, -1);
+    b->ux = PN_X1 - 8u - uw;
+    vr = b->unit[0] ? b->ux - 3u : PN_X1 - 8u;
+    fit(b->num, &FONT_T, 120u);
+    vw = text_w(&FONT_T, b->num, -1);
     b->vx = vr - vw;
     fit(b->name, &FONT_N, b->vx > b->nx + 6u ? b->vx - b->nx - 6u : 0u);
 }
 
-/* bar k's scanline r into row[], the bar from row[ox] on (row[] is ox + BAR_W wide at least) */
-static void bar_row(const bar_t *b, uint32_t k, uint32_t r, uint16_t *row, uint32_t ox)
+/* the panel's scanline y (row[] already holds the night): the faceplate, the readout, the knobs */
+static void panel_row(const ppage_t *pg, uint32_t y, uint16_t *row)
 {
-    uint32_t i, h = row_h(), base = b->base > BAR_W ? BAR_W : b->base, live = b->live > BAR_W ? BAR_W : b->live, w = ox + BAR_W;
-    uint16_t hue = KNOB_HUE[k], *p = row + ox;
-    if (!b->used) {
-        for (i = 0; i < BAR_W; i++)
-            p[i] = P_STRIP;
-        text_at(row, w, &FONT_N, r, bar_nb(), "-", ox + b->nx, P_FAINT);
+    static const uint8_t SCREW[7] = {0, 6, 11, 13, 11, 6, 0};   /* (a 7 px disc: its rows' half-widths x 2) */
+    uint32_t x, k;
+    if (y < pn.y0 || y >= pn.y1)
         return;
-    }
-    for (i = 0; i < BAR_W; i++)
-        p[i] = i < base ? KNOB_FILL[k] : P_PANEL;
-    for (i = base > LK_ET ? base - LK_ET : 0u; i < base; i++)   /* the fill's edge */
-        p[i] = hue;
-    if (live != base && r >= 4u && r + 4u < h) {        /* modulated: where the parameter is now (2 px, inside the bar) */
-        uint32_t t = live < 1u ? 1u : live > BAR_W - 1u ? BAR_W - 1u : live;
-        p[t - 1u] = p[t] = P_INK;
-    }
+    for (x = PN_X0; x < PN_X1; x++)
+        row[x] = (y == pn.y0 || y + 1u == pn.y1 || x == PN_X0 || x + 1u == PN_X1) ? PN_EDGE : PN_BG;
     {
-        uint32_t ah = (h * 45u + 50u) / 100u, ty = (h - ah + 1u) / 2u;
-        if (r >= ty && r < ty + ah)
-            for (i = LK_VP; i < LK_VP + 4u; i++)
-                p[i] = hue;
+        uint32_t sy[2] = {pn.y0 + 2u, pn.y1 - 9u}, i;
+        for (i = 0; i < 2u; i++)
+            if (y >= sy[i] && y < sy[i] + 7u) {
+                uint32_t hw = SCREW[y - sy[i]];
+                for (x = 0; x < 7u; x++) {
+                    int32_t dx = (int32_t)(2u * x) - 6, ad = dx < 0 ? -dx : dx;
+                    if ((uint32_t)ad <= hw) {
+                        uint16_t c = (y - sy[i] >= 2u && y - sy[i] <= 4u && x >= 2u && x <= 4u) ? PN_SCREW_IN : PN_SCREW;
+                        row[PN_X0 + 2u + x] = c;
+                        row[PN_X1 - 9u + x] = c;
+                    }
+                }
+            }
     }
-    text_at(row, w, &FONT_N, r, bar_nb(), b->name, ox + b->nx, P_INK);
-    text_at(row, w, &FONT_V, r, bar_vb(), b->num, ox + b->vx, P_INK);
-    if (b->unit[0])
-        text_at(row, w, &FONT_F, r, bar_ub(), b->unit, ox + b->ux, P_MIST);
+    if (y >= pn.r0 && y < pn.r1)
+        readout_row(pg, y, row);
+    if (y == pn.dv)
+        for (x = 10u; x < 230u; x++)
+            row[x] = PN_EDGE;
+    if (y >= pn.a0 && y < pn.a1)
+        for (k = 0; k < PG_ROWS; k++) {
+            knob_row(k, y, row);
+            knob_text(k, y, row);
+        }
 }
+
+/* K1's tab in the knob's caption: a pixel that is K1's hue (panel_test.c) */
+static uint32_t knob_chip_x(uint32_t k)
+{
+    char kn[3], name[24];
+    uint32_t sx, cw;
+    knob_caption(k, kn, name, &sx, &cw);
+    return sx + 1u;
+}
+static uint32_t knob_chip_y(void) { return pn.nb - FONT_S.base + 1u; }
+static uint32_t knob_cy(void) { return pn.cy; }
+static uint32_t panel_y0(void) { return pn.r0; }
+static uint32_t panel_y1(void) { return pn.y1; }
 
 /* ---- PRESET's toast (#170): the footer grows to LK_TOH px of sand for LK_TMS: the slot's number ("07.") left, the
  * patch's name right, and a dash per filled slot of the bank along its bottom (the current one night): up to 32 in a row,
@@ -1558,8 +1876,16 @@ static void line_out(uint32_t x0, uint32_t y, uint32_t w, uint32_t s0, uint32_t 
 {
     uint16_t *row = lcd_line;
     uint32_t i;
-    if (y >= toast_top && toast_up())
+    if (y >= toast_top && toast_up()) {
+        scr_npend = 0;                                  /* (its texts are not on the screen either) */
         return;
+    }
+    if (toast_up()) {                                   /* a text reaching under the toast: only its part above it */
+        uint32_t j;
+        for (j = 0; j < scr_npend; j++)
+            if (y + scr_pending[j].h > toast_top)
+                scr_pending[j].h = (uint16_t)(toast_top - y);
+    }
     if (s0 || s1 < w) {                                 /* a part of the scanline: its pixels to the front (the texts */
         for (i = s0; i < s1; i++)                       /* announced still count from the whole one's x: scr_ox) */
             row[i - s0] = row[i];
@@ -1570,21 +1896,16 @@ static void line_out(uint32_t x0, uint32_t y, uint32_t w, uint32_t s0, uint32_t 
     scr_ox = 0xFFFFu;
 }
 
-/* knob k's bar, its rows r0..r1 and of each the pixels s0..s1 of the bar (0, BAR_W: all), a scanline at a time (the
- * fill, the tick, the tab, then the type blended onto them). The device page's (pages_bar_part), GLO's and the sandbox
- * page's (sandbox_ui.c: row_bar) */
-static void row_bar_part(uint32_t k, const bar_t *b, uint32_t r0, uint32_t r1, uint32_t s0, uint32_t s1)
+/* the panel of page pg on the device page (or GLO's) */
+static void pn_page(const ppage_t *pg, int glo)
 {
-    uint32_t r, y0 = row_y(k);
-    for (r = r0; r < r1; r++) {
-        lcd_sync();                                     /* the last row may still be on its way out of lcd_line */
-        bar_row(b, k, r, lcd_line, 0);
-        line_out(BAR_X, y0 + r, BAR_W, s0, s1);
-    }
+    geo_page(glo);
+    panel_geo(pg && pg->display);
+    pn_sandbox = 0;
+    pg_shown = pg;
 }
-static void row_bar(uint32_t k, const bar_t *b) { row_bar_part(k, b, 0, row_h(), 0, BAR_W); }
 
-/* knob k's row of page pg (or an empty slot) as its bar shows it */
+/* knob k's row of page pg (or an empty slot) as its knob shows it */
 static void pages_row(const ppage_t *pg, uint32_t k, bar_t *b)
 {
     b->used = (uint8_t)(pg && k < pg->nrows);
@@ -1601,7 +1922,7 @@ static void pages_row(const ppage_t *pg, uint32_t k, bar_t *b)
     bar_layout(b);
 }
 
-/* a short hash of two texts: whether a bar's number (or name) changed */
+/* a short hash of two texts: whether a knob's number (or name) changed */
 static uint32_t text_hash(const char *a, const char *b)
 {
     uint32_t h = 2166136261u;
@@ -1613,7 +1934,7 @@ static uint32_t text_hash(const char *a, const char *b)
     return h;
 }
 
-/* what knob k's bar shows now (pg_drawn): drawn whole with these */
+/* what knob k shows now (pg_drawn): drawn whole with these */
 static void drawn_note(uint32_t k, const bar_t *b)
 {
     if (k >= PG_ROWS)
@@ -1623,25 +1944,33 @@ static void drawn_note(uint32_t k, const bar_t *b)
     pg_drawn[k].vx = (uint16_t)b->vx;
     pg_drawn[k].txt = text_hash(b->num, b->unit);
     pg_drawn[k].name = text_hash(b->name, "") ^ b->used;
-    pg_drawn[k].h = (uint8_t)row_h();
+    pg_drawn[k].h = (uint8_t)(panel_sig() & 0xFFu) ^ (uint8_t)(pn.y0 >> 1);
     pg_drawn[k].ok = 1;
 }
 
-/* the page's bars as they are now (pages_now), for a draw */
-static bar_t pg_bar[PG_ROWS];
+/* the page's knobs as they are now (pages_now), for a draw; an envelope's curve with them */
 static void bars_get(const ppage_t *pg)
 {
     uint32_t k;
-    for (k = 0; k < PG_ROWS; k++)
+    pg_shown = pg;
+    panel_geo(pg && pg->display);
+    for (k = 0; k < PG_ROWS; k++) {
         pages_row(pg, k, &pg_bar[k]);
+        knob_prep(k);
+    }
+    if (pg_focus >= PG_ROWS || !pg || pg_focus >= pg->nrows)
+        pg_focus = 0;
+    rd_focus = pg_focus;
+    if (pg && pg->display)
+        env_prep(pg);
 }
 
-/* the device page's (or GLO's) scanline y, whole: the header, the bars and the night around them, the footer */
+/* the device page's (or GLO's) scanline y, whole: the header, the panel and the night around it, the footer */
 static head_t hd_now;
 static foot_t ft_now;
 static void page_row(uint32_t y, uint16_t *row)
 {
-    uint32_t i, k;
+    uint32_t i;
     if (y < LK_HH) {
         head_row(&hd_now, y, row);
         return;
@@ -1652,11 +1981,7 @@ static void page_row(uint32_t y, uint16_t *row)
     }
     for (i = 0; i < 240u; i++)
         row[i] = P_NIGHT;
-    for (k = 0; k < PG_ROWS; k++)
-        if (y >= row_y(k) && y < row_y(k) + row_h()) {
-            bar_row(&pg_bar[k], k, y - row_y(k), row, BAR_X);
-            return;
-        }
+    panel_row(pg_shown, y, row);
 }
 
 /* rows y0..y1 of the page, columns x0..x1 */
@@ -1669,54 +1994,126 @@ static void page_out(uint32_t y0, uint32_t y1, uint32_t x0, uint32_t x1)
         line_out(0, y, 240, x0, x1);
     }
 }
-
-/* K1..K4 turned (#298), or a live tick moved: the bar moves where it is, the slider and the number: only the columns its
- * fill's end and live tick moved across (the whole height) and its value and unit when they changed (their band), from
- * what the bar showed (pg_drawn); a bar whose name or kind changed is drawn whole. Every part is drawn from the same
- * values the bar is then noted with, so the bar is then the bar drawn whole, pixel for pixel (panel_test.c) */
-static void pages_row_update(const ppage_t *pg, uint32_t k)
+/* the panel's rows y0..y1, columns x0..x1 (the sandbox page: no header or footer of the device page's) */
+static void panel_out(uint32_t y0, uint32_t y1, uint32_t x0, uint32_t x1)
 {
-    bar_t b;
-    uint32_t n = 0, i, j, sp[4][4], h = row_h();
-    pages_row(pg, k, &b);
-    if (!pg_drawn[k].ok || pg_drawn[k].h != h || pg_drawn[k].name != (text_hash(b.name, "") ^ b.used)) {
-        row_bar(k, &b);
+    uint32_t y, i;
+    for (y = y0; y < y1; y++) {
+        lcd_sync();
+        for (i = 0; i < 240u; i++)
+            lcd_line[i] = P_NIGHT;
+        panel_row(pg_shown, y, lcd_line);
+        line_out(0, y, 240, x0, x1);
+    }
+}
+static void pn_out(uint32_t y0, uint32_t y1, uint32_t x0, uint32_t x1)
+{
+    if (pn_sandbox)
+        panel_out(y0, y1, x0, x1);
+    else
+        page_out(y0, y1, x0, x1);
+}
+
+/* the box around a knob's pointer and live dot, from its direction (ux, uy: Q14) and the dot (Q4): into lo / hi */
+static void knob_box(uint32_t k, int16_t ux, int16_t uy, int16_t lx, int16_t ly, int live, int32_t *x0, int32_t *x1, int32_t *y0, int32_t *y1)
+{
+    int32_t cx = (int32_t)(KN_X0 + k * KN_W) * 16 + (int32_t)KN_W * 8, cy = (int32_t)pn.cy * 16 + 8, rb = ((int32_t)pn.r - 8) * 16, a, b, i;
+    int32_t px[4], py[4], n = 2;
+    px[0] = cx + ((ux * 4 * 16) >> 14);
+    py[0] = cy + ((uy * 4 * 16) >> 14);
+    px[1] = cx + ((ux * (rb - 3 * 16)) >> 14);
+    py[1] = cy + ((uy * (rb - 3 * 16)) >> 14);
+    if (live) {
+        px[2] = cx + lx;
+        py[2] = cy + ly;
+        n = 3;
+    }
+    for (i = 0; i < n; i++) {
+        a = px[i] / 16 - 4;
+        b = px[i] / 16 + 5;
+        *x0 = a < *x0 ? a : *x0;
+        *x1 = b > *x1 ? b : *x1;
+        a = py[i] / 16 - 4;
+        b = py[i] / 16 + 5;
+        *y0 = a < *y0 ? a : *y0;
+        *y1 = b > *y1 ? b : *y1;
+    }
+}
+/* knob k's whole box (its scale, the knob) */
+static void knob_whole(uint32_t k)
+{
+    pn_out(pn.cy - pn.r - 2u, pn.cy + pn.r + 2u, KN_X0 + k * KN_W, KN_X0 + (k + 1u) * KN_W);
+}
+
+/* K1..K4 turned (#298), or a live dot moved: the knob moves where it is: the pointer's box (where it was and where it is),
+ * its value under it, and for the knob last turned the readout's value (an envelope's: its window). The knob last turned
+ * changing: both knobs' rings and the readout whole. A knob whose name or kind changed: its column whole. Every part is
+ * drawn from the same values the knob is then noted with, so it is then the panel drawn whole, pixel for pixel
+ * (panel_test.c) */
+static void knob_update(const ppage_t *pg, uint32_t k, bar_t b)
+{
+    bar_t old = pg_bar[k];
+    int16_t oux = kn_ux[k], ouy = kn_uy[k], olx = kn_lx[k], oly = kn_ly[k];
+    uint32_t sig = (uint8_t)(panel_sig() & 0xFFu) ^ (uint8_t)(pn.y0 >> 1);
+    int moved, texts, whole, focus_moved = rd_focus != pg_focus;
+    pg_shown = pg;
+    whole = !pg_drawn[k].ok || pg_drawn[k].h != sig || pg_drawn[k].name != (text_hash(b.name, "") ^ b.used);
+    moved = b.base != pg_drawn[k].base || b.live != pg_drawn[k].live;
+    texts = pg_drawn[k].txt != text_hash(b.num, b.unit) || pg_drawn[k].vx != b.vx;
+    pg_bar[k] = b;
+    knob_prep(k);
+    if (focus_moved && k == pg_focus) {                 /* the knob last turned is another: the rings, the readout */
+        uint32_t was = rd_focus;
+        rd_focus = pg_focus;
+        if (was < PG_ROWS)
+            knob_whole(was);
+        if (pg && pg->display && moved)
+            env_prep(pg);
+        pn_out(pn.r0, pn.r1, PN_X0, PN_X1);
+        whole = 1;
+    }
+    if (whole) {
+        pn_out(pn.cy - pn.r - 2u, knob_v1() + 1u, KN_X0 + k * KN_W, KN_X0 + (k + 1u) * KN_W);
+        if (k == rd_focus && !focus_moved)
+            pn_out(pn.r0, pn.r1, PN_X0, PN_X1);
         drawn_note(k, &b);
         return;
     }
-#define SPAN(a, b_, r0, r1) do { uint32_t a_ = (a), e_ = (b_) > BAR_W ? BAR_W : (b_); if (e_ > a_) { sp[n][0] = a_; \
-        sp[n][1] = e_; sp[n][2] = (r0); sp[n][3] = (r1); n++; } } while (0)
-    {
-        uint32_t lo = pg_drawn[k].base < b.base ? pg_drawn[k].base : b.base, hi = pg_drawn[k].base < b.base ? b.base : pg_drawn[k].base;
-        if (lo != hi)                                   /* the fill's end (and its edge in the hue) */
-            SPAN(lo >= LK_ET ? lo - LK_ET : 0u, hi, 0u, h);
+    if (moved) {
+        int32_t x0 = 999, x1 = -1, y0 = 999, y1 = -1, cl = (int32_t)(KN_X0 + k * KN_W), cr = cl + (int32_t)KN_W;
+        knob_box(k, oux, ouy, olx, oly, old.live != old.base, &x0, &x1, &y0, &y1);
+        knob_box(k, kn_ux[k], kn_uy[k], kn_lx[k], kn_ly[k], b.live != b.base, &x0, &x1, &y0, &y1);
+        x0 = x0 < cl ? cl : x0;
+        x1 = x1 > cr ? cr : x1;
+        if (x1 > x0 && y1 > y0)
+            pn_out((uint32_t)y0, (uint32_t)y1, (uint32_t)x0, (uint32_t)x1);
+        if (pg && pg->display && k == rd_focus && b.base != pg_drawn[k].base) {
+            env_prep(pg);
+            pn_out(pn.r0, pn.r1, EW_X0, EW_X1);
+            texts = 0;                                  /* (its window holds the value too) */
+            pn_out(knob_v0(), knob_v1(), KN_X0 + k * KN_W, KN_X0 + (k + 1u) * KN_W);
+        } else if (pg && pg->display && b.base != pg_drawn[k].base) {
+            env_prep(pg);
+            pn_out(pn.r0, pn.r1, EW_X0, EW_X1);
+        }
     }
-    {                                                   /* the live ticks, the old and the new, where they moved */
-        int was = pg_drawn[k].live != pg_drawn[k].base, now = b.live != b.base, same = was && now && b.live == pg_drawn[k].live;
-        if (was && !same)
-            SPAN(pg_drawn[k].live >= 2u ? pg_drawn[k].live - 2u : 0u, pg_drawn[k].live + 2u, 4u, h - 4u);
-        if (now && !same)
-            SPAN(b.live >= 2u ? b.live - 2u : 0u, b.live + 2u, 4u, h - 4u);
+    if (texts) {
+        pn_out(knob_v0(), knob_v1(), KN_X0 + k * KN_W, KN_X0 + (k + 1u) * KN_W);
+        if (k == rd_focus) {
+            uint32_t x = pg_drawn[k].vx < b.vx ? pg_drawn[k].vx : b.vx;
+            if (pn.env)
+                pn_out(pn.r0 + 1u, pn.r0 + 4u + FONT_H.h, EW_X0, EW_X1);
+            else
+                pn_out(pn.r0, pn.r1, x > PN_X0 + 1u ? x - 1u : PN_X0, PN_X1);
+        }
     }
-    if (b.used && (pg_drawn[k].vx != b.vx || pg_drawn[k].txt != text_hash(b.num, b.unit))) {   /* the value and unit */
-        uint32_t x = pg_drawn[k].vx < b.vx ? pg_drawn[k].vx : b.vx;
-        SPAN(x >= 1u ? x - 1u : 0u, BAR_W - 5u, bar_vr0(), bar_vr1());
-    }
-#undef SPAN
-    for (i = 0; i < n; i++)                             /* overlapping spans merge (their rows too) */
-        for (j = i + 1u; j < n; j++)
-            if (sp[j][0] < sp[i][1] && sp[i][0] < sp[j][1]) {
-                sp[i][0] = sp[i][0] < sp[j][0] ? sp[i][0] : sp[j][0];
-                sp[i][1] = sp[i][1] > sp[j][1] ? sp[i][1] : sp[j][1];
-                sp[i][2] = sp[i][2] < sp[j][2] ? sp[i][2] : sp[j][2];
-                sp[i][3] = sp[i][3] > sp[j][3] ? sp[i][3] : sp[j][3];
-                sp[j][0] = sp[j][1] = 0;
-                j = i;                                  /* (again from the start: the bigger span may meet another) */
-            }
-    for (i = 0; i < n; i++)
-        if (sp[i][1] > sp[i][0])
-            row_bar_part(k, &b, sp[i][2], sp[i][3], sp[i][0], sp[i][1]);
     drawn_note(k, &b);
+}
+static void pages_row_update(const ppage_t *pg, uint32_t k)
+{
+    bar_t b;
+    pages_row(pg, k, &b);
+    knob_update(pg, k, b);
 }
 
 /* a patch loaded (main.c preset_load): PRESET's (its toast, then the page drawn in passes by panel_draw), or the whole
@@ -1775,8 +2172,8 @@ static void toast_restore(const ppage_t *pg)
     ft_drawn = foot_layout(&ft_now);
     page_out(top, 240, 0, 240);
     batt_drawn = batt_shown();
-    for (k = 0; k < PG_ROWS && pg_plain; k++)           /* (a bar it met: noted as it is now, the rest of it too) */
-        if (row_y(k) + row_h() > top)
+    for (k = 0; k < PG_ROWS && pg_plain; k++)           /* (a knob it met: noted as it is now, the rest of it too) */
+        if (knob_v1() > top)
             pages_row_update(pg, k);
     ut_end(UT_TOAST_END);
 }
@@ -1796,7 +2193,7 @@ static int pages_stop(void)
  * each pixel once, nothing cleared first. A click waiting stops it between bands (pages_stop) */
 static void pages_staged(const ppage_t *pg, int glo)
 {
-    uint32_t k, v0 = bar_vr0(), v1 = bar_vr1(), r0 = bar_nb() - FONT_N.base;
+    uint32_t k, y, step;
     if (toast_scr && !toast_wanted())
         toast_restore(pg);                              /* (its time ran out before the draw came round) */
     if (toast_wanted() && !toast_scr) {
@@ -1808,23 +2205,16 @@ static void pages_staged(const ppage_t *pg, int glo)
         head_draw(0);
     if (pages_stop())
         return;
-    v0 = r0 < v0 ? r0 : v0;                             /* (the band from the name's top: every text's first row in it) */
-    for (k = 0; k < PG_ROWS; k++) {                     /* the name, value and unit of each */
-        bar_t b;
-        pages_row(pg, k, &b);
-        row_bar_part(k, &b, v0, v1, 0, BAR_W);
-        if (pages_stop())
+    bars_get(pg);
+    foot_layout(&ft_now);
+    step = (pn.y1 - pn.y0 + 6u) / 7u;                   /* the panel in seven bands, the readout first */
+    for (y = pn.y0; y < pn.y1; y += step) {
+        page_out(y, y + step < pn.y1 ? y + step : pn.y1, PN_X0, PN_X1);
+        if (y + step < pn.y1 && pages_stop())
             return;
     }
-    for (k = 0; k < PG_ROWS; k++) {                     /* the rest: above and below the type */
-        bar_t b;
-        pages_row(pg, k, &b);
-        row_bar_part(k, &b, 0, v0, 0, BAR_W);
-        row_bar_part(k, &b, v1, row_h(), 0, BAR_W);
-        drawn_note(k, &b);
-        if (k < 3u && pages_stop())
-            return;
-    }
+    for (k = 0; k < PG_ROWS; k++)
+        drawn_note(k, &pg_bar[k]);
     if (!glo)
         foot_draw(0);                                   /* (PRESET: another patch's name) */
     pg_strip_dirty = 0;
@@ -1840,7 +2230,7 @@ static void pages_draw(int full)
     const ppage_t *pg = pages_now();
     uint32_t k;
     int glo = page == PAGE_GLO;
-    geo_page(glo);
+    pn_page(pg, glo);
     if (!full && pg && pg_algo_due && pg_plain && !glo) {
         ut_begin(UT_PAGE);
         pages_staged(pg, glo);                          /* SELECT, ALGO or PRESET reached it */
@@ -1912,7 +2302,7 @@ static void pages_ticks(void)
     uint32_t k;
     if (!pg || sb_on || pg_algo_due || !pg_plain)
         return;
-    geo_page(page == PAGE_GLO);
+    pn_page(pg, page == PAGE_GLO);
     for (k = 0; k < PG_ROWS; k++) {
         bar_t b;
         pages_row(pg, k, &b);

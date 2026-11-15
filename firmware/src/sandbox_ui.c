@@ -218,16 +218,39 @@ static void sandbox_draw(int full)
         sandbox_head();
         sandbox_rail();
     }
-    for (k = 0; k < SB_ROWS; k++)
-        if (sb_dirty >> k & 1u) {
-            bar_t b;
-            b.used = (uint8_t)(sb.rows >> k & 1u);
-            caps(b.name, sb.label[k], b.used ? str_len(sb.label[k]) : 0u, SB_LABEL);
-            put(b.num, b.used ? sb.value[k] : "")[0] = 0;
-            put(b.unit, b.used ? sb.unit[k] : "")[0] = 0;
-            b.base = b.live = (uint32_t)sb.pos[k] * BAR_W / 255u;
-            bar_layout(&b);
-            row_bar(k, &b);
+    {                                                   /* KITTEN RACK: the knobs on the panel (pages_ui.c), the one turned last large */
+        uint32_t last = 0, best = 0;
+        for (k = 0; k < SB_ROWS && k < PG_ROWS; k++)
+            if (sb_turned[k] && sb_turned[k] - 0u >= best) {
+                best = sb_turned[k];
+                last = k;
+            }
+        pn_sandbox = 1;
+        pg_shown = 0;
+        panel_geo(0);
+        pg_focus = (uint8_t)last;
+        for (k = 0; k < SB_ROWS && k < PG_ROWS; k++)
+            if (full || (sb_dirty >> k & 1u) || rd_focus != pg_focus) {
+                bar_t b;
+                b.used = (uint8_t)(sb.rows >> k & 1u);
+                caps(b.name, sb.label[k], b.used ? str_len(sb.label[k]) : 0u, SB_LABEL);
+                put(b.num, b.used ? sb.value[k] : "")[0] = 0;
+                put(b.unit, b.used ? sb.unit[k] : "")[0] = 0;
+                b.base = b.live = (uint32_t)sb.pos[k] * BAR_W / 255u;
+                bar_layout(&b);
+                if (full) {
+                    pg_bar[k] = b;
+                    knob_prep(k);
+                } else
+                    knob_update(0, k, b);
+            }
+        if (full) {
+            rd_focus = pg_focus;
+            panel_out(pn.y0, pn.y1, 0, 240);
+            for (k = 0; k < PG_ROWS; k++)
+                drawn_note(k, &pg_bar[k]);
         }
+        pn_sandbox = 0;
+    }
     sb_dirty = 0;
 }
